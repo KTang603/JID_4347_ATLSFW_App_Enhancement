@@ -13,11 +13,12 @@ export default function Editor({navigation}) {
   const [name, onChangeText] = React.useState('');
   const [address, onChangeAdd] = React.useState('');
   const theme = [
-    {key:'1', value:'Red'},
-    {key:'2', value:'Yellow'},
-    {key:'3', value:'Brown'},
-    {key:'4', value:'White'},
+    {key:'1', value:'red'},
+    {key:'2', value:'yellow'},
+    {key:'3', value:'brown'},
+    {key:'4', value:'white'},
   ]
+
   return (
     
     <SafeAreaView style={styles.container}>
@@ -44,16 +45,19 @@ export default function Editor({navigation}) {
     />
 
     <SelectList
+      placeholderStyle = {styles.drop}
+      iconstyle = {styles.drop}
       setSelected={(val)=>setSelected(val)}
       data={theme}
       save="value"
+      boxStyles = {{borderRadius:0}}
     />
     </View>
 
     <View style = {styles.preview}>
     <Button 
     title = "Preview"
-    onPress ={() => navigation.navigate("Preview")}
+    onPress ={() => navigation.navigate("Preview", {name: name, add:address, color:theme })} 
     />
     </View>
     </SafeAreaView>
@@ -80,7 +84,7 @@ const styles = StyleSheet.create({
   preview: {
     //position:'absolute',
     flexDirection: "row",
-    bottom: 0,
+    bottom: -100,
     alignItems:'center',
     justifyContent:'center'
 
@@ -91,5 +95,12 @@ const styles = StyleSheet.create({
     margin: 10,
     borderwidth: 1,
     padding: 10
+  },
+  drop: {
+    flexDirection: 'row',
+    padding:30,
+    borderwidth: 10,
+    alignItems:'center',
+    justifyContent:'center'
   }
 });
