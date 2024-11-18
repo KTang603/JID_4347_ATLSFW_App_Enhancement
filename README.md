@@ -20,4 +20,4 @@ Firebase integration for future handling of data collections.
 ### Bug Fixes
 N/A
 ### Known Issues
-Firebase homepage inaccessible.
+N/A
