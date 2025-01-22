@@ -1,7 +1,7 @@
 import { MongoClient } from "mongodb";
 import getMongoPasscode from "../password.mjs";
 
-const uri = "mongodb+srv://atlsfw:" + getMongoPasscode() + "@cluster0.tng4t4h.mongodb.net/?retryWrites=true&w=majority";
+const uri = "mongodb+srv://" + getMongoPasscode() + "@cluster0.buqut.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
 const client = new MongoClient(uri);
 
 let conn;
