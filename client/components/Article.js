@@ -1,3 +1,4 @@
+
 import {
   View,
   Image,
@@ -5,6 +6,7 @@ import {
   StyleSheet,
   Pressable,
   TouchableOpacity,
+  Dimensions,
 } from "react-native";
 import { AntDesign } from "@expo/vector-icons";
 import { useState, useEffect } from "react";
@@ -19,8 +21,16 @@ import MY_IP_ADDRESS from "../environment_variables.mjs";
 import { useNavigation } from "@react-navigation/native";
 
 const Article = (props) => {
-  const { image, title, author, likes, saves, article_id, article_link, author_id } =
-    props.article;
+  const {
+    image,
+    title,
+    author,
+    likes,
+    saves,
+    article_id,
+    article_link,
+    author_id,
+  } = props.article;
   const account_type = useSelector((store) => store.acct_type.acct_type);
   //account_type = 1; //hardcode here to test save count text
 
@@ -33,7 +43,7 @@ const Article = (props) => {
 
   const navigation = useNavigation();
 
-  const [ratio, setRatio] = useState(1);
+  // const [ratio, setRatio] = useState(1);
   const [isSavePressed, setSavePressed] = useState(
     saved_articles_state.includes(article_id)
   ); //replace with .includes
@@ -47,11 +57,11 @@ const Article = (props) => {
     navigation.navigate("Author", { id });
   };
 
-  useEffect(() => {
-    if (image) {
-      Image.getSize(image, (width, height) => setRatio(width / height));
-    }
-  }, [image]);
+  // useEffect(() => {
+  //   if (image) {
+  //     Image.getSize(image, (width, height) => setRatio(width / height));
+  //   }
+  // }, [image]);
 
   //begin like button functionality
   const dispatch = useDispatch();
@@ -85,7 +95,7 @@ const Article = (props) => {
         removeFromDB(liked_articles);
       }
     } else {
-      navigation.reset({ index: 0, routes: [{ name: 'Log In' }], });
+      navigation.reset({ index: 0, routes: [{ name: "Log In" }] });
     }
   };
 
@@ -218,7 +228,7 @@ const Article = (props) => {
             source={{
               uri: image,
             }}
-            style={[styles.image, { aspectRatio: ratio }]}
+            style={styles.image}
           />
         </TouchableOpacity>
         <Text style={styles.title}>{title}</Text>
@@ -256,15 +266,17 @@ const Article = (props) => {
 const styles = StyleSheet.create({
   article: {
     width: "100%",
+    padding:10,
   },
   title: {
     fontSize: 16,
     fontWeight: "bold",
+    textAlign:"left",
     margin: 10,
-    left: 10,
   },
   image: {
-    width: "100%",
+    width: Dimensions.get("window").width/2 - 20,
+    height:110,
     borderRadius: 25,
   },
   likeButton: {
