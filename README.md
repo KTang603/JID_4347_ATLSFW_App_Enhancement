@@ -3,7 +3,7 @@
 The **Enhanced ATLSFW Mobile Application** expands on the original app's mission to engage users with sustainable fashion. This version introduces a foundation for future enhancements while retaining the core functionality of user education and engagement through articles and community features.
 
 # Installation Guide
-AHHHHHHHHHHHHHHHHHHHHHHHHH
+
 ## Prerequisites
 * MacOS or Linux Laptop connected to a secured wi-fi connection
 * iPhone connected to the same network
