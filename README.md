@@ -75,42 +75,24 @@ You can use the "New File" button in the VSCode File Explorer shown below to cre
 
 # Release Notes
 
-## Version 0.1.0 (Old App)
+## Version 0.1.0
 
 ### Features
-1. **Login Page**:
-    - Input fields for username and password.
-    - Login button.
-2. **Signup Page**:
-    - Input fields for full name, email, username, password, and confirm password.
-    - Privacy policy agreement checkbox.
-    - Account type dropdown with options for "Customer" and "Vendor."
-3. **Basic Navigation**:
-    - Navigate between Login and Signup pages.
-4. **Content Page Setup**:
-    - Placeholder articles for sustainable fashion topics.
-    - Basic navigation bar with links to the home, events, and profile pages.
+- Moved login page navigation more logical navigation
+- Editing of Community page in anticipation for further news feature additions.
+- Preparations for API integration by importing packages and other small features.
 
 ### Bug Fixes
 - None in this release.
 
 ### Known Issues
-1. Account login does not encrypt email and password.
-2. Save button on the content page is non-functional.
-3. Author page displays dummy data instead of real author bios.
+N/A
 
 ### Troubleshooting
-* Can't run `./run_server.sh` or `.run_client.sh` because of a "Permission denied" error?
-
-  Run `sudo chmod +x <name_of_script.sh>`
-
-* Getting "module not found" errors?
-
-  Check your `package.json` file and see if the missing dependency is there. If not, add it in and run `npm install`.
-
+N/A
 
 **NOTE:**
-2. There is example code for how to hit the endpoints in `client/App.js`.
+
 
 ## Team Links
 1. Github: https://github.com/KTang603/JID-4347-ATLSFW-App-Enhancement
