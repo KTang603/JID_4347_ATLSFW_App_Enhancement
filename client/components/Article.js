@@ -25,12 +25,14 @@ const Article = (props) => {
     image,
     title,
     author,
-    likes,
+    likes: rawLikes,
     saves,
     article_id,
     article_link,
     author_id,
   } = props.article;
+
+  const likes = Math.max(0, rawLikes || 0);
   const account_type = useSelector((store) => store.acct_type.acct_type);
   //account_type = 1; //hardcode here to test save count text
 
