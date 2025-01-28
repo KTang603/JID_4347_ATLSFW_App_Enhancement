@@ -1,9 +1,11 @@
-import React from 'react';
-import { View, StyleSheet, Alert } from 'react-native';
+import React, { useState } from 'react';
+import { View, StyleSheet, Alert, TextInput, Button } from 'react-native';
 import { useSelector } from 'react-redux';
 import VendorProfile from '../components/profile_pages/VendorProfile';
 import UserProfile from '../components/profile_pages/UserProfile';
 import AdminProfile from '../components/profile_pages/AdminProfile';
+import hashString from '../utils/hashingUtils.mjs';
+import { isValidEmail } from '../utils/format.mjs';
 
 const ACCOUNT_TYPE_ADMIN = 1;
 const ACCOUNT_TYPE_VENDOR = 2;
@@ -11,6 +13,27 @@ const ACCOUNT_TYPE_USER = 3;
 
 const ProfilePage = ({ navigation }) => {
   const account_type = useSelector((store) => store.acct_type.acct_type);
+  const [email, setEmail] = useState('');
+
+  const verifyEmail = async () => {
+    try {
+      const hashed_email = await hashString(email);
+
+      if (!isValidEmail(email)) {
+        Alert.alert('Error', 'Email format is invalid', [{ text: 'Try Again' }]);
+      } else {
+        Alert.alert('Valid email!', 'Email verification is successful.', [{ text: 'Exit' }]);
+        // You can add additional logic here, such as sending the hashed email to a server.
+      }
+    } catch (error) {
+      console.error('Error during email verification:', error);
+      Alert.alert(
+        'Verification Error',
+        error.response?.data?.message || 'An error occurred during email verification.',
+        [{ text: 'Try Again' }]
+      );
+    }
+  };
 
   const renderProfile = () => {
     switch (account_type) {
@@ -30,6 +53,20 @@ const ProfilePage = ({ navigation }) => {
 
   return (
     <View style={{ flex: 1 }}>
+      {/* Email verification section */}
+      <View style={styles.container}>
+        <TextInput
+          style={styles.input}
+          placeholder="Enter your email"
+          value={email}
+          onChangeText={setEmail}
+          keyboardType="email-address"
+          autoCapitalize="none"
+        />
+        <Button title="Verify Email" onPress={verifyEmail} />
+      </View>
+
+      {/* Render profile based on account type */}
       {renderProfile()}
     </View>
   );
@@ -39,26 +76,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: 'center',
-    padding: 50,
-  },
-  buttonContainer: {
-    borderColor: 'black',
-    marginVertical: 12,
-    borderWidth: 1,
-    backgroundColor: '#f0f0f0',
-    borderRadius: 10,
-  },
-  switchContainer: {
-    marginVertical: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  text: {
-    fontWeight: 'bold',
-    fontSize: 18,
-    paddingTop: 20,
-    paddingBottom: 22,
-    textAlign: 'center',
+    padding: 20,
   },
   input: {
     height: 40,
