@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { Button, Text, TextInput, View, StyleSheet, Alert } from 'react-native';
+import { Text, TextInput, View, StyleSheet, Alert, TouchableOpacity, Platform, Image } from 'react-native';
 import axios from 'axios';
-import encryptWithPublicKey from '../utils/encryptionUtils.mjs';
 import hashString from '../utils/hashingUtils.mjs';
 import MY_IP_ADDRESS from '../environment_variables.mjs';
 import { useSelector, useDispatch } from 'react-redux';
@@ -12,47 +11,56 @@ import { get_save_list } from '../redux/actions/saveAction';
 import { set_acct_type } from '../redux/actions/accountAction';
 import { setUserInfo } from '../redux/actions/userInfoAction';
 import { getVend } from '../redux/actions/vendAction';
+import { setToken } from '../redux/actions/tokenAction';
 
 const LoginScreen = ({navigation}) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [counter, setCounter] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
 
-  //redux stuff
   const dispatch = useDispatch();
- 
   const isLogged = useSelector((store) => store.isLogged.isLogged);
   const user_id = useSelector((store) => store.user_id.user_id);
   const account_type = useSelector((store) => store.acct_type.acct_type);
 
   const handleLogin = async () => {
-    try {
+    if (!email || !password) {
+      Alert.alert('Error', 'Please enter both email and password');
+      return;
+    }
 
+    setIsLoading(true);
+    try {
       const hashed_email = await hashString(email);
       const hashed_password = await hashString(password);
 
-      // Send the user data to your backend
-      const response = await axios.post('http://' + MY_IP_ADDRESS + ':5050/', {
+      const response = await axios({
+        method: 'post',
+        url: `http://${MY_IP_ADDRESS}:5050/login`,
+        data: {
           hashed_email,
           hashed_password,
-        });
+        },
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        timeout: 5000,
+        validateStatus: function (status) {
+          return status >= 200 && status < 500;
+        }
+      });
 
       const data = response.data;
 
       if (data.success) {
- 
-          // SET REDUX STATES
-
-          //send login action to store
           dispatch(login());
-          //set user ID to store
           dispatch(setID(data.user._id));
-          // set userInfo
           dispatch(setUserInfo(data.user));
-          // set vendor initialized boolean state
           dispatch(getVend(data.user.vendor_account_initialized));
+          dispatch(setToken(data.token));
+          axios.defaults.headers.common['Authorization'] = `Bearer ${data.token}`;
 
-          // get previously liked and saved articles list if it exists
           if (data.user.liked_articles != null) {
             dispatch(get_like_list(data.user.liked_articles));
           }
@@ -60,29 +68,33 @@ const LoginScreen = ({navigation}) => {
             dispatch(get_save_list(data.user.saved_articles));
           }
 
-          //set account type
           dispatch(set_acct_type(data.account_type));
-
-        // Handle success (e.g., navigate to another screen)
-        navigation.reset({ index: 0, routes: [{ name: 'Community' }], });
+          navigation.reset({
+            index: 0,
+            routes: [{ name: 'Community' }],
+          });
+      } else {
+        Alert.alert('Login Error', data.message || 'Login failed. Please try again.');
       }
     } catch (error) {
-      console.error('Error during login:', error.response.data.message);
-        Alert.alert('Login Error', error.response.data.message,
-          [{text:'Try Again',
-            cancelable: true,
-            },
-          ],
-        );
+      console.error('Error during login:', error?.response?.data?.message || error.message);
+      Alert.alert('Login Error', error?.response?.data?.message || 'Failed to connect to server. Please try again.',
+        [{text:'Try Again', cancelable: true}]
+      );
+    } finally {
+      setIsLoading(false);
     }
   };
-/* Login to Your Account */
-
 
   return (
-
     <View style={styles.container}>
-      <Text style={{...styles.text, paddingBottom: 10}}>Log In</Text>
+      <View style={styles.logoContainer}>
+        <Image
+          source={require("../components/ATLSFWlogo.jpg")}
+          style={styles.logo}
+        />
+      </View>
+
       <TextInput
         placeholder="Email"
         value={email}
@@ -98,24 +110,32 @@ const LoginScreen = ({navigation}) => {
         style={styles.input}
         secureTextEntry
       />
-      <View style={styles.buttonContainer}>
-        <Button 
-          title="Login"
-          color="black"
-          onPress={handleLogin} />
-      </View>
-      {/* {isLogged ? <Text>logged in</Text> : <Text>not logged in</Text>} */}
-      <Text style={styles.text}>New here?</Text>
-
-      <View>
-        <Button 
-          title="Sign up here!"
-          color="green"
-          onPress={() => navigation.navigate('Sign Up')}
-        />
-      </View>
       
+      <TouchableOpacity 
+        style={[styles.loginButton, isLoading && styles.disabledButton]}
+        onPress={handleLogin}
+        disabled={isLoading}
+      >
+        <Text style={styles.buttonText}>LOGIN</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity 
+        style={[styles.button, { backgroundColor: 'lightgray' }]}
+        onPress={() => navigation.navigate('Forgot Password')}
+      >
+        <Text style={styles.buttonText}>FORGOT PASSWORD?</Text>
+      </TouchableOpacity>
+
+      <View style={styles.signUpSection}>
+        <Text style={styles.newHereText}>NEW HERE?</Text>
+        <TouchableOpacity 
+          style={[styles.button, { backgroundColor: 'lightgray', marginBottom: 0, marginLeft: 10 }]}
+          onPress={() => navigation.navigate('Sign Up')}
+        >
+          <Text style={styles.buttonText}>SIGN UP HERE!</Text>
+        </TouchableOpacity>
       </View>
+    </View>
   );
 };
 
@@ -123,32 +143,73 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: 'center',
-    padding: 60,
+    backgroundColor: 'white',
+    padding: 20,
   },
-  buttonContainer: {
-    marginRight:90,
-    marginLeft:90,
-    marginTop:0,
-    paddingTop:1,
-    paddingBottom:1,
-    backgroundColor:'lightgray',
-    borderRadius:8,
-    borderWidth: 1,
-    borderColor: 'black',
+  logoContainer: {
+    position: 'absolute',
+    top: 50,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    paddingBottom: 20,
   },
-  text: {
-    fontWeight: 'bold',
-    fontSize: 25,
-    paddingTop: 70,
-    textAlign: 'center',
+  logo: {
+    width: 150,
+    height: 50,
+    resizeMode: 'contain',
   },
   input: {
     height: 40,
     borderColor: 'gray',
     borderWidth: 1,
-    borderRadius:8,
-    marginBottom: 12,
-    padding: 8,
+    borderRadius: 5,
+    marginBottom: 15,
+    paddingHorizontal: 10,
+    width: '75%',
+    alignSelf: 'center',
+  },
+  loginButton: {
+    backgroundColor: 'lightgray',
+    borderRadius: 3,
+    width: 120,
+    alignItems: 'center',
+    justifyContent: 'center',
+    alignSelf: 'center',
+    marginBottom: 20,
+    paddingVertical: 12,
+  },
+  button: {
+    borderRadius: 3,
+    width: 120,
+    alignItems: 'center',
+    justifyContent: 'center',
+    alignSelf: 'center',
+    marginBottom: 20,
+    paddingVertical: 12,
+  },
+  buttonText: {
+    fontSize: 16,
+    fontFamily: 'Roboto',
+    fontWeight: '500',
+    color: 'black',
+    textAlign: 'center',
+  },
+  signUpSection: {
+    marginTop: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  newHereText: {
+    fontSize: 16,
+    fontFamily: 'Roboto',
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  disabledButton: {
+    opacity: 0.7,
+    backgroundColor: '#cccccc',
   },
 });
 
