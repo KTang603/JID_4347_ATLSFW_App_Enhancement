@@ -11,7 +11,7 @@ export default (state = initialState, action) => {
                 // liked_articles: [...state.liked_articles, action.payload],
               };
         case 'UNLIKE':
-            const filtered = state.liked_articles.filter(article => article.id != action.payload);
+            const filtered = state.liked_articles.filter(id => id !== action.payload);
             return { 
                 ...state, 
                 liked_articles: filtered,

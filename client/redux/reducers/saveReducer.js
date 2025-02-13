@@ -10,7 +10,7 @@ export default (state = initialState, action) => {
                 saved_articles: [...(new Set([...state.saved_articles, action.payload]))],
               };
         case 'UNSAVE':
-            const filtered = state.saved_articles.filter(article => article.id != action.payload);
+            const filtered = state.saved_articles.filter(id => id !== action.payload);
             return { 
                 ...state, 
                 saved_articles: filtered,
