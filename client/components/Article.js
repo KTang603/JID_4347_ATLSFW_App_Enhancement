@@ -45,6 +45,7 @@ const Article = (props) => {
   const dispatch = useDispatch();
 
   const [isSavePressed, setSavePressed] = useState(false);
+  const [saveCount, setSaveCount] = useState(Math.max(0, saves || 0));
   
   useEffect(() => {
     setSavePressed(saved_articles_state.includes(article_id));
@@ -166,6 +167,13 @@ const Article = (props) => {
     const newSaveState = !isSavePressed;
     let saved_articles = [];
 
+    // Update UI immediately
+    setSavePressed(newSaveState);
+    setSaveCount(prev => {
+      const newCount = newSaveState ? prev + 1 : prev - 1;
+      return Math.max(0, newCount);
+    });
+
     try {
       if (newSaveState) {
         saved_articles = [...new Set([...saved_articles_state, article_id])];
@@ -177,6 +185,10 @@ const Article = (props) => {
     } catch (error) {
       // Revert UI state on error
       setSavePressed(!newSaveState);
+      setSaveCount(prev => {
+        const newCount = !newSaveState ? prev + 1 : prev - 1;
+        return Math.max(0, newCount);
+      });
       console.error('Save action failed:', error);
     } finally {
       setIsLoading(false);
@@ -272,7 +284,7 @@ const Article = (props) => {
             size={30}
             color={isSavePressed ? "blue" : "black"}
           />
-          {account_type === 1 && <Text>{saves}</Text>}
+          {account_type === 1 && <Text>{saveCount}</Text>}
         </TouchableOpacity>
       </View>
     </View>

@@ -58,8 +58,11 @@ const LoginScreen = ({navigation}) => {
           dispatch(setID(data.user._id));
           dispatch(setUserInfo(data.user));
           dispatch(getVend(data.user.vendor_account_initialized));
-          dispatch(setToken(data.token));
-          axios.defaults.headers.common['Authorization'] = `Bearer ${data.token}`;
+          // Set token in Redux and axios defaults
+          const token = data.token;
+          dispatch(setToken(token));
+          axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+          console.log('Token set after login:', token);
 
           if (data.user.liked_articles != null) {
             dispatch(get_like_list(data.user.liked_articles));
