@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { NavigationContainer, useNavigation } from "@react-navigation/native";
+import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import {
   Button,
@@ -25,14 +25,29 @@ import AuthorNameScreen from "./Screens/AuthorNameScreen";
 import ProfilePage from "./Screens/ProfilePage";
 import NavBar from "./components/NavBar";
 import ShopNowWebview from "./Screens/ShopNowWebview";
+import ForgotPasswordScreen from "./Screens/ForgotPasswordScreen";
 
 const Stack = createNativeStackNavigator();
+
+const ConditionalNavBar = ({ currentScreen }) => {
+  if (['Log In', 'Sign Up', 'Forgot Password'].includes(currentScreen)) {
+    return null;
+  }
+  return <NavBar />;
+};
+
 const App = () => {
   console.log("found local ip @", MY_IP_ADDRESS);
+  const [currentScreen, setCurrentScreen] = useState('Log In');
 
   return (
     <Provider store={store}>
-      <NavigationContainer>
+      <NavigationContainer
+        onStateChange={(state) => {
+          const currentRoute = state?.routes[state?.index]?.name;
+          setCurrentScreen(currentRoute || 'Log In');
+        }}
+      >
         <Stack.Navigator
           initialRouteName="Log In"
           screenOptions={{
@@ -50,9 +65,10 @@ const App = () => {
           <Stack.Screen name="Saved Articles" component={SavedArticles} />
           <Stack.Screen name="Article Webview" component={ArticleContent} />
           <Stack.Screen name="Shop Now Webview" component={ShopNowWebview} /> 
+          <Stack.Screen name="Forgot Password" component={ForgotPasswordScreen} />
           {/* add future screens */}
         </Stack.Navigator>
-        <NavBar />
+        <ConditionalNavBar currentScreen={currentScreen} />
       </NavigationContainer>
     </Provider>
   );
