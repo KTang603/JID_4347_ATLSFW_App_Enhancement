@@ -1,4 +1,3 @@
-
 import {
   View,
   Image,
@@ -13,9 +12,10 @@ import { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { like, unlike } from "../redux/actions/likeAction";
 import { save, unsave } from "../redux/actions/saveAction";
+import { logout } from "../redux/actions/loginAction";
 import Icon from "react-native-vector-icons/FontAwesome";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import AuthorNameScreen from "../Screens/AuthorNameScreen"; // Import the AuthorNameScreen component
+import AuthorNameScreen from "../Screens/AuthorNameScreen";
 import axios from "axios";
 import MY_IP_ADDRESS from "../environment_variables.mjs";
 import { useNavigation } from "@react-navigation/native";
@@ -25,17 +25,15 @@ const Article = (props) => {
     image,
     title,
     author,
-    likes: rawLikes,
+    likes: initialLikes,
     saves,
     article_id,
     article_link,
     author_id,
   } = props.article;
 
-  const likes = Math.max(0, rawLikes || 0);
+  const likes = Math.max(0, initialLikes || 0);
   const account_type = useSelector((store) => store.acct_type.acct_type);
-  //account_type = 1; //hardcode here to test save count text
-
   const liked_articles_state = useSelector(
     (store) => store.liked_articles.liked_articles
   );
@@ -44,12 +42,26 @@ const Article = (props) => {
   );
 
   const navigation = useNavigation();
+  const dispatch = useDispatch();
 
-  // const [ratio, setRatio] = useState(1);
-  const [isSavePressed, setSavePressed] = useState(
-    saved_articles_state.includes(article_id)
-  ); //replace with .includes
-  const [liked, setLiked] = useState(liked_articles_state.includes(article_id));
+  const [isSavePressed, setSavePressed] = useState(false);
+  
+  useEffect(() => {
+    setSavePressed(saved_articles_state.includes(article_id));
+  }, [saved_articles_state, article_id]);
+  // Initialize liked state and keep it in sync with Redux state
+  const [liked, setLiked] = useState(false);
+  
+  useEffect(() => {
+    setLiked(liked_articles_state.includes(article_id));
+  }, [liked_articles_state, article_id]);
+  const [likeCount, setLikeCount] = useState(Math.max(0, likes || 0));
+  const [isLoading, setIsLoading] = useState(false);
+
+  const isLogged = useSelector((store) => store.isLogged.isLogged);
+  const user_id = useSelector((store) => store.user_id.user_id);
+  const token = useSelector((store) => store.token.token);
+  let liked_articles = [];
 
   const navigateToContent = (link) => {
     navigation.navigate("Article Webview", { link });
@@ -59,166 +71,159 @@ const Article = (props) => {
     navigation.navigate("Author", { id });
   };
 
-  // useEffect(() => {
-  //   if (image) {
-  //     Image.getSize(image, (width, height) => setRatio(width / height));
-  //   }
-  // }, [image]);
+  const handleLike = async () => {
+    if (isLoading) return;
 
-  //begin like button functionality
-  const dispatch = useDispatch();
+    if (!isLogged || !token) {
+      dispatch(logout());
+      navigation.navigate('Log In');
+      return;
+    }
+    setIsLoading(true);
 
-  //redux states
-  const isLogged = useSelector((store) => store.isLogged.isLogged);
-  const user_id = useSelector((store) => store.user_id.user_id);
-  let liked_articles = [];
+    const newLikedState = !liked;
+    setLiked(newLikedState);
+    setLikeCount(prev => {
+      const newCount = newLikedState ? prev + 1 : prev - 1;
+      return Math.max(0, newCount);
+    });
 
-  //set liked articles to liked
-
-  const handleLike = () => {
-    // toggle button state
-    setLiked((liked) => !liked);
-
-    if (isLogged) {
-      if (!liked) {
-        // create temp list, append new liked article
-        liked_articles = liked_articles_state.slice();
-        liked_articles.push(article_id);
-        liked_articles = [...new Set(liked_articles)];
-
-        // hit BE endpoint
-        addedToDB(liked_articles);
+    try {
+      if (newLikedState) {
+        liked_articles = [...new Set([...liked_articles_state, article_id])];
+        await addedToDB();
       } else {
-        // create temp list, remove liked article
-        liked_articles = liked_articles_state.slice();
-        liked_articles.splice(liked_articles.indexOf(article_id), 1);
-
-        // hit BE endpoint
-        removeFromDB(liked_articles);
+        liked_articles = liked_articles_state.filter(id => id !== article_id);
+        await removeFromDB();
       }
-    } else {
-      navigation.reset({ index: 0, routes: [{ name: "Log In" }] });
+    } catch (error) {
+      // Revert UI state on error
+      setLiked(!newLikedState);
+      setLikeCount(prev => {
+        const newCount = !newLikedState ? prev + 1 : prev - 1;
+        return Math.max(0, newCount);
+      });
+      console.error('Like action failed:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const addedToDB = async () => {
-    const response = await axios.post(
-      "http://" +
-        MY_IP_ADDRESS +
-        ":5050/" +
-        "posts/" +
-        user_id +
-        "/" +
-        article_id +
-        "?like=1",
-      {
-        liked_articles,
+    try {
+      const response = await axios.post(
+        `http://${MY_IP_ADDRESS}:5050/posts/${article_id}/?like=1`,
+        { liked_articles },
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }
+      );
+
+      if (response.data.success) {
+        dispatch(like(article_id));
+      } else {
+        throw new Error(response.data.message || 'Like action failed');
       }
-    );
-
-    const data = response.data;
-
-    if (data.success) {
-      //dispatch like action if article has been added to db
-      dispatch(like(article_id));
+    } catch (error) {
+      throw error;
     }
   };
 
   const removeFromDB = async () => {
-    const response = await axios.post(
-      "http://" +
-        MY_IP_ADDRESS +
-        ":5050/" +
-        "posts/" +
-        user_id +
-        "/" +
-        article_id +
-        "?like=-1",
-      {
-        liked_articles,
-      }
-    );
+    try {
+      const response = await axios.post(
+        `http://${MY_IP_ADDRESS}:5050/posts/${article_id}/?like=-1`,
+        { liked_articles },
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }
+      );
 
-    const data = response.data;
-
-    if (data.success) {
-      //dispatch unlike action if article has been removed from db
-      dispatch(unlike(article_id));
-    }
-  };
-
-  // SAVE BUTTON
-  let saved_articles = [];
-
-  const handleSave = () => {
-    // toggle button state
-    setSavePressed((isSavePressed) => !isSavePressed);
-
-    if (isLogged) {
-      if (!isSavePressed) {
-        // create temp list, append new saved article
-        saved_articles = saved_articles_state.slice();
-        saved_articles.push(article_id);
-        saved_articles = [...new Set(saved_articles)];
-
-        // hit BE endpoint
-        saveToDB();
+      if (response.data.success) {
+        dispatch(unlike(article_id));
       } else {
-        // create temp list, remove saved article
-        saved_articles = saved_articles_state.slice();
-        saved_articles.splice(saved_articles.indexOf(article_id), 1);
-
-        // hit BE endpoint
-        unsaveFromDB();
+        throw new Error(response.data.message || 'Unlike action failed');
       }
-    } else {
-      navigation.replace("Log In");
+    } catch (error) {
+      throw error;
     }
   };
 
-  const saveToDB = async () => {
-    const response = await axios.post(
-      "http://" +
-        MY_IP_ADDRESS +
-        ":5050/" +
-        "posts/" +
-        user_id +
-        "/" +
-        article_id +
-        "?save=1",
-      {
-        saved_articles,
+  const handleSave = async () => {
+    if (isLoading) return;
+
+    if (!isLogged || !token) {
+      dispatch(logout());
+      navigation.navigate('Log In');
+      return;
+    }
+    setIsLoading(true);
+
+    const newSaveState = !isSavePressed;
+    let saved_articles = [];
+
+    try {
+      if (newSaveState) {
+        saved_articles = [...new Set([...saved_articles_state, article_id])];
+        await saveToDB(saved_articles);
+      } else {
+        saved_articles = saved_articles_state.filter(id => id !== article_id);
+        await unsaveFromDB(saved_articles);
       }
-    );
-
-    const data = response.data;
-
-    if (data.success) {
-      //dispatch save action if article has been added to db
-      dispatch(save(article_id));
+    } catch (error) {
+      // Revert UI state on error
+      setSavePressed(!newSaveState);
+      console.error('Save action failed:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const unsaveFromDB = async () => {
-    const response = await axios.post(
-      "http://" +
-        MY_IP_ADDRESS +
-        ":5050/" +
-        "posts/" +
-        user_id +
-        "/" +
-        article_id +
-        "?save=-1",
-      {
-        saved_articles,
+  const saveToDB = async (saved_articles) => {
+    try {
+      const response = await axios.post(
+        `http://${MY_IP_ADDRESS}:5050/posts/${article_id}/?save=1`,
+        { saved_articles },
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }
+      );
+
+      if (response.data.success) {
+        dispatch(save(article_id));
+      } else {
+        throw new Error(response.data.message || 'Save action failed');
       }
-    );
+    } catch (error) {
+      throw error;
+    }
+  };
 
-    const data = response.data;
+  const unsaveFromDB = async (saved_articles) => {
+    try {
+      const response = await axios.post(
+        `http://${MY_IP_ADDRESS}:5050/posts/${article_id}/?save=-1`,
+        { saved_articles },
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }
+      );
 
-    if (data.success) {
-      //dispatch unsave action if article has been removed from db
-      dispatch(unsave(article_id));
+      if (response.data.success) {
+        dispatch(unsave(article_id));
+      } else {
+        throw new Error(response.data.message || 'Unsave action failed');
+      }
+    } catch (error) {
+      throw error;
     }
   };
 
@@ -240,18 +245,27 @@ const Article = (props) => {
         >
           <Text style={styles.authorName}>{author}</Text>
         </TouchableOpacity>
-        <Pressable onPress={() => handleLike()} style={styles.likeButton}>
+        <Pressable 
+          onPress={handleLike} 
+          style={[styles.likeButton, isLoading && styles.disabled]}
+          disabled={isLoading}
+        >
           <MaterialCommunityIcons
             name={liked ? "heart" : "heart-outline"}
             size={32}
             color={liked ? "red" : "black"}
           />
-          <Text>{liked ? likes + 1 : likes}</Text>
+          <Text>{likeCount}</Text>
         </Pressable>
 
         <TouchableOpacity
-          onPress={() => handleSave()}
-          style={[styles.saveButton, account_type == 1 && styles.saveText]}
+          onPress={handleSave}
+          style={[
+            styles.saveButton, 
+            account_type == 1 && styles.saveText,
+            isLoading && styles.disabled
+          ]}
+          disabled={isLoading}
         >
           <Icon
             name={isSavePressed ? "bookmark" : "bookmark-o"}
@@ -268,21 +282,20 @@ const Article = (props) => {
 const styles = StyleSheet.create({
   article: {
     width: "100%",
-    padding:10,
+    padding: 10,
   },
   title: {
     fontSize: 16,
     fontWeight: "bold",
-    textAlign:"left",
+    textAlign: "left",
     margin: 10,
   },
   image: {
     width: Dimensions.get("window").width/2 - 20,
-    height:110,
+    height: 110,
     borderRadius: 25,
   },
   likeButton: {
-    // backgroundColor: "#D3CFD4",
     position: "absolute",
     bottom: 0,
     right: 10,
@@ -303,6 +316,9 @@ const styles = StyleSheet.create({
     textDecorationLine: "underline",
     left: 10,
     marginBottom: 20,
+  },
+  disabled: {
+    opacity: 0.5,
   },
 });
 
