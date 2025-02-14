@@ -3,6 +3,7 @@ import { Button, Text, TextInput, View, StyleSheet, Alert } from 'react-native';
 import axios from 'axios';
 import hashString from '../utils/hashingUtils.mjs';
 import MY_IP_ADDRESS from '../environment_variables.mjs';
+import { normalizeEmail } from '../utils/format.mjs';
 
 const ForgotPasswordScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
@@ -12,7 +13,8 @@ const ForgotPasswordScreen = ({ navigation }) => {
 
   const handleSendCode = async () => {
     try {
-      const hashed_email = await hashString(email);
+      const normalizedEmail = normalizeEmail(email);
+      const hashed_email = await hashString(normalizedEmail);
       const response = await axios.post(`http://${MY_IP_ADDRESS}:5050/password/forgot-password`, {
         hashed_email,
       });
@@ -28,7 +30,8 @@ const ForgotPasswordScreen = ({ navigation }) => {
 
   const handleVerifyCode = async () => {
     try {
-      const hashed_email = await hashString(email);
+      const normalizedEmail = normalizeEmail(email);
+      const hashed_email = await hashString(normalizedEmail);
       const response = await axios.post(`http://${MY_IP_ADDRESS}:5050/password/verify-code`, {
         hashed_email,
         code,
@@ -44,7 +47,8 @@ const ForgotPasswordScreen = ({ navigation }) => {
 
   const handleResetPassword = async () => {
     try {
-      const hashed_email = await hashString(email);
+      const normalizedEmail = normalizeEmail(email);
+      const hashed_email = await hashString(normalizedEmail);
       const hashed_password = await hashString(newPassword);
       const response = await axios.post(`http://${MY_IP_ADDRESS}:5050/password/reset-password`, {
         hashed_email,

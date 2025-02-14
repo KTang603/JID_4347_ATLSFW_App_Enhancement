@@ -3,7 +3,7 @@ import { Button, Text, TextInput, View, StyleSheet, Alert, Switch } from 'react-
 import axios from 'axios';
 import hashString from '../utils/hashingUtils.mjs';
 import MY_IP_ADDRESS from '../environment_variables.mjs';
-import { isValidPassword, isValidEmail } from '../utils/format.mjs';
+import { isValidPassword, isValidEmail, normalizeEmail } from '../utils/format.mjs';
 import encryptWithPublicKey from '../utils/encryptionUtils.mjs';
 import { setUserInfo } from "../redux/actions/userInfoAction";
 import { useSelector, useDispatch } from "react-redux";
@@ -28,9 +28,10 @@ const SignUpScreen = ({ navigation }) => {
 
   const handleSignUp = async () => {
     try {
-      const hashed_email = await hashString(email);
+      const normalizedEmail = normalizeEmail(email);
+      const hashed_email = await hashString(normalizedEmail);
       const hashed_password = await hashString(password);
-      const encrypted_email = encryptWithPublicKey(email);
+      const encrypted_email = encryptWithPublicKey(normalizedEmail);
 
       if (!isValidEmail(email)) {
         Alert.alert("Error", "Email format is invalid", [

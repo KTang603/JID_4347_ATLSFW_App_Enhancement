@@ -8,6 +8,7 @@ import login from "./routes/login.mjs";
 import vendor from "./routes/vendor.mjs";
 import user from "./routes/user.mjs";
 import password from "./routes/password.mjs";
+import admin from "./routes/admin.mjs";
 
 // Replace the uri string with your MongoDB deployment's connection string.
 
@@ -22,7 +23,8 @@ app.use('/login', login);
 app.use(signup);
 app.use(posts);
 app.use(user);
-app.use(vendor);
+app.use('/vendor', vendor);
+app.use('/admin', admin);
 app.use('/password', password);
 app.use((err, _req, res, next) => {
   res.status(500).send("Uh oh! An unexpected error occurred.");
