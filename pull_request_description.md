@@ -1,36 +1,43 @@
-# Fix Bookmark Count and Authentication Issues
+# Admin Authorization and User Management Feature
 
-## Changes Made
-1. Added JWT token generation in login route
-   - Implemented token generation on successful login
-   - Token includes user ID and expiration time
+## Feature Overview
+This PR implements admin authorization and user management functionality with two main components:
 
-2. Fixed token handling in client components
-   - Added token to Redux store
-   - Properly passing token in API request headers
-   - Added error handling for missing tokens
+### 1. Authorization Backend
+- Enhanced admin routes for user authorization and management
+- Improved database connection handling with transactions
+- Added robust error handling and logging
+- Files changed:
+  * `server/routes/admin.mjs` - Admin authorization endpoints
+  * `server/middleware/auth.mjs` - Enhanced auth middleware
+  * `server/db/conn.mjs` - Database connection improvements
 
-3. Fixed bookmark count functionality
-   - Added local state management for bookmark counts
-   - Immediate UI updates when bookmarking/unbookmarking
-   - Proper state reversion on API failures
-   - Fixed count not updating in SavedArticles view
-
-4. Improved error handling
-   - Added proper error messages for authentication failures
-   - Added validation for token presence before API calls
-   - Added state reversion on failed API calls
+### 2. User Management UI
+- Added five management buttons to AdminProfile:
+  * Authorize Admin - Grant admin privileges
+  * Deauthorize Admin - Remove admin privileges
+  * Authorize Vendor - Grant vendor privileges
+  * Deauthorize Vendor - Remove vendor privileges
+  * Delete User - Remove user from system
+- Files changed:
+  * `client/components/profile_pages/AdminProfile.js` - UI implementation
 
 ## Testing Done
-- Verified bookmark count increases/decreases correctly
-- Tested token authentication for protected routes
-- Verified saved articles view shows correct bookmarked items
-- Tested error handling for unauthenticated requests
+- Verified all five buttons work correctly
+- Confirmed changes are reflected in database
+- Tested error handling and validation
+- Verified proper authorization checks
+
+## Technical Details
+- Uses MongoDB transactions for atomic operations
+- Implements proper error handling and logging
+- Maintains session management
+- Follows existing authorization patterns
 
 ## Screenshots
-N/A
+[Add screenshots of the new UI here]
 
-## Notes
-- The JWT token expires after 24 hours
-- Token is stored in Redux and persists across app restarts
-- Bookmark counts are now managed locally with server sync
+## Notes for Reviewers
+- Focus on the authorization flow in admin.mjs
+- Check error handling in database operations
+- Review UI feedback for user actions

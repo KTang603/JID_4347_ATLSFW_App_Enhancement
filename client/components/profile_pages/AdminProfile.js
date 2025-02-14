@@ -19,9 +19,50 @@ import axios from "axios";
 import { useSelector, useDispatch } from "react-redux";
 import { setUserInfo } from "../../redux/actions/userInfoAction";
 import hashString from '../../utils/hashingUtils.mjs';
+import { normalizeEmail } from '../../utils/format.mjs';
+
+const makeRequest = async (method, url, data = null, requiresAuth = true, token) => {
+  const config = {
+    method,
+    url: 'http://' + MY_IP_ADDRESS + ':5050' + url,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(requiresAuth && token ? { 'Authorization': `Bearer ${token}` } : {})
+    },
+    validateStatus: function (status) {
+      return status >= 200 && status < 500;
+    }
+  };
+
+  if (data) {
+    if (method.toLowerCase() === 'get') {
+      config.params = data;
+    } else {
+      config.data = data;
+    }
+  }
+
+  console.log(`Making ${method} request to:`, config.url);
+  console.log('Request config:', config);
+  
+  try {
+    const response = await axios(config);
+    console.log('Response:', response.data);
+    return response;
+  } catch (error) {
+    console.error('Request failed:', error);
+    throw error;
+  }
+};
 
 const AdminProfile = () => {
-  const userInfo = useSelector((store) => store.userInfo.userInfo);
+  const userInfo = useSelector((store) => store.userInfo?.userInfo || {
+    first_name: '',
+    last_name: '',
+    username: '',
+    birthday: '',
+    phone_number: ''
+  });
   const [selectedTab, setSelectedTab] = useState("auth");
   const [email, setEmail] = useState('');
   const [isEnabled, setIsEnabled] = useState(false);
@@ -30,20 +71,19 @@ const AdminProfile = () => {
   const [savedPath, setSavedPath] = useState(null);
   const [topLiked, setTopLiked] = useState([]); 
   const [topSaved, setTopSaved] = useState([]);
-  const [editedFirstName, setEditedFirstName] = useState(userInfo["first_name"]);
-  const [editedLastName, setEditedLastName] = useState(userInfo["last_name"]);
-  const [editedUsername, setEditedUsername] = useState(userInfo["username"]);
-  const [editedBirthday, setEditedBirthday] = useState(userInfo["birthday"]);
-  const [editedPhoneNumber, setEditedPhoneNumber] = useState(userInfo["phone_number"]);
+  const [editedFirstName, setEditedFirstName] = useState(userInfo.first_name);
+  const [editedLastName, setEditedLastName] = useState(userInfo.last_name);
+  const [editedUsername, setEditedUsername] = useState(userInfo.username);
+  const [editedBirthday, setEditedBirthday] = useState(userInfo.birthday);
+  const [editedPhoneNumber, setEditedPhoneNumber] = useState(userInfo.phone_number);
   const dispatch = useDispatch();
   const user_id = useSelector((store) => store.user_id.user_id);
+  const token = useSelector((store) => store.token.token);
 
   useEffect(() => {
-    // fetch top most liked and saved articles upon loading of the page
     const fetchTopLiked = async () => {
       try {
-        const url = `http://${MY_IP_ADDRESS}:5050/posts/top_liked`;
-        const response = await axios.get(url);
+        const response = await makeRequest('get', '/posts/top_liked', null, true, token);
         if (response.data && Array.isArray(response.data)) {
           setTopLiked(response.data);
         }
@@ -54,8 +94,7 @@ const AdminProfile = () => {
 
     const fetchTopSaved = async () => {
       try {
-        const url = `http://${MY_IP_ADDRESS}:5050/posts/top_saved`;
-        const response = await axios.get(url);
+        const response = await makeRequest('get', '/posts/top_saved', null, true, token);
         if (response.data && Array.isArray(response.data)) {
           setTopSaved(response.data);
         } 
@@ -65,23 +104,28 @@ const AdminProfile = () => {
     };
     fetchTopLiked();
     fetchTopSaved();
-  }, []);
+  }, [token]);
 
-  const toggleSwitch = () => setIsEnabled((previousState) => !previousState);
-
-  const selectTab = (tab) => {
-    setSelectedTab(tab);
-  };
-
-  const switchEditMode = () => {
-    setEditMode(true);
+  // Update form fields when userInfo changes
+  useEffect(() => {
     setEditedFirstName(userInfo.first_name);
     setEditedLastName(userInfo.last_name);
     setEditedUsername(userInfo.username);
     setEditedBirthday(userInfo.birthday);
     setEditedPhoneNumber(userInfo.phone_number);
-  };
+  }, [userInfo]);
 
+  const toggleSwitch = () => setIsEnabled((previousState) => !previousState);
+  const selectTab = (tab) => setSelectedTab(tab);
+
+  const switchEditMode = () => {
+    setEditMode(true);
+    setEditedFirstName(userInfo?.first_name || '');
+    setEditedLastName(userInfo?.last_name || '');
+    setEditedUsername(userInfo?.username || '');
+    setEditedBirthday(userInfo?.birthday || '');
+    setEditedPhoneNumber(userInfo?.phone_number || '');
+  };
 
   const saveChanges = async () => {
     setEditMode(false);
@@ -98,10 +142,9 @@ const AdminProfile = () => {
       phone_number: editedPhoneNumber,
     };
 
-    // Send the user data to your backend
-    const response = await axios.patch("http://" + MY_IP_ADDRESS + ":5050/edit/" + user_id, updatedUserInfo);
+    const response = await makeRequest('patch', `/edit/${user_id}`, updatedUserInfo, true, token);
     
-    if (response.status == 200) {
+    if (response.status === 200) {
       dispatch(
         setUserInfo({
           ...userInfo,
@@ -115,11 +158,9 @@ const AdminProfile = () => {
     }
   };
 
-
   const saveImageLocally = async (fileUri) => {
     const fileName = fileUri.split('/').pop();
     const newPath = FileSystem.documentDirectory + fileName;
-
     try {
       await FileSystem.moveAsync({
         from: fileUri,
@@ -151,27 +192,196 @@ const AdminProfile = () => {
     }
   };
 
-  const handleAuth = async () => {
+  const handleVendorAuth = async () => {
     try {
-      const hashed_email = await hashString(email);
-      // Send email to backend
-      const response = await axios.post('http://' + MY_IP_ADDRESS + ':5050/vendor', {
-          hashed_email
-        });
-      Alert.alert('Success', "Vendor Email is Authorized",
-        [{text:'OK',
-          cancelable: true,
+      Alert.alert(
+        "Authorize Vendor",
+        "Are you sure you want to authorize this email as a vendor?",
+        [
+          {
+            text: "Cancel",
+            style: "cancel"
           },
-        ],
+          {
+            text: "Authorize",
+            onPress: async () => {
+              if (!email || !email.trim()) {
+                Alert.alert('Error', 'Please enter an email address');
+                return;
+              }
+
+              const normalizedEmail = normalizeEmail(email);
+              const hashed_email = await hashString(normalizedEmail);
+              
+              console.log('Attempting to authorize vendor with email:', normalizedEmail);
+              console.log('Using hashed_email:', hashed_email);
+              
+              const response = await makeRequest('post', '/vendor/authorize', { hashed_email }, true, token);
+              Alert.alert('Success', response.data.message);
+            }
+          }
+        ]
       );
     } catch (error) {
-      console.error('Error during authorization:', error.response.data.message);
-      Alert.alert('Authorization Error', error.response.data.message,
-        [{text:'Try Again',
-          cancelable: true,
+      console.error('Error during vendor authorization:', error);
+      Alert.alert('Authorization Error', error.response?.data?.message || 'An error occurred');
+    }
+  };
+
+  const handleVendorDeauth = async () => {
+    try {
+      Alert.alert(
+        "Deauthorize Vendor",
+        "Are you sure you want to remove vendor privileges from this email?",
+        [
+          {
+            text: "Cancel",
+            style: "cancel"
           },
-        ],
+          {
+            text: "Deauthorize",
+            style: "destructive",
+            onPress: async () => {
+              if (!email || !email.trim()) {
+                Alert.alert('Error', 'Please enter an email address');
+                return;
+              }
+
+              const normalizedEmail = normalizeEmail(email);
+              const hashed_email = await hashString(normalizedEmail);
+              
+              console.log('Attempting to deauthorize vendor with email:', normalizedEmail);
+              console.log('Using hashed_email:', hashed_email);
+              
+              const response = await makeRequest('post', '/vendor/deauthorize', { hashed_email }, true, token);
+              Alert.alert('Success', response.data.message);
+            }
+          }
+        ]
       );
+    } catch (error) {
+      console.error('Error during vendor deauthorization:', error);
+      Alert.alert('Deauthorization Error', error.response?.data?.message || 'An error occurred');
+    }
+  };
+
+  const handleAdminAuth = async () => {
+    try {
+      Alert.alert(
+        "Authorize Admin",
+        "Are you sure you want to authorize this email as an admin?",
+        [
+          {
+            text: "Cancel",
+            style: "cancel"
+          },
+          {
+            text: "Authorize",
+            onPress: async () => {
+              if (!email || !email.trim()) {
+                Alert.alert('Error', 'Please enter an email address');
+                return;
+              }
+
+              const normalizedEmail = normalizeEmail(email);
+              const hashed_email = await hashString(normalizedEmail);
+              
+              console.log('Attempting to authorize admin with email:', normalizedEmail);
+              console.log('Using hashed_email:', hashed_email);
+              
+              try {
+                const response = await makeRequest('post', '/admin/authorize', { hashed_email }, true, token);
+                Alert.alert('Success', response.data.message);
+              } catch (error) {
+                if (error.response?.status === 404) {
+                  console.log('User not found with hashed_email:', hashed_email);
+                  Alert.alert('Error', 'User not found');
+                } else {
+                  Alert.alert('Error', error.response?.data?.message || 'An error occurred');
+                }
+              }
+            }
+          }
+        ]
+      );
+    } catch (error) {
+      console.error('Error during admin authorization:', error);
+      Alert.alert('Authorization Error', error.response?.data?.message || 'An error occurred');
+    }
+  };
+
+  const handleDeleteUser = async () => {
+    try {
+      Alert.alert(
+        "Delete User",
+        "Are you sure you want to delete this user? This action cannot be undone.",
+        [
+          {
+            text: "Cancel",
+            style: "cancel"
+          },
+          {
+            text: "Delete",
+            style: "destructive",
+            onPress: async () => {
+              if (!email || !email.trim()) {
+                Alert.alert('Error', 'Please enter an email address');
+                return;
+              }
+
+              const normalizedEmail = normalizeEmail(email);
+              const hashed_email = await hashString(normalizedEmail);
+              
+              console.log('Attempting to delete user with email:', normalizedEmail);
+              console.log('Using hashed_email:', hashed_email);
+              
+              const response = await makeRequest('delete', '/admin/user', { hashed_email }, true, token);
+              Alert.alert('Success', response.data.message);
+              setEmail('');
+            }
+          }
+        ]
+      );
+    } catch (error) {
+      console.error('Error during user deletion:', error);
+      Alert.alert('Deletion Error', error.response?.data?.message || 'An error occurred');
+    }
+  };
+
+  const handleAdminDeauth = async () => {
+    try {
+      Alert.alert(
+        "Deauthorize Admin",
+        "Are you sure you want to remove admin privileges from this email?",
+        [
+          {
+            text: "Cancel",
+            style: "cancel"
+          },
+          {
+            text: "Deauthorize",
+            style: "destructive",
+            onPress: async () => {
+              if (!email || !email.trim()) {
+                Alert.alert('Error', 'Please enter an email address');
+                return;
+              }
+
+              const normalizedEmail = normalizeEmail(email);
+              const hashed_email = await hashString(normalizedEmail);
+              
+              console.log('Attempting to deauthorize admin with email:', normalizedEmail);
+              console.log('Using hashed_email:', hashed_email);
+              
+              const response = await makeRequest('post', '/admin/deauthorize', { hashed_email }, true, token);
+              Alert.alert('Success', response.data.message);
+            }
+          }
+        ]
+      );
+    } catch (error) {
+      console.error('Error during admin deauthorization:', error);
+      Alert.alert('Deauthorization Error', error.response?.data?.message || 'An error occurred');
     }
   };
 
@@ -187,7 +397,7 @@ const AdminProfile = () => {
             />
           </TouchableOpacity>
           <Text style={styles.name}>
-            {userInfo["first_name"] + " " + userInfo["last_name"]}
+            {userInfo?.first_name ? `${userInfo.first_name} ${userInfo.last_name}` : 'Loading...'}
           </Text>
           {editMode && (
             <Button title="Change Profile Picture" onPress={pickImage} />
@@ -201,7 +411,7 @@ const AdminProfile = () => {
               onPress={() => selectTab("auth")}
             >
               <Text style={selectedTab === "auth" && styles.selectedTabText}>
-                Authorize Vendor
+                User Management
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -235,19 +445,72 @@ const AdminProfile = () => {
         {selectedTab === "auth" && (
           <View style={styles.contactSection}>
             <TextInput
-                placeholder="Vendor Email*"
-                style={styles.input}
+                placeholder="Enter user's email address"
+                style={[styles.input, { marginBottom: 5 }]}
                 keyboardType="email-address"
                 value={email}
                 onChangeText={setEmail}
             />
+            <Text style={styles.inputHelp}>Enter the email address of the user you want to manage</Text>
           
-            <View style={styles.editProfileButton}>
-            <Button
-                title="Authorize vendor"
-                color="black"
-                onPress={handleAuth}
-            />
+            <View style={styles.authButtonsContainer}>
+              <View style={styles.authButtonGroup}>
+                <Text style={styles.authLabel}>Vendor Authorization:</Text>
+                <View style={styles.buttonRow}>
+                  <View style={styles.authButton}>
+                    <TouchableOpacity 
+                      style={styles.button}
+                      onPress={handleVendorAuth}
+                    >
+                      <Text style={styles.buttonText}>Authorize Vendor</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <View style={styles.authButton}>
+                    <TouchableOpacity 
+                      style={styles.button}
+                      onPress={handleVendorDeauth}
+                    >
+                      <Text style={styles.buttonText}>Deauthorize Vendor</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+
+              <View style={styles.authButtonGroup}>
+                <Text style={styles.authLabel}>Admin Authorization:</Text>
+                <View style={styles.buttonRow}>
+                  <View style={styles.authButton}>
+                    <TouchableOpacity 
+                      style={styles.button}
+                      onPress={handleAdminAuth}
+                    >
+                      <Text style={styles.buttonText}>Authorize Admin</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <View style={styles.authButton}>
+                    <TouchableOpacity 
+                      style={styles.button}
+                      onPress={handleAdminDeauth}
+                    >
+                      <Text style={styles.buttonText}>Deauthorize Admin</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+
+              <View style={styles.authButtonGroup}>
+                <Text style={styles.authLabel}>User Management:</Text>
+                <View style={styles.buttonRow}>
+                  <View style={[styles.authButton, styles.smallButton]}>
+                    <TouchableOpacity 
+                      style={styles.button}
+                      onPress={handleDeleteUser}
+                    >
+                      <Text style={styles.smallButtonText}>Delete User</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
             </View>
           </View>
         )}
@@ -255,7 +518,7 @@ const AdminProfile = () => {
         {selectedTab === "most liked" && (
           <View style={styles.detailsSection}>
             {topLiked
-              .sort((a, b) => b.like_count - a.like_count) // Sort in descending order
+              .sort((a, b) => b.like_count - a.like_count)
               .slice(0, 3)
               .map((article, index) => (
                 <View key={article._id} style={styles.articleContainer}>
@@ -281,7 +544,7 @@ const AdminProfile = () => {
         {selectedTab === "most saved" && (
           <View style={styles.detailsSection}>
             {topSaved
-              .sort((a, b) => b.save_count - a.save_count) // Sort in descending order
+              .sort((a, b) => b.save_count - a.save_count)
               .slice(0, 3)
               .map((article, index) => (
                 <View key={article._id} style={styles.articleContainer}>
@@ -305,7 +568,6 @@ const AdminProfile = () => {
           </View>
         )}
       </ScrollView>
-      {/* Footer section */}
       <View style={styles.footer}>
         <View style={styles.notificationSection}>
           <Text style={styles.notificationText}>
@@ -321,17 +583,17 @@ const AdminProfile = () => {
         </View>
         {!editMode ? (
           <TouchableOpacity
-            style={styles.editProfileButton}
+            style={[styles.editProfileButton, styles.smallButton]}
             onPress={switchEditMode}
           >
-            <Text>Edit Profile</Text>
+            <Text style={styles.smallButtonText}>Edit Profile</Text>
           </TouchableOpacity>
         ) : (
           <TouchableOpacity
-            style={styles.editProfileButton}
+            style={[styles.editProfileButton, styles.smallButton]}
             onPress={saveChanges}
           >
-            <Text>Save Changes</Text>
+            <Text style={styles.smallButtonText}>Save Changes</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -340,32 +602,74 @@ const AdminProfile = () => {
 };
 
 const styles = StyleSheet.create({
+  authButtonsContainer: {
+    width: '100%',
+    paddingHorizontal: 20,
+    marginTop: 20,
+  },
+  authButtonGroup: {
+    marginBottom: 20,
+    width: '100%',
+  },
+  authLabel: {
+    fontSize: 14,
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginBottom: 10,
+    gap: 10,
+  },
+  authButton: {
+    width: 150,
+  },
+  button: {
+    backgroundColor: '#E0E0E0',
+    borderRadius: 8,
+    padding: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 1,
+    elevation: 1,
+  },
+  buttonText: {
+    color: 'black',
+    fontSize: 14,
+  },
   container: {
     flex: 1,
     backgroundColor: "white",
   },
   header: {
-    backgroundColor: "#02833D", // A green color similar to the one in the image.
+    backgroundColor: "#02833D",
     padding: 50,
     alignItems: "center",
   },
   profileSection: {
     alignItems: "center",
-    marginTop: -50, // Negative margin to pull the profile section up, overlapping the header
+    marginTop: -50,
   },
   profileImage: {
     width: 100,
     height: 100,
     borderRadius: 50,
     borderWidth: 4,
-    borderColor: "white", // Adjust color as needed to match the background
+    borderColor: "white",
     overflow: "hidden",
-    backgroundColor: "white", // Assuming a white background for the profile picture
+    backgroundColor: "white",
     zIndex: 1,
   },
   name: {
-    fontSize: 14, // Adjust the size as needed
-    fontWeight: "bold", // Use 'normal', 'bold', '100', '200', ... '900'
+    fontSize: 14,
+    fontWeight: "bold",
     marginVertical: 8,
     color: "#000000",
   },
@@ -476,6 +780,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     marginBottom: 15,
     padding: 10,
+    width: '100%',
+    maxWidth: 300,
+    alignSelf: 'center',
   },
   label: {
     fontSize: 15,
@@ -486,6 +793,20 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: "#424242",
     paddingVertical: 5,
+  },
+  inputHelp: {
+    fontSize: 12,
+    color: '#757575',
+    textAlign: 'center',
+    marginBottom: 15,
+    paddingHorizontal: 20,
+  },
+  smallButton: {
+    width: 100,
+  },
+  smallButtonText: {
+    color: 'black',
+    fontSize: 14,
   },
 });
 
