@@ -4,34 +4,46 @@ import { ObjectId } from 'mongodb';
 
 export const verifyToken = async (req, res, next) => {
   try {
+    console.log('Authorization header:', req.headers.authorization);
     const token = req.headers.authorization?.split(' ')[1];
     
     if (!token) {
+      console.log('No token provided');
       return res.status(401).json({ message: 'Authentication required' });
     }
 
+    console.log('Verifying token:', token);
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
-    const user = await users_db.collection('customer_info').findOne({ _id: new ObjectId(decoded.id) });
+    console.log('Decoded token:', decoded);
     
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+    if (!decoded.id || !decoded.accountType) {
+      console.log('Invalid token payload:', decoded);
+      return res.status(401).json({ message: 'Invalid token payload' });
     }
 
     req.user = {
-      id: user._id.toString(), // Convert ObjectId to string
-      role: user.role,
-      name: user.name
+      id: decoded.id,
+      accountType: decoded.accountType
     };
+    console.log('User set in request:', req.user);
     
     next();
   } catch (error) {
-    return res.status(401).json({ message: 'Invalid token' });
+    console.error('Token verification error:', error);
+    return res.status(401).json({ message: 'Invalid token', error: error.message });
   }
 };
 
 export const requireAdmin = (req, res, next) => {
-  if (!req.user || req.user.role !== 'admin') {
+  console.log('Checking admin access for user:', req.user);
+  if (!req.user) {
+    console.log('No user in request');
+    return res.status(403).json({ message: 'User not authenticated' });
+  }
+  if (req.user.accountType !== 1) { // 1 is admin account type
+    console.log('User is not admin. Account type:', req.user.accountType);
     return res.status(403).json({ message: 'Admin access required' });
   }
+  console.log('Admin access granted');
   next();
 };

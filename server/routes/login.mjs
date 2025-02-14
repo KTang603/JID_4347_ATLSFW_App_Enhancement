@@ -1,5 +1,6 @@
 import express from "express";
 import { posts_db, users_db } from "../db/conn.mjs";
+import jwt from 'jsonwebtoken';
 
 /*
 enum AccountType {
@@ -39,7 +40,19 @@ router.post("/", async (req, res) => {
             userInfo.vendor_account_initialized = true;
         }
     }
-    res.status(200).json({ success: true, account_type: existingUser.account_type, user: userInfo});
+    // Generate JWT token
+    const token = jwt.sign(
+      { id: userInfo._id.toString() },
+      process.env.JWT_SECRET || 'your-secret-key',
+      { expiresIn: '24h' }
+    );
+
+    res.status(200).json({
+      success: true,
+      account_type: existingUser.account_type,
+      user: userInfo,
+      token: token
+    });
 });
 
 

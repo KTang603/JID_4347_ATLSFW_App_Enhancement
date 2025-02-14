@@ -9,7 +9,7 @@ export default (state = initialState, action) => {
         ...state,
         token: action.payload,
       };
-    case 'LOGOUT_AND_CLEAR_TOKEN':
+    case 'CLEAR_TOKEN':
       return {
         ...state,
         token: null,
