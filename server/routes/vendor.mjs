@@ -97,6 +97,17 @@ router.post("/deauthorize", async (req, res) => {
         }
 
         const collection = users_db.collection('user_login');
+        
+        // First check if user exists and is a vendor
+        const user = await collection.findOne({ hashed_email });
+        if (!user) {
+            return res.status(404).json({ success: false, message: "Account associated with email does not exist" });
+        }
+        
+        if (user.account_type !== 2) { // 2 is vendor account type based on the enum comment at top
+            return res.status(400).json({ success: false, message: "This user is not a Vendor. No need to deauthorize" });
+        }
+
         const result = await collection.updateOne(
             { hashed_email }, 
             { $set: { account_type: 3 } } // Set back to general user

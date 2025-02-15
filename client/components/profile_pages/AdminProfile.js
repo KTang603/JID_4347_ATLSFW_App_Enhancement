@@ -254,7 +254,7 @@ const AdminProfile = () => {
               console.log('Using hashed_email:', hashed_email);
               
               const response = await makeRequest('post', '/vendor/deauthorize', { hashed_email }, true, token);
-              Alert.alert('Success', response.data.message);
+              Alert.alert(response.data.success ? 'Success' : 'Notice', response.data.message);
             }
           }
         ]
