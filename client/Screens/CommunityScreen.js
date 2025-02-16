@@ -36,6 +36,12 @@ const CommunityScreen = ({ navigation }) => {
     (store) => store.saved_articles.saved_articles
   );
   const isLogged = useSelector((store) => store.isLogged.isLogged);
+  const token = useSelector((store) => store.token?.token);
+
+  // Add debug logging
+  useEffect(() => {
+    console.log('Current token:', token);
+  }, [token]);
 
   const handleSavePress = () => {
     // Toggle the state when the Save button is pressed
@@ -47,12 +53,23 @@ const CommunityScreen = ({ navigation }) => {
   // function for fetching article data with selected tags
   const fetchData = async () => {
     try {
+      if (!token) {
+        console.error('No token available for posts fetch');
+        return;
+      }
+
       const response = await axios.get(
         "http://" +
           MY_IP_ADDRESS +
           ":5050/posts" +
           "?tags=" +
-          inputTag.join(",")
+          inputTag.join(","),
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
       );
       setArticleData(response.data);
     } catch (error) {
@@ -60,10 +77,12 @@ const CommunityScreen = ({ navigation }) => {
     }
   };
 
-  // Fetch article data when page is initialized
+  // Fetch article data when page is initialized or token changes
   useEffect(() => {
-    fetchData();
-  }, []);
+    if (token) {
+      fetchData();
+    }
+  }, [token]);
 
   const filterArticles = async () => {
     // Fetch data when filtering is applied
@@ -74,8 +93,17 @@ const CommunityScreen = ({ navigation }) => {
     // Fetch tags from the new endpoint
     const fetchTags = async () => {
       try {
+        if (!token) {
+          console.error('No token available');
+          return;
+        }
         const url = `http://${MY_IP_ADDRESS}:5050/tags`;
-        const response = await axios.get(url);
+        const response = await axios.get(url, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
         if (response.data && Array.isArray(response.data)) {
           setTags(response.data);
         }
@@ -83,8 +111,10 @@ const CommunityScreen = ({ navigation }) => {
         console.error("Error fetching tags:", error.message);
       }
     };
-    fetchTags();
-  }, []);
+    if (token) {
+      fetchTags();
+    }
+  }, [token]); // Re-fetch when token changes
 
   const handleTagPress = (tag) => {
     if (inputTag.includes(tag)) {
@@ -109,7 +139,7 @@ const CommunityScreen = ({ navigation }) => {
         {articleData &&
         <MasonryList
           numColumns={2}
-          data={articleData}
+          data={articleData.articles}
           keyExtractor={(item) => item["_id"]}
           renderItem={({ item, index }) => (
             <Article

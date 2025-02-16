@@ -6,6 +6,7 @@ import accountReducer from './reducers/accountReducer';
 import saveReducer from './reducers/saveReducer';
 import userInfoReducer from './reducers/userInfoReducer';
 import vendReducer from './reducers/vendReducer';
+import tokenReducer from './reducers/tokenReducer';
 
 // HOW REDUX STATE WORKS
 // 
@@ -39,7 +40,7 @@ const rootReducer = combineReducers({
     saved_articles: saveReducer,
     userInfo: userInfoReducer,
     isInit: vendReducer,
-    // add more reducers here
+    token: tokenReducer,
 });
 
 export const store = configureStore({
