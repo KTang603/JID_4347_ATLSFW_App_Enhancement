@@ -72,6 +72,7 @@ const CommunityScreen = ({ navigation }) => {
         }
       );
       setArticleData(response.data);
+      //console.log(response.data)
     } catch (error) {
       console.error("Error during data fetch:", error.message);
     }

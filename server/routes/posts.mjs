@@ -4,6 +4,8 @@ import { ObjectId } from "mongodb";
 import tagsList from "../utils/tagsList.mjs";
 import { verifyToken, requireAdmin } from "../middleware/auth.mjs";
 
+const YOUR_API_KEY = process.env.NEWS_API_KEY;
+
 const router = express.Router();
 
 // Middleware to verify token for protected routes
@@ -38,10 +40,12 @@ router.post("/posts/create", requireAdmin, async (req, res) => {
   }
 });
 
+
 // Get articles with pagination and filtering
 router.get("/posts", verifyToken, async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
+    console.log(page)
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
     
@@ -60,6 +64,8 @@ router.get("/posts", verifyToken, async (req, res) => {
       query.tags = { $in: tags };
     }
 
+    console.log("API HIT")
+
     // Search filter
     if (searchQuery) {
       query.$or = [
@@ -74,7 +80,7 @@ router.get("/posts", verifyToken, async (req, res) => {
     const total = await collection.countDocuments(query);
     
     // Get paginated results
-    const articles = await collection
+    const localArticles = await collection
       .find(query)
       .sort({ [sortBy]: order })
       .skip(skip)
@@ -82,13 +88,57 @@ router.get("/posts", verifyToken, async (req, res) => {
       .toArray();
 
     // Ensure no negative counts
-    for (let article of articles) {
+    for (let article of localArticles) {
       if (article.like_count < 0) article.like_count = 0;
       if (article.save_count < 0) article.save_count = 0;
     }
 
+    // Function to transform external API's article format to our local schema
+    const transformExternalArticle = (extArticle) => ({
+      // Use the external title, link, and image URL to match our schema
+      article_title: extArticle.title,
+      article_preview_image: extArticle.image_url || "",
+      article_link: extArticle.link,
+      // Use source fields for author info; default values if missing
+      author_id: extArticle.source_id || "newsdata-api",
+      author_name: extArticle.source_name || "NewsData.io",
+      author_pfp_link: extArticle.source_icon || "",
+      // Use external categories or keywords if available; otherwise, an empty array
+      tags: extArticle.category
+        ? (Array.isArray(extArticle.category) ? extArticle.category : [extArticle.category])
+        : [],
+      // Default counts for external articles
+      like_count: 0,
+      save_count: 0,
+      // Optionally add publish date if needed
+      publishDate: extArticle.pubDate || null
+    });
+
+    // Call the external news API to fetch the top 50 articles
+    let externalArticles = [];
+    try {
+      const apiKey = process.env.NEWS_API_KEY; // Ensure your API key is stored as an environment variable
+      const newsApiUrl = "https://newsdata.io/api/1/latest";
+      const response = await axios.get(newsApiUrl, {
+        params: {
+          apikey: apiKey,
+          size: 50
+        }
+      });
+      // Assuming the results are in response.data.results
+      if (response.data && Array.isArray(response.data.results)) {
+        externalArticles = response.data.results.map(transformExternalArticle);
+      }
+      console.log(response)
+    } catch (externalErr) {
+      console.error("Error fetching external news:", externalErr.message);
+      // Continue without external articles if the API call fails.
+    }
+
+    const allArticles = localArticles.concat(externalArticles)
+
     res.status(200).json({
-      articles,
+      allArticles,
       pagination: {
         total,
         page,
