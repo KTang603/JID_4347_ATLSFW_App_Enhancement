@@ -3,6 +3,7 @@ import { posts_db, users_db } from "../db/conn.mjs";
 import { ObjectId } from "mongodb";
 import tagsList from "../utils/tagsList.mjs";
 import { verifyToken, requireAdmin } from "../middleware/auth.mjs";
+import axios from "axios";
 
 const router = express.Router();
 
@@ -38,10 +39,12 @@ router.post("/posts/create", requireAdmin, async (req, res) => {
   }
 });
 
+
 // Get articles with pagination and filtering
 router.get("/posts", verifyToken, async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
+    console.log(page)
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
     
@@ -74,7 +77,7 @@ router.get("/posts", verifyToken, async (req, res) => {
     const total = await collection.countDocuments(query);
     
     // Get paginated results
-    const articles = await collection
+    const localArticles = await collection
       .find(query)
       .sort({ [sortBy]: order })
       .skip(skip)
@@ -82,10 +85,59 @@ router.get("/posts", verifyToken, async (req, res) => {
       .toArray();
 
     // Ensure no negative counts
-    for (let article of articles) {
+    for (let article of localArticles) {
       if (article.like_count < 0) article.like_count = 0;
       if (article.save_count < 0) article.save_count = 0;
     }
+
+    // Function to transform external API's article format to our local schema
+    const transformExternalArticle = (extArticle) => ({
+      // Use the external title, link, and image URL to match our schema
+      article_title: extArticle.title,
+      article_preview_image: extArticle.image_url || "",
+      article_link: extArticle.link,
+      author_id: extArticle.source_id || "newsdata-api",
+      author_name: extArticle.source_name || "NewsData.io",
+      author_pfp_link: extArticle.source_icon || "",
+      tags: extArticle.category
+        ? (Array.isArray(extArticle.category) ? extArticle.category : [extArticle.category])
+        : [],
+      like_count: 0,
+      save_count: 0,
+      publishDate: extArticle.pubDate || null
+    });
+
+    let externalArticles = [];
+    try {
+      const apiKey = "pub_69804b95b65400647becb636fdb62f1390496";
+      const newsApiUrl = "https://newsdata.io/api/1/latest";
+      const response = await axios.get(newsApiUrl, {
+        params: {
+          apikey: apiKey,
+          qInTitle:"fashion",
+          language:"en",
+        }
+      });
+      if (response.data && Array.isArray(response.data.results)) {
+        externalArticles = response.data.results.map(transformExternalArticle);
+      }
+    } catch (externalErr) {
+      console.error("Error fetching external news:", externalErr.message);
+    }
+
+    if (externalArticles.length > 0) {
+      try {
+        // UNCOMMENT THE NEXT LINE TO SAVE NEWS DATA API ARTICLES TO MONGODB
+        //await posts_db.collection('articles').insertMany(externalArticles);
+        console.log("external articles saved")
+      } catch (insertErr) {
+        console.error("Error inserting external articles:", insertErr.message);
+      }
+    }
+
+    const articles = localArticles.concat(externalArticles)
+
+    console.log(localArticles)
 
     res.status(200).json({
       articles,
