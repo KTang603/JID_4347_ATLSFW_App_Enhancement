@@ -37,13 +37,27 @@ const SavedArticles = ({ navigation }) => {
 
   const [articleData, setArticleData] = useState();
   
+  const token = useSelector((store) => store.token?.token);
+
   useEffect(() => {
     const fetchData = async () => {
       try {
+        if (!token) {
+          console.error('No token available for posts fetch');
+          return;
+        }
+
         const response = await axios.get(
-          "http://" + MY_IP_ADDRESS + ":5050/posts"
+          "http://" + MY_IP_ADDRESS + ":5050/posts",
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          }
         );
-        const filteredData = response.data.filter((article) =>
+        
+        const filteredData = response.data.articles.filter((article) =>
           saved_articles_state.includes(article._id)
         );
         setArticleData(filteredData);
@@ -51,8 +65,10 @@ const SavedArticles = ({ navigation }) => {
         console.error("Error during data fetch:", error.message);
       }
     }; 
-    fetchData();
-  }, []);
+    if (token) {
+      fetchData();
+    }
+  }, [token, saved_articles_state]);
 
   return (
     <View style={{ flex: 1 }}>

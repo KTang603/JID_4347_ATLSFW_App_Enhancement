@@ -20,6 +20,8 @@ router.post("/signup", async (req, res) => {
     if (!hashed_email || !hashed_password) {
         return res.status(400).json({ success: false, message: 'Missing email or password' });
     }
+
+    console.log('Signup attempt with hashed_email:', hashed_email);
     const existingUser = await users_db.collection('user_login').findOne({ hashed_email: hashed_email });
     if (existingUser) {
         return res.status(400).json({ success: false, message: 'Email already registered' });
@@ -27,7 +29,9 @@ router.post("/signup", async (req, res) => {
     if (encrypted_email == null || first_name == null || last_name == null || username == null || birthday == null || gender == null || phone_number == null || subscribed_to_news == null) {
         return res.status(400).json({success: false, message: "Missing certain attributes"})
     }
+    console.log('Creating new user in user_login with hashed_email:', hashed_email);
     await users_db.collection('user_login').insertOne({ hashed_password: hashed_password, account_type: 3, hashed_email: hashed_email });
+    console.log('Creating new user in customer_info with hashed_email:', hashed_email);
     await users_db.collection('customer_info').insertOne({
         hashed_email: hashed_email,
         encrypted_email: encrypted_email,
