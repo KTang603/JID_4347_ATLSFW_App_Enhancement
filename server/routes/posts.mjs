@@ -4,8 +4,13 @@ import { ObjectId } from "mongodb";
 import tagsList from "../utils/tagsList.mjs";
 import { verifyToken, requireAdmin } from "../middleware/auth.mjs";
 import axios from "axios";
+import dummy_data from "../articles.mjs"; 
 
 const router = express.Router();
+
+let externalArticlesCache = [];
+let lastExternalFetch = 0;
+const ONE_HOUR = 3600000;
 
 // Middleware to verify token for protected routes
 router.use(['/posts/create', '/posts/delete', '/posts/update'], verifyToken);
@@ -43,6 +48,7 @@ router.post("/posts/create", requireAdmin, async (req, res) => {
 // Get articles with pagination and filtering
 router.get("/posts", verifyToken, async (req, res) => {
   try {
+    console.log("LOL")
     const page = parseInt(req.query.page) || 1;
     console.log(page)
     const limit = parseInt(req.query.limit) || 10;
@@ -107,28 +113,40 @@ router.get("/posts", verifyToken, async (req, res) => {
       publishDate: extArticle.pubDate || null
     });
 
-    let externalArticles = [];
-    try {
-      const apiKey = "pub_69804b95b65400647becb636fdb62f1390496";
-      const newsApiUrl = "https://newsdata.io/api/1/latest";
-      const response = await axios.get(newsApiUrl, {
-        params: {
-          apikey: apiKey,
-          qInTitle:"fashion",
-          language:"en",
+    const now = Date.now();
+    console.log(now)
+
+    if (!lastExternalFetch || (now - lastExternalFetch > ONE_HOUR)) {
+      try {
+        const apiKey = "pub_69804b95b65400647becb636fdb62f1390496";
+        const newsApiUrl = "https://newsdata.io/api/1/latest";
+        const response = await axios.get(newsApiUrl, {
+          params: {
+            apikey: apiKey,
+            qInTitle: "fashion",
+            language: "en",
+          }
+        });
+        if (response.data && Array.isArray(response.data.results)) {
+          externalArticlesCache = response.data.results.map(transformExternalArticle);
+          lastExternalFetch = now;
+          console.log("External articles refreshed.");
         }
-      });
-      if (response.data && Array.isArray(response.data.results)) {
-        externalArticles = response.data.results.map(transformExternalArticle);
+      } catch (externalErr) {
+        console.error("Error fetching external news:", externalErr.message);
       }
-    } catch (externalErr) {
-      console.error("Error fetching external news:", externalErr.message);
     }
 
+    const externalArticles = externalArticlesCache;
+    
     if (externalArticles.length > 0) {
       try {
         // UNCOMMENT THE NEXT LINE TO SAVE NEWS DATA API ARTICLES TO MONGODB
         //await posts_db.collection('articles').insertMany(externalArticles);
+
+        //UNCOMMENT NEXT 2 LINES TO INSERT DUMMY DATA INTO DB
+        ///const articlesToInsert = dummy_data.articles.map((item) => item.article);
+        //const result = await posts_db.collection('articles').insertMany(articlesToInsert);
         console.log("external articles saved")
       } catch (insertErr) {
         console.error("Error inserting external articles:", insertErr.message);
