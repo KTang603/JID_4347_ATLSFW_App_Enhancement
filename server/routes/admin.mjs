@@ -16,8 +16,8 @@ const client = new MongoClient(uri, {
 
 const router = express.Router();
 
-// Add NewsAPI routes
-router.post("/newsapi/config", verifyToken, requireAdmin, async (req, res) => {
+// Add NewsData.io routes
+router.post("/newsdata/config", verifyToken, requireAdmin, async (req, res) => {
     try {
         const { apiKey } = req.body;
         if (!apiKey) {
@@ -25,29 +25,30 @@ router.post("/newsapi/config", verifyToken, requireAdmin, async (req, res) => {
         }
 
         await news_db.collection('config').updateOne(
-            { type: 'newsapi' },
+            { type: 'newsdata' },
             { $set: { apiKey, updatedAt: new Date() } },
             { upsert: true }
         );
 
-        res.status(200).json({ success: true, message: "NewsAPI key configured successfully" });
+        res.status(200).json({ success: true, message: "NewsData.io key configured successfully" });
     } catch (err) {
         console.error(err);
         res.status(500).json({ success: false, message: "Internal Server Error" });
     }
 });
 
-router.post("/newsapi/fetch", verifyToken, requireAdmin, async (req, res) => {
+router.post("/newsdata/fetch", verifyToken, requireAdmin, async (req, res) => {
     try {
         const result = await fetchNewsArticles();
+        if (!result) {
+            return res.status(400).json({ success: false, message: "NewsData.io API key not configured" });
+        }
         res.status(200).json({ success: true, addedCount: result?.addedCount || 0 });
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ success: false, message: "Failed to fetch articles" });
+        console.error('Error in /newsdata/fetch:', err);
+        const errorMessage = err.response?.data?.message || err.message || "Failed to fetch articles";
+        res.status(500).json({ success: false, message: errorMessage });
     }
 });
-
-// Rest of the existing routes...
-[Previous admin.mjs content]
 
 export default router;

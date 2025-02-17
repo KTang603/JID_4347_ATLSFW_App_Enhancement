@@ -216,13 +216,14 @@ router.post('/posts/:article_id/', verifyToken, async (req, res) => {
       return res.status(404).json({ success: false, message: "Article not found!" });
     }
 
-    // Validate ObjectId
-    if (!ObjectId.isValid(article_id)) {
-      return res.status(400).json({ success: false, message: "Invalid article ID format" });
+    // Check if article exists - try both ObjectId and string ID
+    let articleExists;
+    if (ObjectId.isValid(article_id)) {
+      articleExists = await posts_db.collection("articles").findOne({ _id: new ObjectId(article_id) });
     }
-
-    // Check if article exists
-    const articleExists = await posts_db.collection("articles").findOne({ _id: new ObjectId(article_id) });
+    if (!articleExists) {
+      articleExists = await posts_db.collection("articles").findOne({ _id: article_id });
+    }
     if (!articleExists) {
       return res.status(404).json({ success: false, message: "Article not found!" });
     }
@@ -305,17 +306,10 @@ router.post('/posts/:article_id/', verifyToken, async (req, res) => {
       update
     });
 
-    // Ensure all article IDs are valid ObjectIds
-    const validArticles = articles.filter(id => {
-      try {
-        return ObjectId.isValid(id);
-      } catch (error) {
-        console.error('Invalid article ID:', id);
-        return false;
-      }
-    });
-
-    // Convert all article IDs to strings before updating
+    // Keep all article IDs as strings
+    const validArticles = articles.filter(id => id && typeof id === 'string');
+    
+    // Update with string IDs
     if (req.query.like) {
       update = { $set: { liked_articles: validArticles } };
     } else if (req.query.save) {
@@ -345,9 +339,14 @@ router.post('/posts/:article_id/', verifyToken, async (req, res) => {
       if (arg && (arg === 1 || arg === -1)) {
         try {
           // Get current like count
-          const article = await posts_db.collection("articles").findOne(
-            { _id: new ObjectId(article_id) }
-          );
+          // Try both ObjectId and string ID
+          let article;
+          if (ObjectId.isValid(article_id)) {
+            article = await posts_db.collection("articles").findOne({ _id: new ObjectId(article_id) });
+          }
+          if (!article) {
+            article = await posts_db.collection("articles").findOne({ _id: article_id });
+          }
 
           if (!article) {
             console.error('Article not found:', article_id);
@@ -372,8 +371,13 @@ router.post('/posts/:article_id/', verifyToken, async (req, res) => {
             new_count: newLikeCount
           });
 
+          // Update using the correct ID type
+          const query = ObjectId.isValid(article_id) ? 
+            { _id: new ObjectId(article_id) } : 
+            { _id: article_id };
+            
           const likeResult = await posts_db.collection("articles").updateOne(
-            { _id: new ObjectId(article_id) },
+            query,
             { $set: { like_count: newLikeCount } }
           );
 
@@ -404,16 +408,26 @@ router.post('/posts/:article_id/', verifyToken, async (req, res) => {
     if (req.query.save) {
       if (arg && (arg === 1 || arg === -1)) {
         // Get current save count
-        const article = await posts_db.collection("articles").findOne(
-          { _id: new ObjectId(article_id) }
-        );
+        // Try both ObjectId and string ID
+        let article;
+        if (ObjectId.isValid(article_id)) {
+          article = await posts_db.collection("articles").findOne({ _id: new ObjectId(article_id) });
+        }
+        if (!article) {
+          article = await posts_db.collection("articles").findOne({ _id: article_id });
+        }
 
         let newSaveCount = article.save_count + arg;
         // Ensure count doesn't go below 0
         newSaveCount = Math.max(0, newSaveCount);
 
+        // Update using the correct ID type
+        const query = ObjectId.isValid(article_id) ? 
+          { _id: new ObjectId(article_id) } : 
+          { _id: article_id };
+          
         const saveResult = await posts_db.collection("articles").updateOne(
-          { _id: new ObjectId(article_id) },
+          query,
           { $set: { save_count: newSaveCount } }
         );
 

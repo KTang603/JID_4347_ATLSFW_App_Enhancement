@@ -368,7 +368,7 @@ const Article = (props) => {
         <TouchableOpacity onPress={() => navigateToContent(article_link)}>
           <Image
             source={{
-              uri: image,
+              uri: image || props.article.article_preview_image,
             }}
             style={styles.image}
           />

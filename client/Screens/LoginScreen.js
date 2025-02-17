@@ -76,7 +76,7 @@ const LoginScreen = ({navigation}) => {
           dispatch(set_acct_type(data.account_type));
           navigation.reset({
             index: 0,
-            routes: [{ name: 'Community' }],
+            routes: [{ name: 'News Feed' }],
           });
       } else {
         Alert.alert('Login Error', data.message || 'Login failed. Please try again.');

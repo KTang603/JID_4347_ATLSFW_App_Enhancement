@@ -35,10 +35,13 @@ app.use((err, _req, res, next) => {
 });
 
 
+// Default search query for news
+const DEFAULT_SEARCH_QUERY = 'sustainable fashion';
+
 // Schedule news fetch to run once per day at midnight
 cron.schedule('0 0 * * *', () => {
   console.log('Running scheduled news fetch...');
-  fetchNewsArticles();
+  fetchNewsArticles(DEFAULT_SEARCH_QUERY);
 });
 
 app.listen(PORT, () => {
@@ -46,5 +49,5 @@ app.listen(PORT, () => {
   
   // Also fetch news when server starts
   console.log('Running initial news fetch...');
-  fetchNewsArticles();
+  fetchNewsArticles(DEFAULT_SEARCH_QUERY);
 });

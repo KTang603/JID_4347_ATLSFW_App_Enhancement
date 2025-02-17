@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import CommunityScreen from "./Screens/CommunityScreen";
+import NewsFeedScreen from "./Screens/NewsFeedScreen";
 import LoginScreen from "./Screens/LoginScreen";
 import SignUpScreen from "./Screens/SignUpScreen";
 import MY_IP_ADDRESS from "./environment_variables.mjs";
@@ -59,7 +59,7 @@ const App = () => {
         >
           <Stack.Screen name="Log In" component={LoginScreen} />
           <Stack.Screen name="Sign Up" component={SignUpScreen} />
-          <Stack.Screen name="Community" component={CommunityScreen} />
+          <Stack.Screen name="News Feed" component={NewsFeedScreen} />
           <Stack.Screen name="Author" component={AuthorNameScreen} />
           <Stack.Screen name="Profile" component={ProfilePage} />
           <Stack.Screen name="Saved Articles" component={SavedArticles} />

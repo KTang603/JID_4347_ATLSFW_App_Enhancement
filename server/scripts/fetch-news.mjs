@@ -1,71 +1,58 @@
-import NewsAPI from 'newsapi';
+import axios from 'axios';
 import { posts_db, news_db } from "../db/conn.mjs";
 
-export async function fetchNewsArticles() {
+export async function fetchNewsArticles(searchQuery = 'sustainable fashion', apiKey) {
   try {
-    // Get API key from database
-    const config = await news_db.collection('config').findOne({ type: 'newsapi' });
-    if (!config?.apiKey) {
-      console.log('NewsAPI key not configured');
+    if (!apiKey) {
+      console.log('NewsData.io API key not provided');
       return;
     }
 
-    const newsapi = new NewsAPI(config.apiKey);
     console.log('Starting news article fetch...');
-    
-    // Get domains from the database
-    const domains = await news_db.collection('domains').find({}).toArray();
-    // Clean domains to get just the base domain
-    const domainList = domains.map(d => {
-      try {
-        // Remove protocol and path, keep only domain
-        const url = new URL(d.domain);
-        return url.hostname.replace('www.', '');
-      } catch (e) {
-        // If URL parsing fails, assume it's already a clean domain
-        return d.domain.replace('www.', '');
-      }
-    }).join(',');
-    
-    if (!domainList) {
-      console.log('No domains configured');
-      return;
-    }
+    console.log('Search query:', searchQuery);
 
-    console.log('Fetching articles for domains:', domainList);
-    console.log('Using search query:', 'sustainability');
+    // Make request to NewsData.io API
+    const url = 'https://newsdata.io/api/1/latest';
+    const params = {
+      apikey: apiKey,
+      q: searchQuery || 'sustainable fashion',
+      language: 'en'
+    };
 
-    const newsApiArticles = await newsapi.v2.everything({
-      q: 'sustainability',
-      domains: domainList,
-      language: 'en',
-      sortBy: 'publishedAt'
-    });
+    console.log('Making request to:', url);
+    const response = await axios.get(url, { params });
+    console.log(`Found ${response.data.results?.length || 0} articles`);
 
-    console.log(`Found ${newsApiArticles.articles.length} articles`);
-
+    // Save articles to database
     let addedCount = 0;
-    for (const article of newsApiArticles.articles) {
-      // Check if article already exists
-      const exists = await posts_db.collection('articles').findOne({
-        article_link: article.url
-      });
+    for (const article of response.data.results || []) {
+      if (!article.title || !article.link) continue;
 
-      if (!exists) {
+      try {
+        // Create a unique ID based on the article link
+        const articleId = Buffer.from(article.link).toString('base64');
+        
         await posts_db.collection('articles').insertOne({
-          article_title: article.title,
-          article_preview_image: article.urlToImage,
-          article_link: article.url,
-          author_name: article.author || 'News Source',
-          author_id: 'newsapi',
-          author_pfp_link: 'default_newsapi_avatar.jpg',
-          tags: ['sustainability'],
+          _id: articleId,
+          article_title: article.title.trim(),
+          article_preview_image: article.image_url,
+          article_link: article.link,
+          author_name: article.creator?.[0] || 'News Source',
+          author_id: 'newsdata',
+          author_pfp_link: 'default_newsdata_avatar.jpg',
+          tags: [searchQuery || 'sustainable fashion'],
           like_count: 0,
           save_count: 0,
-          source: 'NewsAPI',
-          publishDate: new Date(article.publishedAt)
+          source: 'NewsData.io',
+          publishDate: new Date(article.pubDate),
+          createdAt: new Date()
         });
+        console.log('Added:', article.title);
         addedCount++;
+      } catch (error) {
+        if (error.code !== 11000) { // Ignore duplicate errors
+          console.error('Error saving article:', error);
+        }
       }
     }
 

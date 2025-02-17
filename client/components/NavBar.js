@@ -21,22 +21,12 @@ const NavBar = () => {
         {/* Nav Bar */}
         <View style={{ flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center', backgroundColor: '#02833D', padding: 10 }}>
           {/* Navigation Buttons */}
-          <TouchableOpacity style={{ alignItems: 'center' }} onPress={() => {
-            navigation.reset({
-              index: 0,
-              routes: [{ name: 'Community' }],
-            });
-          }}>
+          <TouchableOpacity style={{ alignItems: 'center' }}>
               <Icon name="home" size={20} color="white" alignItems="center"/>
               <Text style={styles.whiteText}>Home</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={{ alignItems: 'center' }} onPress={() => {
-            navigation.reset({
-              index: 0,
-              routes: [{ name: 'Community' }],
-            });
-          }}>              
+          <TouchableOpacity style={{ alignItems: 'center' }}>              
               <Icon name="calendar" size={20} color="white" alignItems="center"/>
               <Text style={styles.whiteText}>Events</Text>
           </TouchableOpacity>
@@ -44,11 +34,11 @@ const NavBar = () => {
           <TouchableOpacity style={{ alignItems: 'center' }} onPress={() => {
             navigation.reset({
               index: 0,
-              routes: [{ name: 'Community' }],
+              routes: [{ name: 'News Feed' }],
             });
-          }}>              
-              <Icon name="search" size={20} color="white" alignItems="center"/>
-              <Text style={styles.whiteText}>Search</Text>
+          }}>
+              <Icon name="newspaper-o" size={20} color="white" alignItems="center"/>
+              <Text style={styles.whiteText}>News Feed</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={{ alignItems: 'center' }} onPress={() => {
@@ -84,7 +74,7 @@ const NavBar = () => {
               });
             }
           }}>
-              <Icon name="home" size={20} color="white" alignItems="center"/>
+              <Icon name="user" size={20} color="white" alignItems="center"/>
               <Text style={styles.whiteText}>Profile</Text>
           </TouchableOpacity>
         </View>

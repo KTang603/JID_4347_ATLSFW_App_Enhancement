@@ -111,7 +111,7 @@ const AdminProfile = () => {
 
     const fetchDomains = async () => {
       try {
-        const response = await makeRequest('get', '/admin/domains', null, true, token);
+        const response = await makeRequest('get', '/news/domains', null, true, token);
         if (Array.isArray(response.data)) {
           setDomains(response.data);
         }
@@ -495,45 +495,45 @@ const AdminProfile = () => {
 
         {selectedTab === "domains" && (
           <View style={styles.contactSection}>
-            <Text style={styles.sectionTitle}>NewsAPI Configuration</Text>
+            <Text style={styles.sectionTitle}>NewsData.io Configuration</Text>
             <TextInput
-              placeholder="NewsAPI Key"
+              placeholder="NewsData.io API Key"
               style={[styles.input, { marginBottom: 5 }]}
               value={newsApiKey}
               onChangeText={setNewsApiKey}
               secureTextEntry={true}
             />
-            <TouchableOpacity 
-              style={[styles.button, { marginBottom: 20 }]}
-              onPress={async () => {
-                try {
-                  const response = await makeRequest('post', '/admin/newsapi/config', { apiKey: newsApiKey }, true, token);
-                  if (response.data.success) {
-                    Alert.alert('Success', 'NewsAPI key configured successfully');
-                    setNewsApiKey('');
-                  }
-                } catch (error) {
-                  Alert.alert('Error', error.response?.data?.message || 'Failed to configure NewsAPI key');
-                }
-              }}
-            >
-              <Text style={styles.buttonText}>Configure NewsAPI</Text>
-            </TouchableOpacity>
+            <TextInput
+              placeholder="Enter search query (e.g., fashion)"
+              style={[styles.input, { marginBottom: 5 }]}
+              value={newDomain}
+              onChangeText={setNewDomain}
+            />
+            <Text style={styles.apiQueryText}>
+              {`https://newsdata.io/api/1/latest?apikey=${newsApiKey || '[API_KEY]'}&q=${newDomain || '[QUERY]'}&language=en`}
+            </Text>
 
             <TouchableOpacity 
-              style={[styles.button, { marginBottom: 20 }]}
+              style={[styles.button, { marginBottom: 20, marginTop: 20 }]}
               onPress={async () => {
                 try {
-                  const response = await makeRequest('post', '/admin/newsapi/fetch', {}, true, token);
+                  if (!newsApiKey) {
+                    Alert.alert('Error', 'Please enter your NewsData.io API key');
+                    return;
+                  }
+                  const response = await makeRequest('post', '/news/fetch', { 
+                    searchQuery: newDomain,
+                    apiKey: newsApiKey
+                  }, true, token);
                   if (response.data.success) {
-                    Alert.alert('Success', `Added ${response.data.addedCount} new articles`);
+                    Alert.alert('Success', response.data.message);
                   }
                 } catch (error) {
                   Alert.alert('Error', error.response?.data?.message || 'Failed to fetch articles');
                 }
               }}
             >
-              <Text style={styles.buttonText}>Fetch NewsAPI Articles</Text>
+              <Text style={styles.buttonText}>Fetch NewsData.io Articles</Text>
             </TouchableOpacity>
 
             <Text style={styles.sectionTitle}>Add Article Manually</Text>
@@ -840,6 +840,53 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 15,
     paddingHorizontal: 20,
+  },
+  domainsList: {
+    width: '100%',
+    maxWidth: 300,
+    marginTop: 10,
+  },
+  subsectionTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    color: '#424242',
+  },
+  domainItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+    padding: 10,
+    marginBottom: 5,
+    borderRadius: 5,
+  },
+  domainText: {
+    flex: 1,
+    fontSize: 14,
+    color: '#424242',
+  },
+  deleteButton: {
+    width: 30,
+    height: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#ffebee',
+    borderRadius: 15,
+    marginLeft: 10,
+  },
+  deleteButtonText: {
+    fontSize: 20,
+    color: '#d32f2f',
+  },
+  apiQueryText: {
+    fontSize: 12,
+    color: '#757575',
+    textAlign: 'center',
+    marginTop: 5,
+    marginBottom: 10,
+    paddingHorizontal: 20,
+    fontFamily: 'monospace',
   },
 });
 
