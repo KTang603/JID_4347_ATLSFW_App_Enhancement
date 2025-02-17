@@ -1,30 +1,20 @@
-export const like = (articleId) => {
-    // Debug logging
-    console.log('Like action called with:', articleId);
+export const like = (data) => {
     return {
       type: 'LIKE',
-      payload: articleId.toString(),
+      payload: data,
     };
   };
 
-export const unlike = (articleId) => {
-    // Debug logging
-    console.log('Unlike action called with:', articleId);
+export const unlike = (data) => {
     return {
       type: 'UNLIKE',
-      payload: articleId.toString(),
+      payload: data,
     };
   };
 
-export const get_like_list = (articles) => {
-  // Debug logging
-  console.log('Get like list called with:', articles);
-  // Ensure all IDs are strings
-  const articleIds = Array.isArray(articles) 
-    ? articles.map(id => id.toString())
-    : [];
+export const get_like_list = (data) => {
   return {
     type: 'GET_LIKE_LIST',
-    payload: articleIds,
+    payload: data,
   };
 };
