@@ -16,8 +16,8 @@ router.get("/tags", verifyToken, async (req, res) => {
 
 // Admin only - Create article
 router.post("/posts/create", requireAdmin, async (req, res) => {
-  const { article_title, article_preview_image, article_link, author_id, author_name, author_pfp_link, tags, source } = req.body;
-  if (!article_title || !article_link || !author_id || !author_name) {
+  const { article_title, article_preview_image, article_link, author_id, author_name, author_pfp_link, tags } = req.body;
+  if (!article_title || !article_link || !article_preview_image || !author_id || !author_name || !author_pfp_link) {
       return res.status(400).json({ success: false, message: 'Missing article information' });
   }
   try {
@@ -31,7 +31,6 @@ router.post("/posts/create", requireAdmin, async (req, res) => {
       tags,
       like_count: 0,
       save_count: 0,
-      source: source || 'Manual',
     });
     res.status(200).json({ success: true });
   } catch (err) {
@@ -52,17 +51,11 @@ router.get("/posts", verifyToken, async (req, res) => {
     // Extracting query parameters
     const tagsQuery = req.query.tags;
     const searchQuery = req.query.search;
-    const sourceQuery = req.query.source;
     const sortBy = req.query.sortBy || 'publishDate';
     const order = req.query.order === 'asc' ? 1 : -1;
 
     // Build query
     let query = {};
-
-    // Source filter
-    if (sourceQuery) {
-      query.source = sourceQuery;
-    }
     
     // Tags filter
     if (tagsQuery) {
@@ -263,124 +256,28 @@ router.post('/posts/:article_id/', verifyToken, async (req, res) => {
   try {
     const { article_id } = req.params;
     const user_id = req.user.id;
-    
     if (!article_id) {
-      return res.status(404).json({ success: false, message: "Article not found!" });
-    }
-
-    // Validate ObjectId
-    if (!ObjectId.isValid(article_id)) {
-      return res.status(400).json({ success: false, message: "Invalid article ID format" });
-    }
-
-    // Check if article exists
-    const articleExists = await posts_db.collection("articles").findOne({ _id: new ObjectId(article_id) });
-    if (!articleExists) {
-      return res.status(404).json({ success: false, message: "Article not found!" });
+      return res.status(404).send({ message: "Article not found!" });
     }
 
     let arg;
     let update;
     let articles;
-
-    console.log('Request details:', {
-      article_id,
-      user_id,
-      query: req.query,
-      body: req.body
-    });
-
-    // Debug logging
-    console.log('Request body:', req.body);
-
-    // Validate query parameters
     if (req.query.like) {
       arg = parseInt(req.query.like);
-      if (arg !== 1 && arg !== -1) {
-        console.error('Invalid like value:', arg);
-        return res.status(400).json({ success: false, message: "Invalid like value" });
-      }
-
-      // Validate and process liked_articles
       const { liked_articles } = req.body;
-      if (!liked_articles) {
-        console.error('Missing liked_articles in request body');
-        return res.status(400).json({ success: false, message: "liked_articles is required" });
-      }
-      if (!Array.isArray(liked_articles)) {
-        console.error('Invalid liked_articles:', liked_articles);
-        return res.status(400).json({ success: false, message: "liked_articles must be an array" });
-      }
-
-      // Convert all IDs to strings and filter out invalid values
-      articles = liked_articles
-        .filter(id => id != null)
-        .map(id => id.toString());
-
-      // Debug logging
-      console.log('Processed liked_articles:', articles);
-
-      update = { $set: { liked_articles: articles } };
+      articles = liked_articles;
+      update = { $set: { liked_articles: liked_articles } }
     } else if (req.query.save) {
       arg = parseInt(req.query.save);
-      if (arg !== 1 && arg !== -1) {
-        console.error('Invalid save value:', arg);
-        return res.status(400).json({ success: false, message: "Invalid save value" });
-      }
       const { saved_articles } = req.body;
-      if (!Array.isArray(saved_articles)) {
-        console.error('Invalid saved_articles:', saved_articles);
-        return res.status(400).json({ success: false, message: "saved_articles must be an array" });
-      }
-      articles = saved_articles.map(id => id.toString());
-      update = { $set: { saved_articles: articles }}
+      articles = saved_articles;
+      update = { $set: { saved_articles: saved_articles }}
     }
 
     if (!update) {
-      console.error('Missing action in request');
-      return res.status(400).json({ success: false, message: "Missing or invalid action" });
+      return res.status(400).json({ success: false, message: "Invalid action" });
     }
-
-    console.log('Processing update:', {
-      user_id,
-      action: req.query.like ? 'like' : 'save',
-      arg,
-      articles,
-      update
-    });
-
-    // Debug logging
-    console.log('Processing update:', {
-      user_id,
-      action: req.query.like ? 'like' : 'save',
-      articles,
-      update
-    });
-
-    // Ensure all article IDs are valid ObjectIds
-    const validArticles = articles.filter(id => {
-      try {
-        return ObjectId.isValid(id);
-      } catch (error) {
-        console.error('Invalid article ID:', id);
-        return false;
-      }
-    });
-
-    // Convert all article IDs to strings before updating
-    if (req.query.like) {
-      update = { $set: { liked_articles: validArticles } };
-    } else if (req.query.save) {
-      update = { $set: { saved_articles: validArticles } };
-    }
-
-    // Debug logging
-    console.log('Updating user articles:', {
-      user_id,
-      action: req.query.like ? 'like' : 'save',
-      validArticles,
-      update
-    });
 
     // Update user's liked/saved articles
     const userResult = await users_db.collection("customer_info").updateOne(
@@ -395,56 +292,22 @@ router.post('/posts/:article_id/', verifyToken, async (req, res) => {
     // Handle like action
     if (req.query.like) {
       if (arg && (arg === 1 || arg === -1)) {
-        try {
-          // Get current like count
-          const article = await posts_db.collection("articles").findOne(
-            { _id: new ObjectId(article_id) }
-          );
+        // Get current like count
+        const article = await posts_db.collection("articles").findOne(
+          { _id: new ObjectId(article_id) }
+        );
 
-          if (!article) {
-            console.error('Article not found:', article_id);
-            return res.status(404).json({ success: false, message: "Article not found!" });
-          }
+        let newLikeCount = article.like_count + arg;
+        // Ensure count doesn't go below 0
+        newLikeCount = Math.max(0, newLikeCount);
 
-          // Debug logging
-          console.log('Current article state:', {
-            article_id,
-            current_like_count: article.like_count,
-            arg
-          });
+        const likeResult = await posts_db.collection("articles").updateOne(
+          { _id: new ObjectId(article_id) },
+          { $set: { like_count: newLikeCount } }
+        );
 
-          let newLikeCount = article.like_count + arg;
-          // Ensure count doesn't go below 0
-          newLikeCount = Math.max(0, newLikeCount);
-
-          // Debug logging
-          console.log('Updating like count:', {
-            article_id,
-            old_count: article.like_count,
-            new_count: newLikeCount
-          });
-
-          const likeResult = await posts_db.collection("articles").updateOne(
-            { _id: new ObjectId(article_id) },
-            { $set: { like_count: newLikeCount } }
-          );
-
-          if (!likeResult.modifiedCount) {
-            console.error('Like update failed:', {
-              article_id,
-              result: likeResult
-            });
-            return res.status(400).json({ success: false, message: "Like action unsuccessful!" });
-          }
-
-          // Debug logging
-          console.log('Like update successful:', {
-            article_id,
-            new_count: newLikeCount
-          });
-        } catch (error) {
-          console.error('Error updating like count:', error);
-          return res.status(500).json({ success: false, message: "Error updating like count" });
+        if (!likeResult.modifiedCount) {
+          return res.status(400).json({ success: false, message: "Like action unsuccessful!" });
         }
       } else {
         return res.status(400).json({ success: false, message: "Invalid like query!" });
