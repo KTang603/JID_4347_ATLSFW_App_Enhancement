@@ -9,8 +9,7 @@ import {
   ScrollView,
   Button,
   TextInput,
-  Alert,
-  FlatList
+  Alert
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import * as Permissions from "expo-permissions";
@@ -77,11 +76,6 @@ const AdminProfile = () => {
   const [editedUsername, setEditedUsername] = useState(userInfo.username);
   const [editedBirthday, setEditedBirthday] = useState(userInfo.birthday);
   const [editedPhoneNumber, setEditedPhoneNumber] = useState(userInfo.phone_number);
-  const [newDomain, setNewDomain] = useState('');
-  const [domains, setDomains] = useState([]);
-  const [newsApiKey, setNewsApiKey] = useState('');
-  const [newArticleTitle, setNewArticleTitle] = useState('');
-  const [newArticleUrl, setNewArticleUrl] = useState('');
   const dispatch = useDispatch();
   const user_id = useSelector((store) => store.user_id.user_id);
   const token = useSelector((store) => store.token.token);
@@ -108,37 +102,21 @@ const AdminProfile = () => {
         console.error("Error fetching top saved posts:", error.message);
       }
     };
-
-    const fetchDomains = async () => {
-      try {
-        const response = await makeRequest('get', '/admin/domains', null, true, token);
-        if (Array.isArray(response.data)) {
-          setDomains(response.data);
-        }
-      } catch (error) {
-        console.error("Error fetching domains:", error.message);
-      }
-    };
-
     fetchTopLiked();
     fetchTopSaved();
-    fetchDomains();
   }, [token]);
 
-  const saveImageLocally = async (fileUri) => {
-    const fileName = fileUri.split('/').pop();
-    const newPath = FileSystem.documentDirectory + fileName;
-    try {
-      await FileSystem.moveAsync({
-        from: fileUri,
-        to: newPath,
-      });
-      return newPath;
-    } catch (e) {
-      console.error(e);
-      throw e;
-    }
-  };
+  // Update form fields when userInfo changes
+  useEffect(() => {
+    setEditedFirstName(userInfo.first_name);
+    setEditedLastName(userInfo.last_name);
+    setEditedUsername(userInfo.username);
+    setEditedBirthday(userInfo.birthday);
+    setEditedPhoneNumber(userInfo.phone_number);
+  }, [userInfo]);
+
+  const toggleSwitch = () => setIsEnabled((previousState) => !previousState);
+  const selectTab = (tab) => setSelectedTab(tab);
 
   const switchEditMode = () => {
     setEditMode(true);
@@ -180,6 +158,21 @@ const AdminProfile = () => {
     }
   };
 
+  const saveImageLocally = async (fileUri) => {
+    const fileName = fileUri.split('/').pop();
+    const newPath = FileSystem.documentDirectory + fileName;
+    try {
+      await FileSystem.moveAsync({
+        from: fileUri,
+        to: newPath,
+      });
+      return newPath;
+    } catch (e) {
+      console.error(e);
+      throw e;
+    }
+  };
+
   const pickImage = async () => {
     let permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (permissionResult.granted === false) {
@@ -196,36 +189,6 @@ const AdminProfile = () => {
 
     if (!result.cancelled && result.assets && result.assets.length > 0) {
       setImageUri(result.assets[0].uri);
-    }
-  };
-
-  const handleAddArticle = async () => {
-    if (!newArticleTitle.trim() || !newArticleUrl.trim()) {
-      Alert.alert('Error', 'Please fill in the article title and URL');
-      return;
-    }
-
-    try {
-      const articleData = {
-        article_title: newArticleTitle,
-        article_preview_image: null,
-        article_link: newArticleUrl,
-        author_id: user_id,
-        author_name: `${userInfo.first_name} ${userInfo.last_name}`,
-        author_pfp_link: 'default_newsapi_avatar.jpg',
-        tags: ['sustainability'],
-        source: 'Manual'
-      };
-      console.log('Sending article data:', articleData);
-      const response = await makeRequest('post', '/posts/create', articleData, true, token);
-
-      if (response.data.success) {
-        setNewArticleTitle('');
-        setNewArticleUrl('');
-        Alert.alert('Success', 'Article added successfully');
-      }
-    } catch (error) {
-      Alert.alert('Error', error.response?.data?.message || 'Failed to add article');
     }
   };
 
@@ -291,7 +254,7 @@ const AdminProfile = () => {
               console.log('Using hashed_email:', hashed_email);
               
               const response = await makeRequest('post', '/vendor/deauthorize', { hashed_email }, true, token);
-              Alert.alert(response.data.success ? 'Success' : 'Notice', response.data.message);
+              Alert.alert('Success', response.data.message);
             }
           }
         ]
@@ -347,43 +310,6 @@ const AdminProfile = () => {
     }
   };
 
-  const handleAdminDeauth = async () => {
-    try {
-      Alert.alert(
-        "Deauthorize Admin",
-        "Are you sure you want to remove admin privileges from this email?",
-        [
-          {
-            text: "Cancel",
-            style: "cancel"
-          },
-          {
-            text: "Deauthorize",
-            style: "destructive",
-            onPress: async () => {
-              if (!email || !email.trim()) {
-                Alert.alert('Error', 'Please enter an email address');
-                return;
-              }
-
-              const normalizedEmail = normalizeEmail(email);
-              const hashed_email = await hashString(normalizedEmail);
-              
-              console.log('Attempting to deauthorize admin with email:', normalizedEmail);
-              console.log('Using hashed_email:', hashed_email);
-              
-              const response = await makeRequest('post', '/admin/deauthorize', { hashed_email }, true, token);
-              Alert.alert('Success', response.data.message);
-            }
-          }
-        ]
-      );
-    } catch (error) {
-      console.error('Error during admin deauthorization:', error);
-      Alert.alert('Deauthorization Error', error.response?.data?.message || 'An error occurred');
-    }
-  };
-
   const handleDeleteUser = async () => {
     try {
       Alert.alert(
@@ -422,6 +348,43 @@ const AdminProfile = () => {
     }
   };
 
+  const handleAdminDeauth = async () => {
+    try {
+      Alert.alert(
+        "Deauthorize Admin",
+        "Are you sure you want to remove admin privileges from this email?",
+        [
+          {
+            text: "Cancel",
+            style: "cancel"
+          },
+          {
+            text: "Deauthorize",
+            style: "destructive",
+            onPress: async () => {
+              if (!email || !email.trim()) {
+                Alert.alert('Error', 'Please enter an email address');
+                return;
+              }
+
+              const normalizedEmail = normalizeEmail(email);
+              const hashed_email = await hashString(normalizedEmail);
+              
+              console.log('Attempting to deauthorize admin with email:', normalizedEmail);
+              console.log('Using hashed_email:', hashed_email);
+              
+              const response = await makeRequest('post', '/admin/deauthorize', { hashed_email }, true, token);
+              Alert.alert('Success', response.data.message);
+            }
+          }
+        ]
+      );
+    } catch (error) {
+      console.error('Error during admin deauthorization:', error);
+      Alert.alert('Deauthorization Error', error.response?.data?.message || 'An error occurred');
+    }
+  };
+
   return (
     <View style={styles.container}>
       <ScrollView>
@@ -445,7 +408,7 @@ const AdminProfile = () => {
                 styles.infoTab,
                 selectedTab === "auth" && styles.selectedTab,
               ]}
-              onPress={() => setSelectedTab("auth")}
+              onPress={() => selectTab("auth")}
             >
               <Text style={selectedTab === "auth" && styles.selectedTabText}>
                 User Management
@@ -456,7 +419,7 @@ const AdminProfile = () => {
                 styles.infoTab,
                 selectedTab === "most liked" && styles.selectedTab,
               ]}
-              onPress={() => setSelectedTab("most liked")}
+              onPress={() => selectTab("most liked")}
             >
               <Text
                 style={selectedTab === "most liked" && styles.selectedTabText}
@@ -469,7 +432,7 @@ const AdminProfile = () => {
                 styles.infoTab,
                 selectedTab === "most saved" && styles.selectedTab,
               ]}
-              onPress={() => setSelectedTab("most saved")}
+              onPress={() => selectTab("most saved")}
             >
               <Text
                 style={selectedTab === "most saved" && styles.selectedTabText}
@@ -477,87 +440,8 @@ const AdminProfile = () => {
                 Most Saved
               </Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.infoTab,
-                selectedTab === "domains" && styles.selectedTab,
-              ]}
-              onPress={() => setSelectedTab("domains")}
-            >
-              <Text
-                style={selectedTab === "domains" && styles.selectedTabText}
-              >
-                Add Article
-              </Text>
-            </TouchableOpacity>
           </View>
         </View>
-
-        {selectedTab === "domains" && (
-          <View style={styles.contactSection}>
-            <Text style={styles.sectionTitle}>NewsAPI Configuration</Text>
-            <TextInput
-              placeholder="NewsAPI Key"
-              style={[styles.input, { marginBottom: 5 }]}
-              value={newsApiKey}
-              onChangeText={setNewsApiKey}
-              secureTextEntry={true}
-            />
-            <TouchableOpacity 
-              style={[styles.button, { marginBottom: 20 }]}
-              onPress={async () => {
-                try {
-                  const response = await makeRequest('post', '/admin/newsapi/config', { apiKey: newsApiKey }, true, token);
-                  if (response.data.success) {
-                    Alert.alert('Success', 'NewsAPI key configured successfully');
-                    setNewsApiKey('');
-                  }
-                } catch (error) {
-                  Alert.alert('Error', error.response?.data?.message || 'Failed to configure NewsAPI key');
-                }
-              }}
-            >
-              <Text style={styles.buttonText}>Configure NewsAPI</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={[styles.button, { marginBottom: 20 }]}
-              onPress={async () => {
-                try {
-                  const response = await makeRequest('post', '/admin/newsapi/fetch', {}, true, token);
-                  if (response.data.success) {
-                    Alert.alert('Success', `Added ${response.data.addedCount} new articles`);
-                  }
-                } catch (error) {
-                  Alert.alert('Error', error.response?.data?.message || 'Failed to fetch articles');
-                }
-              }}
-            >
-              <Text style={styles.buttonText}>Fetch NewsAPI Articles</Text>
-            </TouchableOpacity>
-
-            <Text style={styles.sectionTitle}>Add Article Manually</Text>
-            <TextInput
-              placeholder="Article Title"
-              style={[styles.input, { marginBottom: 5 }]}
-              value={newArticleTitle}
-              onChangeText={setNewArticleTitle}
-            />
-            <TextInput
-              placeholder="Article URL"
-              style={[styles.input, { marginBottom: 20 }]}
-              value={newArticleUrl}
-              onChangeText={setNewArticleUrl}
-            />
-            <TouchableOpacity 
-              style={[styles.button, { marginBottom: 20 }]}
-              onPress={handleAddArticle}
-            >
-              <Text style={styles.buttonText}>Add Article</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
         {selectedTab === "auth" && (
           <View style={styles.contactSection}>
             <TextInput
@@ -630,6 +514,7 @@ const AdminProfile = () => {
             </View>
           </View>
         )}
+
         {selectedTab === "most liked" && (
           <View style={styles.detailsSection}>
             {topLiked
@@ -683,11 +568,82 @@ const AdminProfile = () => {
           </View>
         )}
       </ScrollView>
+      <View style={styles.footer}>
+        <View style={styles.notificationSection}>
+          <Text style={styles.notificationText}>
+            Subscribe to Notifications?
+          </Text>
+          <Switch
+            trackColor={{ false: "#767577", true: "#81b0ff" }}
+            thumbColor={isEnabled ? "#f5dd4b" : "#f4f3f4"}
+            ios_backgroundColor="#3e3e3e"
+            onValueChange={toggleSwitch}
+            value={isEnabled}
+          />
+        </View>
+        {!editMode ? (
+          <TouchableOpacity
+            style={[styles.editProfileButton, styles.smallButton]}
+            onPress={switchEditMode}
+          >
+            <Text style={styles.smallButtonText}>Edit Profile</Text>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity
+            style={[styles.editProfileButton, styles.smallButton]}
+            onPress={saveChanges}
+          >
+            <Text style={styles.smallButtonText}>Save Changes</Text>
+          </TouchableOpacity>
+        )}
+      </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
+  authButtonsContainer: {
+    width: '100%',
+    paddingHorizontal: 20,
+    marginTop: 20,
+  },
+  authButtonGroup: {
+    marginBottom: 20,
+    width: '100%',
+  },
+  authLabel: {
+    fontSize: 14,
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginBottom: 10,
+    gap: 10,
+  },
+  authButton: {
+    width: 150,
+  },
+  button: {
+    backgroundColor: '#E0E0E0',
+    borderRadius: 8,
+    padding: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 1,
+    elevation: 1,
+  },
+  buttonText: {
+    color: 'black',
+    fontSize: 14,
+  },
   container: {
     flex: 1,
     backgroundColor: "white",
@@ -755,6 +711,22 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#757575",
   },
+  notificationSection: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 10,
+    borderTopWidth: 1,
+    borderTopColor: "#e0e0e0",
+    marginTop: "auto",
+  },
+  editProfileButton: {
+    backgroundColor: "#E0E0E0",
+    borderRadius: 10,
+    padding: 10,
+    alignItems: "center",
+    alignSelf: "center",
+  },
   selectedTab: {
     borderBottomWidth: 2,
     borderBottomColor: "#000000",
@@ -762,6 +734,39 @@ const styles = StyleSheet.create({
   selectedTabText: {
     fontWeight: "bold",
     textAlign: "center",
+  },
+  notificationText: {
+    marginRight: 8,
+  },
+  interestItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 6,
+  },
+  checkbox: {
+    height: 20,
+    width: 20,
+    borderRadius: 3,
+    borderWidth: 1,
+    borderColor: "#bcbcbc",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 8,
+  },
+  checkboxSelected: {
+    height: 12,
+    width: 12,
+    borderRadius: 1,
+    backgroundColor: "#000",
+  },
+  interestText: {
+    fontSize: 15,
+    color: "#424242",
+    padding: 3,
+  },
+  footer: {
+    backgroundColor: "white",
+    marginBottom: 20,
   },
   contactSection: {
     padding: 30,
@@ -779,60 +784,15 @@ const styles = StyleSheet.create({
     maxWidth: 300,
     alignSelf: 'center',
   },
-  button: {
-    backgroundColor: '#E0E0E0',
-    borderRadius: 8,
-    padding: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 1,
-    elevation: 1,
+  label: {
+    fontSize: 15,
+    color: "#424242",
+    paddingVertical: 5,
   },
-  buttonText: {
-    color: 'black',
-    fontSize: 14,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 10,
-    color: '#424242',
-  },
-  authButtonsContainer: {
-    width: '100%',
-    paddingHorizontal: 20,
-    marginTop: 20,
-  },
-  authButtonGroup: {
-    marginBottom: 20,
-    width: '100%',
-  },
-  authLabel: {
-    fontSize: 14,
-    marginBottom: 10,
-    textAlign: 'center',
-  },
-  buttonRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginBottom: 10,
-    gap: 10,
-  },
-  authButton: {
-    width: 150,
-  },
-  smallButton: {
-    width: 100,
-  },
-  smallButtonText: {
-    color: 'black',
-    fontSize: 14,
+  value: {
+    fontSize: 15,
+    color: "#424242",
+    paddingVertical: 5,
   },
   inputHelp: {
     fontSize: 12,
@@ -840,6 +800,13 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 15,
     paddingHorizontal: 20,
+  },
+  smallButton: {
+    width: 100,
+  },
+  smallButtonText: {
+    color: 'black',
+    fontSize: 14,
   },
 });
 

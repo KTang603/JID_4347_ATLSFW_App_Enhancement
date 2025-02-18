@@ -31,6 +31,7 @@ const LoginScreen = ({navigation}) => {
     }
 
     setIsLoading(true);
+
     try {
       const normalizedEmail = normalizeEmail(email);
       const hashed_email = await hashString(normalizedEmail);
@@ -47,12 +48,11 @@ const LoginScreen = ({navigation}) => {
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         },
-        timeout: 5000,
+        timeout: 10000,
         validateStatus: function (status) {
           return status >= 200 && status < 500;
         }
       });
-
       const data = response.data;
 
       if (data.success) {
