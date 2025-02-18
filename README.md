@@ -1,6 +1,6 @@
 # Enhanced ATLSFW Mobile Application 🌿
 
-The **Enhanced ATLSFW Mobile Application** expands on the original app's mission to engage users with sustainable fashion. This version introduces a foundation for future enhancements while retaining the core functionality of user education and engagement through articles and community features.
+The **Enhanced ATLSFW Mobile Application** builds upon the original app's mission of engaging users with sustainable fashion. This version establishes a foundation for future upgrades while preserving its core focus on user education and interaction through articles and community-driven features.
 
 # Installation Guide
 
@@ -116,12 +116,12 @@ ATLSFW News Feed is a sustainable fashion news aggregator that provides curated 
    - Implemented proper error handling
    - Added user feedback for authorization status
 
-2. Resolved navigation issues
+3. Resolved navigation issues
    - Fixed screen transition bugs
    - Corrected navigation stack handling
    - Improved error handling in navigation
 
-3. Improved API integration
+4. Improved API integration
    - Removed stored API key vulnerability
    - Fixed article duplication issues
    - Improved error handling for API requests
