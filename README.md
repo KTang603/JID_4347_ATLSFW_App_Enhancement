@@ -24,7 +24,6 @@ The **Enhanced ATLSFW Mobile Application** builds upon the original app's missio
 
 The final structure of your database should look like this:
 
-
 <img src="./db.png" alt="DB Structure" width="200"/>
 
 7. Finally, navigate back to the **Overview** tab and click the **Connect** button and then click the **Drivers** option.
