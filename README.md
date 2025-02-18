@@ -111,12 +111,12 @@ You can use the "New File" button in the VSCode File Explorer shown below to cre
    - Implemented proper error handling
    - Added user feedback for authorization status
 
-3. Resolved navigation issues
+2. Resolved navigation issues
    - Fixed screen transition bugs
    - Corrected navigation stack handling
    - Improved error handling in navigation
 
-4. Improved API integration
+3. Improved API integration
    - Removed stored API key vulnerability
    - Fixed article duplication issues
    - Improved error handling for API requests
