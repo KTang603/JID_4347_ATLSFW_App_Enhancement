@@ -74,11 +74,6 @@ You can use the "New File" button in the VSCode File Explorer shown below to cre
 8. Run `./run_client.sh`. The app instance will show up in the Expo Go app.
 
 # Release Notes
-# ATLSFW News Feed
-
-ATLSFW News Feed is a sustainable fashion news aggregator that provides curated articles from various sources, focusing on sustainable fashion trends, innovations, and industry updates. The application features a modern, user-friendly interface with robust admin controls and user management capabilities.
-
-# Release Notes
 
 ## Version v0.2.0
 
