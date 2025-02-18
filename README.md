@@ -75,6 +75,90 @@ You can use the "New File" button in the VSCode File Explorer shown below to cre
 
 # Release Notes
 
+# ATLSFW News Feed
+
+ATLSFW News Feed is a sustainable fashion news aggregator that provides curated articles from various sources, focusing on sustainable fashion trends, innovations, and industry updates. The application features a modern, user-friendly interface with robust admin controls and user management capabilities.
+
+# Release Notes
+
+## Version v0.2.0
+
+### Features
+1. News Feed Integration
+   - Integrated NewsData.io API for fetching sustainable fashion articles
+   - Added API key and search query configuration in admin panel
+   - Implemented secure per-request API key handling
+   - Created article fetching script with customizable search parameters
+
+2. Navigation and UI Enhancements
+   - Renamed and redesigned Community tab to News Feed for better clarity
+   - Added placeholder tabs for Home and Events features
+   - Implemented News Feed as the central content hub
+   - Updated navigation bar with intuitive icons
+   - Added responsive grid layout for article display
+
+3. Admin Controls
+   - Added admin authorization system
+   - Implemented user management features
+   - Added vendor authorization controls
+   - Created vendor status verification system
+   - Added vendor deauthorization with status checks
+
+4. Article Management
+   - Implemented article filtering by tags
+   - Added infinite scroll pagination
+   - Created like/save functionality for articles
+   - Added article preview with image support
+   - Implemented article metrics tracking (likes, saves)
+
+### Bug Fixes
+1. Fixed vendor deauthorization issue
+   - Added status check before deauthorization
+   - Implemented proper error handling
+   - Added user feedback for authorization status
+
+2. Resolved navigation issues
+   - Fixed screen transition bugs
+   - Corrected navigation stack handling
+   - Improved error handling in navigation
+
+3. Improved API integration
+   - Removed stored API key vulnerability
+   - Fixed article duplication issues
+   - Improved error handling for API requests
+
+### Known Issues
+1. Navigation
+   - Home and Events tabs are currently placeholders
+   - Some navigation transitions could be smoother
+
+2. Article Management
+   - Article preview images sometimes fail to load
+   - Tag filtering could be more responsive
+   - Search functionality needs optimization
+
+3. Admin Features
+   - Bulk user management features not yet implemented
+   - No ability to see user email id
+   - No automated content moderation
+
+4. Performance
+   - Initial article load time could be improved
+   - API response handling could be more efficient
+
+### Previous Defects / Challenges
+1. Application Setup
+   - Had to configure and set up the React Native environment
+   - Required specific Node.js version compatibility
+   - Needed to install and configure various dependencies
+   - Had to set up development environment variables
+
+2. Database Configuration
+   - Had to set up and configure MongoDB database
+   - Required proper connection string setup
+
+***
+
 ## Version 0.1.0
 
 ### Features
