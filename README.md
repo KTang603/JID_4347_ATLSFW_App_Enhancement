@@ -1,6 +1,6 @@
 # Enhanced ATLSFW Mobile Application 🌿
 
-The **Enhanced ATLSFW Mobile Application** expands on the original app's mission to engage users with sustainable fashion. This version introduces a foundation for future enhancements while retaining the core functionality of user education and engagement through articles and community features.
+The **Enhanced ATLSFW Mobile Application** builds upon the original app's mission of engaging users with sustainable fashion. This version establishes a foundation for future upgrades while preserving its core focus on user education and interaction through articles and community-driven features.
 
 # Installation Guide
 
@@ -72,12 +72,6 @@ You can use the "New File" button in the VSCode File Explorer shown below to cre
 6. Run `npx expo login` in your terminal and login using your Expo Go account credentials (you only have to do this the first time you run the app).
 7. Run `npx expo start`
 8. Run `./run_client.sh`. The app instance will show up in the Expo Go app.
-
-# Release Notes
-
-# ATLSFW News Feed
-
-ATLSFW News Feed is a sustainable fashion news aggregator that provides curated articles from various sources, focusing on sustainable fashion trends, innovations, and industry updates. The application features a modern, user-friendly interface with robust admin controls and user management capabilities.
 
 # Release Notes
 
@@ -157,7 +151,6 @@ ATLSFW News Feed is a sustainable fashion news aggregator that provides curated 
    - Had to set up and configure MongoDB database
    - Required proper connection string setup
 
-***
 
 ## Version 0.1.0
 
