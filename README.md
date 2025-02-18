@@ -162,9 +162,21 @@ ATLSFW News Feed is a sustainable fashion news aggregator that provides curated 
 ## Version 0.1.0
 
 ### Features
-- Moved login page navigation more logical navigation
-- Editing of Community page in anticipation for further news feature additions.
-- Preparations for API integration by importing packages and other small features.
+- News Feed Integration
+   - Integrated the NewsData.io API to fetch sustainable fashion articles.
+   - Added API key and search query configuration in the admin panel.
+   - Implemented secure per-request API key handling to enhance security.
+   - Created a customizable article fetching script with support for search parameters.
+- Navigation and UI Enhancements
+   - Renamed and redesigned the "Community" tab to "News Feed" for better clarity.
+   - Added placeholder tabs for upcoming "Home" and "Events" features.
+   - Updated the navigation bar with intuitive icons and improved responsiveness.
+   - Implemented a responsive grid layout for article display.
+- Admin Controls
+   - Added an admin authorization system for user and vendor management.
+   - Implemented vendor status verification and deauthorization with proper error handling.
+
+
 
 ### Bug Fixes
 - None in this release.
