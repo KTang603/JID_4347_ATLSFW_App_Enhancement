@@ -156,7 +156,6 @@ ATLSFW News Feed is a sustainable fashion news aggregator that provides curated 
    - Had to set up and configure MongoDB database
    - Required proper connection string setup
 
-***
 
 ## Version 0.1.0
 
