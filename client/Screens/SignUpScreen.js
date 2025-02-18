@@ -62,10 +62,8 @@ const SignUpScreen = ({ navigation }) => {
           "http://" + MY_IP_ADDRESS + ":5050/signup",
           userData
         );
-        //console.log("RESPONSE")
-        //console.log(response)
+
         const data = response.data;
-        //console.log(data)
         if (data.success) {
             const updatedUserInfo = {
               ...userData,
@@ -81,7 +79,6 @@ const SignUpScreen = ({ navigation }) => {
         }
       }
     } catch (error) {
-      console.error(error)
       console.error("Error during sign up:", error.response?.data?.message);
       Alert.alert("Sign Up Error", error.response?.data?.message, [
         { text: "Try Again" },

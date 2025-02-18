@@ -32,72 +32,37 @@ const Article = (props) => {
     author_id,
   } = props.article;
 
-  // Debug logging
-  console.log('Article props:', {
-    article_id,
-    initialLikes,
-    saves
-  });
-
   const likes = Math.max(0, initialLikes || 0);
   const account_type = useSelector((store) => store.acct_type.acct_type);
-  const liked_articles_state = useSelector((store) => {
-    // Debug logging
-    console.log('Liked articles state:', store.liked_articles);
-    return store.liked_articles.liked_articles;
-  });
-  const saved_articles_state = useSelector((store) => {
-    // Debug logging
-    console.log('Saved articles state:', store.saved_articles);
-    return store.saved_articles.saved_articles;
-  });
+  const liked_articles_state = useSelector(
+    (store) => store.liked_articles.liked_articles
+  );
+  const saved_articles_state = useSelector(
+    (store) => store.saved_articles.saved_articles
+  );
 
   const navigation = useNavigation();
   const dispatch = useDispatch();
 
   const [isSavePressed, setSavePressed] = useState(false);
   const [saveCount, setSaveCount] = useState(Math.max(0, saves || 0));
-  const [liked, setLiked] = useState(false);
-  const [likeCount, setLikeCount] = useState(Math.max(0, likes || 0));
   
-  // Handle saved state
   useEffect(() => {
-    // Convert all IDs to strings for comparison
-    const articleIdStr = article_id.toString();
-    const savedArticlesStr = saved_articles_state.map(id => id.toString());
-    const isArticleSaved = savedArticlesStr.includes(articleIdStr);
-    
-    // Debug logging
-    console.log('Checking saved state:', {
-      articleIdStr,
-      savedArticlesStr,
-      isArticleSaved
-    });
-    
-    setSavePressed(isArticleSaved);
+    setSavePressed(saved_articles_state.includes(article_id));
   }, [saved_articles_state, article_id]);
-
-  // Handle liked state
+  // Initialize liked state and keep it in sync with Redux state
+  const [liked, setLiked] = useState(false);
+  
   useEffect(() => {
-    // Convert all IDs to strings for comparison
-    const articleIdStr = article_id.toString();
-    const likedArticlesStr = liked_articles_state.map(id => id.toString());
-    const isArticleLiked = likedArticlesStr.includes(articleIdStr);
-    
-    // Debug logging
-    console.log('Checking liked state:', {
-      articleIdStr,
-      likedArticlesStr,
-      isArticleLiked
-    });
-    
-    setLiked(isArticleLiked);
+    setLiked(liked_articles_state.includes(article_id));
   }, [liked_articles_state, article_id]);
+  const [likeCount, setLikeCount] = useState(Math.max(0, likes || 0));
   const [isLoading, setIsLoading] = useState(false);
 
   const isLogged = useSelector((store) => store.isLogged.isLogged);
   const user_id = useSelector((store) => store.user_id.user_id);
   const token = useSelector((store) => store.token.token);
+  let liked_articles = [];
 
   const navigateToContent = (link) => {
     navigation.navigate("Article Webview", { link });
@@ -125,43 +90,12 @@ const Article = (props) => {
     });
 
     try {
-      // Debug logging
-      console.log('Current state:', {
-        liked_articles_state,
-        article_id,
-        newLikedState
-      });
-
-      // Ensure we're working with strings and valid arrays
-      const currentLikedArticles = Array.isArray(liked_articles_state) 
-        ? liked_articles_state.map(id => id?.toString()).filter(Boolean)
-        : [];
-
-      let newLikedArticles;
       if (newLikedState) {
-        // Add article to liked list
-        const newArticleId = article_id.toString();
-        newLikedArticles = [...new Set([...currentLikedArticles, newArticleId])];
-        
-        console.log('Adding like:', {
-          currentLikedArticles,
-          newArticleId,
-          newLikedArticles
-        });
-        
-        await addedToDB(newLikedArticles);
+        liked_articles = [...new Set([...liked_articles_state, article_id])];
+        await addedToDB();
       } else {
-        // Remove article from liked list
-        const targetId = article_id.toString();
-        newLikedArticles = currentLikedArticles.filter(id => id !== targetId);
-        
-        console.log('Removing like:', {
-          currentLikedArticles,
-          targetId,
-          newLikedArticles
-        });
-        
-        await removeFromDB(newLikedArticles);
+        liked_articles = liked_articles_state.filter(id => id !== article_id);
+        await removeFromDB();
       }
     } catch (error) {
       // Revert UI state on error
@@ -176,16 +110,10 @@ const Article = (props) => {
     }
   };
 
-  const addedToDB = async (liked_articles) => {
+  const addedToDB = async () => {
     try {
-      // Debug logging
-      console.log('Adding like:', {
-        article_id,
-        liked_articles,
-      });
-
       const response = await axios.post(
-        `http://${MY_IP_ADDRESS}:5050/posts/${article_id.toString()}/?like=1`,
+        `http://${MY_IP_ADDRESS}:5050/posts/${article_id}/?like=1`,
         { liked_articles },
         {
           headers: {
@@ -195,37 +123,19 @@ const Article = (props) => {
       );
 
       if (response.data.success) {
-        // Debug logging
-        console.log('Like successful:', {
-          article_id,
-          liked_articles,
-          response: response.data
-        });
-        dispatch(like(article_id.toString()));
+        dispatch(like(article_id));
       } else {
         throw new Error(response.data.message || 'Like action failed');
       }
     } catch (error) {
-      console.error('Like failed:', {
-        error,
-        response: error.response?.data,
-        article_id,
-        liked_articles
-      });
       throw error;
     }
   };
 
-  const removeFromDB = async (liked_articles) => {
+  const removeFromDB = async () => {
     try {
-      // Debug logging
-      console.log('Removing like:', {
-        article_id,
-        liked_articles,
-      });
-
       const response = await axios.post(
-        `http://${MY_IP_ADDRESS}:5050/posts/${article_id.toString()}/?like=-1`,
+        `http://${MY_IP_ADDRESS}:5050/posts/${article_id}/?like=-1`,
         { liked_articles },
         {
           headers: {
@@ -235,23 +145,11 @@ const Article = (props) => {
       );
 
       if (response.data.success) {
-        // Debug logging
-        console.log('Unlike successful:', {
-          article_id,
-          liked_articles,
-          response: response.data
-        });
-        dispatch(unlike(article_id.toString()));
+        dispatch(unlike(article_id));
       } else {
         throw new Error(response.data.message || 'Unlike action failed');
       }
     } catch (error) {
-      console.error('Unlike failed:', {
-        error,
-        response: error.response?.data,
-        article_id,
-        liked_articles
-      });
       throw error;
     }
   };
@@ -278,14 +176,10 @@ const Article = (props) => {
 
     try {
       if (newSaveState) {
-        // Ensure we're working with strings
-        const currentSavedArticles = saved_articles_state.map(id => id.toString());
-        saved_articles = [...new Set([...currentSavedArticles, article_id.toString()])];
+        saved_articles = [...new Set([...saved_articles_state, article_id])];
         await saveToDB(saved_articles);
       } else {
-        // Ensure we're working with strings
-        const currentSavedArticles = saved_articles_state.map(id => id.toString());
-        saved_articles = currentSavedArticles.filter(id => id !== article_id.toString());
+        saved_articles = saved_articles_state.filter(id => id !== article_id);
         await unsaveFromDB(saved_articles);
       }
     } catch (error) {
@@ -295,12 +189,7 @@ const Article = (props) => {
         const newCount = !newSaveState ? prev + 1 : prev - 1;
         return Math.max(0, newCount);
       });
-      console.error('Save action failed:', {
-        error,
-        response: error.response?.data,
-        article_id,
-        saved_articles_state
-      });
+      console.error('Save action failed:', error);
     } finally {
       setIsLoading(false);
     }
@@ -309,7 +198,7 @@ const Article = (props) => {
   const saveToDB = async (saved_articles) => {
     try {
       const response = await axios.post(
-        `http://${MY_IP_ADDRESS}:5050/posts/${article_id.toString()}/?save=1`,
+        `http://${MY_IP_ADDRESS}:5050/posts/${article_id}/?save=1`,
         { saved_articles },
         {
           headers: {
@@ -319,13 +208,7 @@ const Article = (props) => {
       );
 
       if (response.data.success) {
-        // Debug logging
-        console.log('Save successful:', {
-          article_id,
-          saved_articles,
-          response: response.data
-        });
-        dispatch(save(article_id.toString()));
+        dispatch(save(article_id));
       } else {
         throw new Error(response.data.message || 'Save action failed');
       }
@@ -337,7 +220,7 @@ const Article = (props) => {
   const unsaveFromDB = async (saved_articles) => {
     try {
       const response = await axios.post(
-        `http://${MY_IP_ADDRESS}:5050/posts/${article_id.toString()}/?save=-1`,
+        `http://${MY_IP_ADDRESS}:5050/posts/${article_id}/?save=-1`,
         { saved_articles },
         {
           headers: {
@@ -347,13 +230,7 @@ const Article = (props) => {
       );
 
       if (response.data.success) {
-        // Debug logging
-        console.log('Unsave successful:', {
-          article_id,
-          saved_articles,
-          response: response.data
-        });
-        dispatch(unsave(article_id.toString()));
+        dispatch(unsave(article_id));
       } else {
         throw new Error(response.data.message || 'Unsave action failed');
       }

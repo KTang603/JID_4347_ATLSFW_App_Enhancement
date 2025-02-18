@@ -1,30 +1,20 @@
-export const save = (articleId) => {
-    // Debug logging
-    console.log('Save action called with:', articleId);
+export const save = (data) => {
     return {
       type: 'SAVE',
-      payload: articleId.toString(),
+      payload: data,
     };
   };
 
-export const unsave = (articleId) => {
-    // Debug logging
-    console.log('Unsave action called with:', articleId);
+export const unsave = (data) => {
     return {
       type: 'UNSAVE',
-      payload: articleId.toString(),
+      payload: data,
     };
   };
 
-export const get_save_list = (articles) => {
-  // Debug logging
-  console.log('Get save list called with:', articles);
-  // Ensure all IDs are strings
-  const articleIds = Array.isArray(articles) 
-    ? articles.map(id => id.toString())
-    : [];
+export const get_save_list = (data) => {
   return {
     type: 'GET_SAVE_LIST',
-    payload: articleIds,
+    payload: data,
   };
 };
