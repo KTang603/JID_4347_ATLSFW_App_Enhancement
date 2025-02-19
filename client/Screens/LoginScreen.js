@@ -62,6 +62,7 @@ const LoginScreen = ({navigation}) => {
           dispatch(getVend(data.user.vendor_account_initialized));
           // Set token in Redux and axios defaults
           const token = data.token;
+          
           dispatch(setToken(token));
           axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
           console.log('Token set after login:', token);
