@@ -106,7 +106,6 @@ const LoginScreen = ({navigation}) => {
           keyboardType="email-address"
         />
 
-
         <TextInput
           placeholder="Password"
           value={password}
