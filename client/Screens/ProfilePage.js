@@ -1,38 +1,61 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button, Text, TextInput, View, StyleSheet, Alert, Switch } from 'react-native';
 import axios from 'axios';
 import hashString from '../utils/hashingUtils.mjs';
-import MY_IP_ADDRESS from '../environment_variables.mjs';
 import { isValidPassword, isValidEmail } from '../utils/format.mjs';
-import { useSelector, useDispatch } from 'react-redux';
 import VendorProfile from '../components/profile_pages/VendorProfile';
 import UserProfile from '../components/profile_pages/UserProfile';
 import AdminProfile from '../components/profile_pages/AdminProfile';
+import { getAccountType } from '../utils/StorageUtils';
 
-const ACCOUNT_TYPE_ADMIN = 1;
-const ACCOUNT_TYPE_VENDOR = 2;
-const ACCOUNT_TYPE_USER = 3;
+const ACCOUNT_TYPE_ADMIN = "1";
+const ACCOUNT_TYPE_VENDOR = "2";
+const ACCOUNT_TYPE_USER = "3";
 
 const ProfilePage = ({ navigation }) => {
 
-    const account_type = useSelector((store) => store.acct_type.acct_type);
+   const [account_type, setAccountType] = useState('');
+
+   const getData  = async () => { 
+    const  account_type = await getAccountType();
+    setAccountType(account_type)
+  }
+
+  useEffect(()=>{
+    getData()
+  },[])
+
+
+    // const account_type = useSelector((store) => store.acct_type.acct_type);
 
   let content;
 
     const renderProfile = () => {
-        switch (account_type) {
-          case ACCOUNT_TYPE_ADMIN:
-            return <AdminProfile />;
-          case ACCOUNT_TYPE_VENDOR:
-            return <VendorProfile />;
-          case ACCOUNT_TYPE_USER:
-            return <UserProfile />;
-          default:
-            Alert.alert('Error', 'Invalid account type. Please log in again.', [
-              { text: 'OK', onPress: () => navigation.replace('Log In') },
-            ]);
-            return null;
-        }
+        
+        if(account_type == ACCOUNT_TYPE_ADMIN)
+        return <AdminProfile />;
+        else if(account_type == ACCOUNT_TYPE_VENDOR)
+        return <VendorProfile />
+        else if(account_type == ACCOUNT_TYPE_USER)
+        return <UserProfile />
+        else return <UserProfile />
+
+        // switch (account_type) {
+        //   case ACCOUNT_TYPE_ADMIN == account_type:
+        //     console.log('====================================');
+        //     console.log('admin---');
+        //     console.log('====================================');
+        //     return <AdminProfile />;
+        //   case ACCOUNT_TYPE_VENDOR == account_type:
+        //     return <VendorProfile />;
+        //   case ACCOUNT_TYPE_USER == account_type:
+        //     return <UserProfile />;
+        //   default:
+        //     // Alert.alert('Error', 'Invalid account type. Please log in again.', [
+        //     //   { text: 'OK', onPress: () => navigation.replace('Log In') },
+        //     // ]);
+        //     return <View></View>;
+        // }
       };
 
     const [email, setEmail] = useState('');

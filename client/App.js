@@ -26,11 +26,12 @@ import ProfilePage from "./Screens/ProfilePage";
 import NavBar from "./components/NavBar";
 import ShopNowWebview from "./Screens/ShopNowWebview";
 import ForgotPasswordScreen from "./Screens/ForgotPasswordScreen";
+import SplashPage from "./Screens/SplashPage";
 
 const Stack = createNativeStackNavigator();
 
 const ConditionalNavBar = ({ currentScreen }) => {
-  if (['Log In', 'Sign Up', 'Forgot Password'].includes(currentScreen)) {
+  if (['Log In', 'Sign Up','Splash', 'Forgot Password'].includes(currentScreen)) {
     return null;
   }
   return <NavBar />;
@@ -49,7 +50,8 @@ const App = () => {
         }}
       >
         <Stack.Navigator
-          initialRouteName="Log In"
+          initialRouteName="Splash"
+
           screenOptions={{
             headerStyle: {
               backgroundColor: "#02833D",
@@ -57,6 +59,7 @@ const App = () => {
             headerTintColor: "white",
           }}
         >
+          <Stack.Screen options={{headerShown: false }} name="Splash" component={SplashPage} />
           <Stack.Screen name="Log In" component={LoginScreen} />
           <Stack.Screen name="Sign Up" component={SignUpScreen} />
           <Stack.Screen name="News Feed" component={NewsFeedScreen} />

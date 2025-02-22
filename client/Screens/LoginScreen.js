@@ -13,6 +13,7 @@ import { setUserInfo } from '../redux/actions/userInfoAction';
 import { getVend } from '../redux/actions/vendAction';
 import { setToken } from '../redux/actions/tokenAction';
 import {LOGIN_API} from '../utils/ApiUtils.js'
+import { storeAccountType, storeUserId } from '../utils/StorageUtils';
 
 const LoginScreen = ({navigation}) => {
   const [email, setEmail] = useState('');
@@ -60,6 +61,8 @@ const LoginScreen = ({navigation}) => {
           dispatch(getVend(data.user.vendor_account_initialized));
           // Set token in Redux and axios defaults
           const token = data.token;
+          storeUserId(""+data.user._id)
+          storeAccountType(""+data.account_type)
           
           dispatch(setToken(token));
           axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
