@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
-import { Text, TextInput, View, StyleSheet, Alert, TouchableOpacity, Platform, Image } from 'react-native';
+import { Text, TextInput, View, StyleSheet, Alert, TouchableOpacity, Platform, Image, ScrollView, ActivityIndicator } from 'react-native';
 import axios from 'axios';
 import hashString from '../utils/hashingUtils.mjs';
-import MY_IP_ADDRESS from '../environment_variables.mjs';
 import { normalizeEmail } from '../utils/format.mjs';
 import { useSelector, useDispatch } from 'react-redux';
 import { login } from '../redux/actions/loginAction';
@@ -13,6 +12,7 @@ import { set_acct_type } from '../redux/actions/accountAction';
 import { setUserInfo } from '../redux/actions/userInfoAction';
 import { getVend } from '../redux/actions/vendAction';
 import { setToken } from '../redux/actions/tokenAction';
+import {LOGIN_API} from '../utils/ApiUtils.js'
 
 const LoginScreen = ({navigation}) => {
   const [email, setEmail] = useState('');
@@ -29,7 +29,6 @@ const LoginScreen = ({navigation}) => {
       Alert.alert('Error', 'Please enter both email and password');
       return;
     }
-
     setIsLoading(true);
     try {
       const normalizedEmail = normalizeEmail(email);
@@ -38,7 +37,7 @@ const LoginScreen = ({navigation}) => {
 
       const response = await axios({
         method: 'post',
-        url: `http://${MY_IP_ADDRESS}:5050/login`,
+        url: LOGIN_API,
         data: {
           hashed_email,
           hashed_password,
@@ -54,7 +53,6 @@ const LoginScreen = ({navigation}) => {
       });
 
       const data = response.data;
-
       if (data.success) {
           dispatch(login());
           dispatch(setID(data.user._id));
@@ -62,6 +60,7 @@ const LoginScreen = ({navigation}) => {
           dispatch(getVend(data.user.vendor_account_initialized));
           // Set token in Redux and axios defaults
           const token = data.token;
+          
           dispatch(setToken(token));
           axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
           console.log('Token set after login:', token);
@@ -92,76 +91,71 @@ const LoginScreen = ({navigation}) => {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.logoContainer}>
+    <ScrollView style={{flex:1,backgroundColor: "#fff" }}>
+
+      <View style={styles.container}>
         <Image
           source={require("../components/ATLSFWlogo.jpg")}
           style={styles.logo}
         />
-      </View>
+        <TextInput
+          placeholder="Email"
+          value={email}
+          onChangeText={setEmail}
+          style={[styles.input, { marginTop: 25 }]}
+          keyboardType="email-address"
+        />
 
-      <TextInput
-        placeholder="Email"
-        value={email}
-        onChangeText={setEmail}
-        style={styles.input}
-        keyboardType="email-address"
-      />
+        <TextInput
+          placeholder="Password"
+          value={password}
+          onChangeText={setPassword}
+          style={styles.input}
+          secureTextEntry
+        />
 
-      <TextInput
-        placeholder="Password"
-        value={password}
-        onChangeText={setPassword}
-        style={styles.input}
-        secureTextEntry
-      />
-      
-      <TouchableOpacity 
-        style={[styles.loginButton, isLoading && styles.disabledButton]}
-        onPress={handleLogin}
-        disabled={isLoading}
-      >
-        <Text style={styles.buttonText}>LOGIN</Text>
-      </TouchableOpacity>
+        <View style={{ width: "75%", alignItems: "flex-end" }}>
+          <TouchableOpacity
+            onPress={() => navigation.navigate("Forgot Password")}
+          >
+            <Text style={styles.buttonText}>Forgot Password?</Text>
+          </TouchableOpacity>
+        </View>
 
-      <TouchableOpacity 
-        style={[styles.button, { backgroundColor: 'lightgray' }]}
-        onPress={() => navigation.navigate('Forgot Password')}
-      >
-        <Text style={styles.buttonText}>FORGOT PASSWORD?</Text>
-      </TouchableOpacity>
+        <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
+          <Text style={styles.loginButtonText}>Login</Text>
+        </TouchableOpacity>
 
-      <View style={styles.signUpSection}>
-        <Text style={styles.newHereText}>NEW HERE?</Text>
         <TouchableOpacity 
-          style={[styles.button, { backgroundColor: 'lightgray', marginBottom: 0, marginLeft: 10 }]}
-          onPress={() => navigation.navigate('Sign Up')}
-        >
-          <Text style={styles.buttonText}>SIGN UP HERE!</Text>
+         onPress={() => navigation.navigate('Sign Up')}
+         style={styles.signUpSection}>
+          <Text style={styles.newHereText}>
+            Don't have an account?
+            <Text style={{ fontWeight: "bold" }}> Sign up</Text>
+          </Text>
+  
         </TouchableOpacity>
       </View>
-    </View>
+     
+     {isLoading && <ActivityIndicator style={{position:'absolute',left:0,right:0,top:0,bottom:0}} size="large" color="#0000ff" /> }
+
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    justifyContent: 'center',
-    backgroundColor: 'white',
+    alignItems: 'center',
     padding: 20,
   },
   logoContainer: {
-    position: 'absolute',
-    top: 50,
-    left: 0,
-    right: 0,
     alignItems: 'center',
     paddingBottom: 20,
   },
   logo: {
     width: 150,
     height: 50,
+    marginTop: 25,
     resizeMode: 'contain',
   },
   input: {
@@ -177,11 +171,11 @@ const styles = StyleSheet.create({
   loginButton: {
     backgroundColor: 'lightgray',
     borderRadius: 3,
-    width: 120,
+    width: '75%',
     alignItems: 'center',
     justifyContent: 'center',
     alignSelf: 'center',
-    marginBottom: 20,
+    marginTop:15,
     paddingVertical: 12,
   },
   button: {
@@ -200,14 +194,19 @@ const styles = StyleSheet.create({
     color: 'black',
     textAlign: 'center',
   },
+  loginButtonText: {
+    fontSize: 18,
+    fontFamily: 'Roboto',
+    fontWeight: '500',
+    color: 'black',
+    textAlign: 'center',
+  },
   signUpSection: {
-    marginTop: 20,
-    flexDirection: 'row',
+    marginTop: 14,
     alignItems: 'center',
-    justifyContent: 'center',
   },
   newHereText: {
-    fontSize: 16,
+    fontSize: 18,
     fontFamily: 'Roboto',
     fontWeight: '500',
     textAlign: 'center',
