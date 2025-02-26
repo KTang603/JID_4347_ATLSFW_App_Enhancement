@@ -8,7 +8,6 @@ export const storeUserId = async (value) => {
       // saving error
     }
   };
-
   export const getUserId = async () => {
     try {
       const value = await AsyncStorage.getItem('userId');
@@ -19,6 +18,25 @@ export const storeUserId = async (value) => {
       // error reading value
     }
   };
+
+
+export const storeUserToken = async (value) => {
+  try {
+    await AsyncStorage.setItem('userToken', value);
+  } catch (e) {
+    // saving error
+  }
+};
+export const getUserToken = async () => {
+  try {
+    const value = await AsyncStorage.getItem('userToken');
+    return value;
+
+  } catch (e) {
+    return null
+    // error reading value
+  }
+};
 
   export const storeAccountType = async (value) => {
     try {

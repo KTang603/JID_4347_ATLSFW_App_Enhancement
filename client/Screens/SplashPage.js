@@ -1,10 +1,13 @@
 import React, { useEffect } from 'react'
 import {View,Text} from 'react-native'
-import {getUserId} from '../utils/StorageUtils'
+import {getUserId, getUserToken} from '../utils/StorageUtils'
 import { useNavigation } from "@react-navigation/native";
+import { useDispatch } from 'react-redux';
+import {fetchTags} from '../redux/actions/NewsAction'
 
 const SplashPage = () => {
    const navigation = useNavigation()
+   const dispatch = useDispatch();
 
 
    const checkUserId =  async ()=>{
@@ -21,7 +24,17 @@ const SplashPage = () => {
 
    }
 
+   const networkCall = async ()=>{
+      const token = await getUserToken();
+      if(token){
+        dispatch(fetchTags(token))        
+      }
+   }
+
+
+
     useEffect(()=>{
+      networkCall();
       setTimeout(()=>{
         checkUserId();
       },3000)
@@ -29,7 +42,7 @@ const SplashPage = () => {
 
 
   return (
-    <View style={{backgroundColor:'#ff0000',flex:1,alignItems:'center',justifyContent:'center'}} >
+    <View style={{backgroundColor:'#02833D',flex:1,alignItems:'center',justifyContent:'center'}} >
         <Text style={{fontSize:30,color:'#fff'}}>Splash Page</Text>
     </View>
   )

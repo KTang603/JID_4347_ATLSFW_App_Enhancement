@@ -9,6 +9,7 @@ import {
   Modal,
   Button,
   StyleSheet,
+  ActivityIndicator,
 } from "react-native";
 import MasonryList from "@react-native-seoul/masonry-list";
 import Icon from "react-native-vector-icons/FontAwesome";
@@ -17,136 +18,112 @@ import axios from "axios";
 import MY_IP_ADDRESS from "../environment_variables.mjs";
 import { useSelector, useDispatch } from "react-redux";
 import { logout } from "../redux/actions/loginAction";
+import { getUserToken } from "../utils/StorageUtils";
+import { fetchData } from "../redux/actions/NewsAction";
 
 const NewsFeedScreen = ({ navigation }) => {
   const [showFilterModal, setShowFilterModal] = useState(false);
-  const [tags, setTags] = useState([]);
+  const newsData = useSelector(state => state.news)
+  const {articles,isProgress,tags} = newsData
   const [inputTag, setInputTag] = useState([]);
-
-  const liked_articles_state = useSelector(
-    (store) => store.liked_articles.liked_articles
-  );
-  const saved_articles_state = useSelector(
-    (store) => store.saved_articles.saved_articles
-  );
-  const isLogged = useSelector((store) => store.isLogged.isLogged);
-  const token = useSelector((store) => store.token?.token);
   const dispatch = useDispatch();
-
-  useEffect(() => {
-    console.log('Current token:', token);
-  }, [token]);
 
   const [articleData, setArticleData] = useState({ articles: [], pagination: { page: 1, pages: 1 } });
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
 
-  const fetchData = async (page = 1, loadMore = false) => {
-    try {
-      if (!token) {
-        console.error('No token available for posts fetch');
-        return;
-      }
+  // const liked_articles_state = useSelector(
+  //   (store) => store.liked_articles.liked_articles
+  // );
+  // const saved_articles_state = useSelector(
+  //   (store) => store.saved_articles.saved_articles
+  // );
 
-      setIsLoading(true);
-      const response = await axios.get(
-        `http://${MY_IP_ADDRESS}:5050/posts?tags=${inputTag.join(",")}&page=${page}&limit=20`,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
 
-      console.log('Fetched articles:', response.data.articles.map(a => ({
-        id: a._id,
-        title: a.article_title
-      })));
+  // const fetchData = async (page = 1, loadMore = false) => {
+  //   try {
+  //     setIsLoading(true);
+  //     const response = await axios.get(
+  //       `http://${MY_IP_ADDRESS}:5050/posts?tags=${inputTag.join(",")}&page=${page}&limit=20`,
+  //       {
+  //         headers: {
+  //           'Authorization': `Bearer ${token}`,
+  //           'Content-Type': 'application/json'
+  //         }
+  //       }
+  //     );
+  //     console.log('Fetched articles:', response.data.articles.map(a => ({
+  //       id: a._id,
+  //       title: a.article_title
+  //     })));
 
-      const articles = response.data.articles.map(article => ({
-        ...article,
-        _id: article._id?.toString() || '',
-        author_id: article.author_id?.toString() || ''
-      }));
+  //     const articles = response.data.articles.map(article => ({
+  //       ...article,
+  //       _id: article._id?.toString() || '',
+  //       author_id: article.author_id?.toString() || ''
+  //     }));
 
-      console.log('Setting article data:', {
-        loadMore,
-        currentArticles: loadMore ? articleData.articles.length : 0,
-        newArticles: articles.length,
-        pagination: response.data.pagination
-      });
+  //     console.log('Setting article data:', {
+  //       loadMore,
+  //       currentArticles: loadMore ? articleData.articles.length : 0,
+  //       newArticles: articles.length,
+  //       pagination: response.data.pagination
+  //     });
 
-      if (loadMore) {
-        const currentArticles = articleData.articles.map(article => ({
-          ...article,
-          _id: article._id?.toString() || '',
-          author_id: article.author_id?.toString() || ''
-        }));
+  //     if (loadMore) {
+  //       const currentArticles = articleData.articles.map(article => ({
+  //         ...article,
+  //         _id: article._id?.toString() || '',
+  //         author_id: article.author_id?.toString() || ''
+  //       }));
 
-        setArticleData(prev => ({
-          articles: [...currentArticles, ...articles],
-          pagination: response.data.pagination
-        }));
-      } else {
-        setArticleData({
-          articles,
-          pagination: response.data.pagination
-        });
-      }
+  //       setArticleData(prev => ({
+  //         articles: [...currentArticles, ...articles],
+  //         pagination: response.data.pagination
+  //       }));
+  //     } else {
+  //       setArticleData({
+  //         articles,
+  //         pagination: response.data.pagination
+  //       });
+  //     }
 
-      console.log('Article data updated:', {
-        totalArticles: loadMore ? 
-          articleData.articles.length + articles.length : 
-          articles.length
-      });
-      setIsLoading(false);
-    } catch (error) {
-      console.error("Error during data fetch:", error.message);
-    }
-  };
-
-  useEffect(() => {
-    const loadInitialData = async () => {
-      if (token) {
-        try {
-          await fetchUserLikedAndSavedArticles();
-          await fetchData();
-        } catch (error) {
-          console.error('Error loading initial data:', error);
-          if (error.response?.status === 401) {
-            dispatch(logout());
-            navigation.navigate('Log In');
-          }
-        }
-      }
-    };
-    loadInitialData();
-  }, [token]);
+  //     console.log('Article data updated:', {
+  //       totalArticles: loadMore ? 
+  //         articleData.articles.length + articles.length : 
+  //         articles.length
+  //     });
+  //     setIsLoading(false);
+  //   } catch (error) {
+  //     console.error("Error during data fetch:", error.message);
+  //   }
+  // };
 
   useEffect(() => {
-    if (token && (liked_articles_state || saved_articles_state)) {
-      console.log('Reloading data due to state change:', {
-        liked_articles_state,
-        saved_articles_state
-      });
+     dispatch(fetchData(1,true,inputTag));
+  }, []);
+
+  // useEffect(() => {
+  //   if (token && (liked_articles_state || saved_articles_state)) {
+  //     console.log('Reloading data due to state change:', {
+  //       liked_articles_state,
+  //       saved_articles_state
+  //     });
       
-      setCurrentPage(1);
-      fetchData(1, false);
-    }
-  }, [liked_articles_state, saved_articles_state]);
+  //     setCurrentPage(1);
+  //     fetchData(1, false);
+  //   }
+  // }, [liked_articles_state, saved_articles_state]);
 
-  useEffect(() => {
-    console.log('Article data updated:', {
-      totalArticles: articleData.articles.length,
-      currentPage,
-      totalPages: articleData.pagination.pages
-    });
-  }, [articleData]);
+  // useEffect(() => {
+  //   console.log('Article data updated:', {
+  //     totalArticles: articleData.articles.length,
+  //     currentPage,
+  //     totalPages: articleData.pagination.pages
+  //   });
+  // }, [articleData]);
 
-  useEffect(() => {
-    console.log('NewsFeedScreen: saved_articles_state changed:', saved_articles_state);
-  }, [saved_articles_state]);
+
 
   const fetchUserLikedAndSavedArticles = async () => {
     try {
@@ -187,10 +164,12 @@ const NewsFeedScreen = ({ navigation }) => {
       } else {
         console.error("Invalid response format:", response.data);
       }
+     
+    
     } catch (error) {
       if (error.response?.status === 401) {
         console.log('Token expired or invalid, redirecting to login');
-        dispatch(logout());
+        // dispatch(logout());
         navigation.navigate('Log In');
       } else {
         console.error("Error fetching user articles:", error.message);
@@ -199,34 +178,9 @@ const NewsFeedScreen = ({ navigation }) => {
   };
 
   const filterArticles = async () => {
-    await fetchData();
+    dispatch(fetchData(1,true,inputTag));
   };
-
-  useEffect(() => {
-    const fetchTags = async () => {
-      try {
-        if (!token) {
-          console.error('No token available');
-          return;
-        }
-        const url = `http://${MY_IP_ADDRESS}:5050/tags`;
-        const response = await axios.get(url, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        });
-        if (response.data && Array.isArray(response.data)) {
-          setTags(response.data);
-        }
-      } catch (error) {
-        console.error("Error fetching tags:", error.message);
-      }
-    };
-    if (token) {
-      fetchTags();
-    }
-  }, [token]);
+  
 
   const handleTagPress = (tag) => {
     if (inputTag.includes(tag)) {
@@ -248,7 +202,7 @@ const NewsFeedScreen = ({ navigation }) => {
         {articleData &&
         <MasonryList
           numColumns={2}
-          data={articleData.articles}
+          data={articles}
           keyExtractor={(item) => item["_id"]?.toString() || item["article_link"]}
           onEndReached={() => {
             if (!isLoading && currentPage < articleData.pagination.pages) {
@@ -355,6 +309,7 @@ const NewsFeedScreen = ({ navigation }) => {
           </View>
         </View>
       </Modal>
+      {isProgress && <ActivityIndicator color={'#02833D'} size={'large'} style={{position:'absolute',left:0,right:0,top:0,bottom:0}} />}
     </View>
   );
 };
