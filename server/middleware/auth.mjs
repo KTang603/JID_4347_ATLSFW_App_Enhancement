@@ -44,6 +44,6 @@ export const requireAdmin = (req, res, next) => {
     console.log('User is not admin. Account type:', req.user.accountType);
     return res.status(403).json({ message: 'Admin access required' });
   }
-  console.log('Admin access granted');
+  // console.log('Admin access granted');
   next();
 };
