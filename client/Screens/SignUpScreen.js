@@ -31,7 +31,7 @@ const SignUpScreen = ({ navigation }) => {
       const normalizedEmail = normalizeEmail(email);
       const hashed_email = await hashString(normalizedEmail);
       const hashed_password = await hashString(password);
-      const encrypted_email = encryptWithPublicKey(normalizedEmail);
+      // const encrypted_email = encryptWithPublicKey(normalizedEmail);
 
       if (!isValidEmail(email)) {
         Alert.alert("Error", "Email format is invalid", [

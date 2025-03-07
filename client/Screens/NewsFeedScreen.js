@@ -3,11 +3,8 @@ import {
   View,
   Text,
   TouchableOpacity,
-  Image,
-  FlatList,
   TextInput,
   Modal,
-  Button,
   StyleSheet,
   ActivityIndicator,
 } from "react-native";
@@ -17,8 +14,6 @@ import Article from "../components/Article";
 import axios from "axios";
 import MY_IP_ADDRESS from "../environment_variables.mjs";
 import { useSelector, useDispatch } from "react-redux";
-import { logout } from "../redux/actions/loginAction";
-import { getUserToken } from "../utils/StorageUtils";
 import { fetchData } from "../redux/actions/NewsAction";
 
 const NewsFeedScreen = ({ navigation }) => {
@@ -101,6 +96,7 @@ const NewsFeedScreen = ({ navigation }) => {
 
   useEffect(() => {
      dispatch(fetchData(1,true,inputTag));
+     fetchUserLikedAndSavedArticles();
   }, []);
 
   // useEffect(() => {
@@ -131,6 +127,8 @@ const NewsFeedScreen = ({ navigation }) => {
         console.log('No token available for fetching user articles');
         return;
       }
+      console.log('token---'+token);
+      console.log('http://${MY_IP_ADDRESS}:5050/user/articles=----'+`http://${MY_IP_ADDRESS}:5050/user/articles`);
 
       console.log('Fetching user articles...');
 

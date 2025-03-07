@@ -8,6 +8,14 @@ export const storeUserId = async (value) => {
       // saving error
     }
   };
+
+  export const clearAll = async () => {
+    try {
+      await AsyncStorage.clear()
+    } catch(e) {
+      // clear error
+    }
+  }
   export const getUserId = async () => {
     try {
       const value = await AsyncStorage.getItem('userId');

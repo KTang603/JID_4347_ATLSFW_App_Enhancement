@@ -6,25 +6,15 @@ import { useSelector, useDispatch } from "react-redux";
 import { setVend } from '../../redux/actions/vendAction';
 import ArticleForm from '../../Screens/ArticleForm';
 import DiscoveryPageCreation from '../../Screens/DiscoveryPageCreation';
-
+import ProfileHeader from '../ProfileHeader'
 const VendorProfile = () => {
-  const initialized = useSelector((store) => store.isInit.isInit);
   const dispatch = useDispatch();
-
   const [selectedTab, setSelectedTab] = useState('article');
-  const [selectedInterests, setSelectedInterests] = useState([]);
   const [editMode, setEditMode] = useState(false);
   const [imageUri, setImageUri] = useState(null);
   const [savedPath, setSavedPath] = useState(null);
   const userInfo = useSelector((store) => store.userInfo.userInfo);
 
-  const toggleInterest = interest => {
-    setSelectedInterests(prevSelectedInterests =>
-      prevSelectedInterests.includes(interest)
-        ? prevSelectedInterests.filter(i => i !== interest)
-        : [...prevSelectedInterests, interest],
-    );
-  };
 
   const selectTab = (tab) => {
     setSelectedTab(tab);
@@ -88,12 +78,11 @@ const VendorProfile = () => {
     );
   };
 
-  const interestsList = ['Events', 'Tips/Tricks (DIY)', 'News', 'Shopping'];
 
   return (
     <View style={styles.container}>
       <ScrollView>
-        <View style={styles.header}></View>
+        <ProfileHeader />
         <View style={styles.profileSection}>
           <TouchableOpacity onPress={pickImage} disabled={!editMode}>
             <Image

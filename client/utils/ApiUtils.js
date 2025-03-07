@@ -4,4 +4,8 @@ const PORT_NUMBER = 5050;
 
 //API LIST
 export const LOGIN_API = `http://${BASE_URL}:${PORT_NUMBER}/login`;
-export default {LOGIN_API};
+export const GET_PROFILE_API = `http://${BASE_URL}:${PORT_NUMBER}/user/get_profile`;
+
+export default {LOGIN_API, GET_PROFILE_API};
+
+

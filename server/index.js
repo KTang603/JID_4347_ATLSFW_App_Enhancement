@@ -23,7 +23,7 @@ app.use(bodyParser.json());
 // Get a list of 50 posts
 app.use('/login', login); // DONE
 app.use(signup); //DONE
-app.use(posts); 
+app.use(posts); //DONE
 app.use('/user', user); 
 app.use('/vendor', vendor);
 app.use('/admin', admin);

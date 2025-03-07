@@ -1,7 +1,7 @@
 import express from "express";
 import { posts_db, users_db } from "../db/conn.mjs";
 import jwt from "jsonwebtoken";
-import { ADMIN_ROLES } from "../utils/constant.mjs";
+import { ADMIN_ROLES, VENDOR_ROLES } from "../utils/constant.mjs";
 
 /*
 enum AccountType {
@@ -12,10 +12,6 @@ enum AccountType {
 */
 
 const router = express.Router();
-
-// router.get("/", async (req, res) => {
-//     res.json({ success: true });
-// });
 
 router.post("/", async (req, res) => {
   try {
@@ -49,7 +45,7 @@ router.post("/", async (req, res) => {
         .json({ success: false, message: "User information not found" });
     }
 
-    if (existingUser.user_roles == ADMIN_ROLES) {
+    if (existingUser.user_roles == VENDOR_ROLES) {
       const vendor_info = await users_db
         .collection("vendor_info")
         .findOne({ vendor_id: userInfo._id });
