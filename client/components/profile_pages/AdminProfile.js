@@ -21,6 +21,9 @@ import { useSelector, useDispatch } from "react-redux";
 import { setUserInfo } from "../../redux/actions/userInfoAction";
 import hashString from '../../utils/hashingUtils.mjs';
 import { normalizeEmail } from '../../utils/format.mjs';
+import ProfileHeader from '../ProfileHeader';
+import AppPrimaryButton from "../AppPrimaryButton";
+import { getUserId } from "../../utils/StorageUtils";
 
 const makeRequest = async (method, url, data = null, requiresAuth = true, token) => {
   const config = {
@@ -302,6 +305,98 @@ const AdminProfile = () => {
     }
   };
 
+  const updateProfile = async () => {
+    // if (imageUri) {
+    //   const newPath = await saveImageLocally(imageUri);
+    //   setSavedPath(newPath);
+    // }
+    const userId = await getUserId();
+    if(editedFirstName.trim().length == 0){
+      Alert.alert("Error","First Name cannot be empty")
+    } else if(editedLastName.trim().length == 0){
+      Alert.alert("Error","Last Name cannot be empty")
+    } else if(editedBirthday.trim().length == 0){
+      Alert.alert("Error","BirthDate cannot be empty")
+    } else if(editedPhoneNumber.trim().length == 0){
+      Alert.alert("Error","Phone number cannot be empty")
+    } else {
+      const updatedUserInfo = {
+        first_name: editedFirstName,
+        last_name: editedLastName,
+        username: editedUsername,
+        birthday: editedBirthday,
+        phone_number: editedPhoneNumber,
+      };
+        // Send the user data to your backend
+    const response = await axios({
+      method:'PATCH',
+      url: "http://" + MY_IP_ADDRESS + ":5050/user/edit/" ,
+      params: {
+        user_id: userId
+      },
+     data: updatedUserInfo
+    }
+    );
+
+    if (response.status == 200) {
+      Alert.alert("Action","Your profile is updated successfully !!")
+      dispatch(
+        setUserInfo({
+          ...userInfo,
+          first_name: editedFirstName,
+          last_name: editedLastName,
+          username: editedUsername,
+          birthday: editedBirthday,
+          phone_number: editedPhoneNumber,
+        })
+      );
+    }
+    }
+  };
+
+  const ContactTab =()=>{
+    return <View style={styles.contactSection}>
+    <Text style={styles.label}>First Name:</Text>
+    <TextInput
+        value={editedFirstName}
+        onChangeText={setEditedFirstName}
+        style={styles.input}
+      />
+    <Text style={styles.label}>Last Name:</Text>
+
+    <TextInput
+        value={editedLastName}
+        onChangeText={setEditedLastName}
+        style={styles.input}
+      />
+
+    <Text style={styles.label}>Username:</Text>
+    <TextInput
+        value={editedUsername}
+        onChangeText={setEditedUsername}
+        style={styles.input}
+      />
+
+    <Text style={styles.label}>Phone Number(Optional):</Text>
+    <TextInput
+        value={editedPhoneNumber}
+        onChangeText={setEditedPhoneNumber}
+        keyboardType="number-pad"
+        style={styles.input}
+      />
+
+  
+    <Text style={styles.label}>Birthday:</Text>
+
+    <TextInput
+        value={editedBirthday}
+        onChangeText={setEditedBirthday}
+        style={styles.input}
+      />
+        <AppPrimaryButton title ={'Update'} handleSubmit={()=>{updateProfile()}}></AppPrimaryButton>
+  </View>
+  }
+
   const handleAdminAuth = async () => {
     try {
       Alert.alert(
@@ -422,10 +517,13 @@ const AdminProfile = () => {
     }
   };
 
+
+
+
   return (
     <View style={styles.container}>
       <ScrollView>
-        <View style={styles.header}></View>
+        <ProfileHeader/>
         <View style={styles.profileSection}>
           <TouchableOpacity onPress={pickImage} disabled={!editMode}>
             <Image
@@ -436,10 +534,10 @@ const AdminProfile = () => {
           <Text style={styles.name}>
             {userInfo?.first_name ? `${userInfo.first_name} ${userInfo.last_name}` : 'Loading...'}
           </Text>
-          {editMode && (
+          {/* {editMode && (
             <Button title="Change Profile Picture" onPress={pickImage} />
-          )}
-          <View style={styles.infoContainer}>
+          )} */}
+          {/* <View style={styles.infoContainer}>
             <TouchableOpacity
               style={[
                 styles.infoTab,
@@ -490,10 +588,10 @@ const AdminProfile = () => {
                 Add Article
               </Text>
             </TouchableOpacity>
-          </View>
+          </View> */}
         </View>
 
-        {selectedTab === "domains" && (
+        {/* {selectedTab === "domains" && (
           <View style={styles.contactSection}>
             <Text style={styles.sectionTitle}>NewsData.io Configuration</Text>
             <TextInput
@@ -556,9 +654,9 @@ const AdminProfile = () => {
               <Text style={styles.buttonText}>Add Article</Text>
             </TouchableOpacity>
           </View>
-        )}
+        )} */}
 
-        {selectedTab === "auth" && (
+        {/* {selectedTab === "auth" && (
           <View style={styles.contactSection}>
             <TextInput
                 placeholder="Enter user's email address"
@@ -629,8 +727,8 @@ const AdminProfile = () => {
               </View>
             </View>
           </View>
-        )}
-        {selectedTab === "most liked" && (
+        )} */}
+        {/* {selectedTab === "most liked" && (
           <View style={styles.detailsSection}>
             {topLiked
               .sort((a, b) => b.like_count - a.like_count)
@@ -655,8 +753,8 @@ const AdminProfile = () => {
                 </View>
               ))}
           </View>
-        )}
-        {selectedTab === "most saved" && (
+        )} */}
+        {/* {selectedTab === "most saved" && (
           <View style={styles.detailsSection}>
             {topSaved
               .sort((a, b) => b.save_count - a.save_count)
@@ -681,7 +779,8 @@ const AdminProfile = () => {
                 </View>
               ))}
           </View>
-        )}
+        )} */}
+       <ContactTab/>
       </ScrollView>
     </View>
   );
@@ -728,6 +827,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  label: {
+    fontSize: 15,
+    color: "#424242",
+    paddingVertical: 5,
+  },
   detailsSection: {
     padding: 16,
     color: "#424242",
@@ -764,19 +868,17 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   contactSection: {
-    padding: 30,
+    paddingHorizontal: 30,
+    paddingBottom:10,
     color: "#424242",
-    alignItems: "center",
-    justifyContent: "center",
   },
   input: {
     height: 40,
     borderColor: "gray",
     borderWidth: 1,
-    marginBottom: 15,
+    marginBottom: 5,
     padding: 10,
     width: '100%',
-    maxWidth: 300,
     alignSelf: 'center',
   },
   button: {

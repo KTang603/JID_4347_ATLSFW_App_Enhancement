@@ -1,16 +1,16 @@
 import axios from "axios";
 import MY_IP_ADDRESS from "../../environment_variables.mjs";
 import { getUserToken } from "../../utils/StorageUtils";
+import { CREATE_ARTICLE_API } from "../../utils/ApiUtils";
 
 export const fetchData =  (page = 1, loadMore = false,inputTag) => async (dispatch, getState) => {
     try {
         const state = getState();
         const token = await getUserToken();
-        console.log('state---'+JSON.stringify(state));
         dispatch(newsDataProgress())
     //   setIsLoading(true);
       const response = await axios.get(
-        `http://${MY_IP_ADDRESS}:5050/posts?tags=${inputTag.join(",")}&page=${page}&limit=20`,
+        `http://${MY_IP_ADDRESS}:5050/posts?tags=${inputTag.join(",")}&page=${page}&limit=80`,
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -39,6 +39,22 @@ export const fetchData =  (page = 1, loadMore = false,inputTag) => async (dispat
       console.error("Error during data fetch:", error.message);
     }
   };
+
+
+  export const createArticle = async (articleTitle,articleImage,articleLink,userInfo,authorPfpLink,tags)=>{ 
+    const payload = {
+      article_title: articleTitle,
+      article_preview_image: articleImage,
+      article_link: articleLink,
+      author_id: userInfo["_id"],
+      author_name: userInfo["first_name"] + " " + userInfo["last_name"],
+      author_pfp_link: authorPfpLink,
+      tags: tags.split(",").map((tag) => tag.trim()),
+    };
+     const response = await axios.post(CREATE_ARTICLE_API, payload);
+      return response;
+  }
+
 
 
 

@@ -1,47 +1,61 @@
 import React, { useState } from 'react';
-import { View, TextInput, Button, StyleSheet, Alert, ScrollView } from 'react-native';
-import axios from 'axios';
-import MY_IP_ADDRESS from "../environment_variables.mjs";
-import { useSelector } from "react-redux";
+import { View, TextInput, StyleSheet, Alert, ScrollView } from 'react-native';
+import { useDispatch, useSelector } from "react-redux";
+import AppPrimaryButton from '../components/AppPrimaryButton';
+import { setUserInfo, updateDispcoveryInfo } from '../redux/actions/userInfoAction';
 
 const DiscoveryPageCreation = () => {
-  const [brand_name, setBrandName] = useState('');
-  const [shop_now_link, setShopNowLink] = useState('');
-  const [title, setTitle] = useState('');
-  const [intro, setIntro] = useState('');
   const userInfo = useSelector((store) => store.userInfo.userInfo);
 
-  const handleSubmit = async () => {
-    try {
-      vendor_id = userInfo["_id"];
-      const url = `http://${MY_IP_ADDRESS}:5050/discover/create/`+vendor_id;
-      const payload = {
-        brand_name: brand_name,
-        shop_now_link: shop_now_link,
-        title: title,
-        intro: intro,
-      };
-      const response = await axios.post(url, payload);
+  let brandNameValue = userInfo.discovery_info?.brand_name?? '';
+  let shopNowLinkValue = userInfo.discovery_info?.shop_now_link?? '';
+  let titleValue = userInfo.discovery_info?.title?? '';
+  let introValue = userInfo.discovery_info?.intro?? '';
 
+  const [brandName, setBrandName] = useState(brandNameValue);
+  const [shopNowLink, setShopNowLink] = useState(shopNowLinkValue);
+  const dispatch = useDispatch();
+  const [title, setTitle] = useState(titleValue);
+  const [intro, setIntro] = useState(introValue);
+
+
+
+  const handleSubmit = async ()=>{
+    try {
+      if (brandName.trim().length == 0) {
+        Alert.alert("Error", "Brand Name cannot be empty");
+      } else if (shopNowLink.trim().length == 0) {
+        Alert.alert("Error", "Shop Now Link cannot be empty");
+      } else if (title.trim().length == 0) {
+        Alert.alert("Error", "Vendor Role Title cannot be empty");
+      } else if (intro.trim().length == 0) {
+        Alert.alert("Error", "Organization Bio cannot be empty");
+      } else {   
+      const response = await updateDispcoveryInfo(userInfo["_id"],brandName,shopNowLink,title,intro)
       if (response.status == 200) {
-        Alert.alert('Discovery Page Created Successfully');
+        Alert.alert(response.data.message);
+        dispatch(setUserInfo(response.data.user));
       } else {
         Alert.alert('Error', response.data.message);
       }
+    }
     } catch (error) {
       console.error(error);
       Alert.alert('Error', 'An error occurred while creating the discovery page');
     }
-  };
+  }
+  
 
     return (
         <ScrollView contentContainerStyle={styles.scrollContainer}>
             <View style={styles.container}>
-                <TextInput style={styles.input} placeholder="Brand Name" onChangeText={setBrandName} value={brand_name}/>
-                <TextInput style={styles.input} placeholder="Shop Now Link" onChangeText={setShopNowLink} value={shop_now_link}/>
+                <TextInput style={styles.input} placeholder="Brand Name" onChangeText={setBrandName} value={brandName}/>
+                <TextInput style={styles.input} placeholder="Shop Now Link" onChangeText={setShopNowLink} value={shopNowLink}/>
                 <TextInput style={styles.input} placeholder="Vendor Role Title" onChangeText={setTitle} value={title}/>
                 <TextInput style={styles.input} placeholder="Organization Bio" onChangeText={setIntro} value={intro}/>
-                <Button title="Submit Information" onPress={handleSubmit} onFocus={() => Alert.alert("Please check the information above, you cannot change it later!")}/>
+                {/* <Button title="Submit Information" onPress={handleSubmit} onFocus={() => Alert.alert("Please check the information above, you cannot change it later!")}/> */}
+               <AppPrimaryButton title="Submit Information" handleSubmit={handleSubmit}/>
+           
             </View>
         </ScrollView>
     );

@@ -1,5 +1,5 @@
 import axios from "axios";
-import { GET_PROFILE_API } from "../../utils/ApiUtils";
+import { CREATE_DISCOVERY_API, GET_PROFILE_API } from "../../utils/ApiUtils";
 import { getUserId, getUserToken } from "../../utils/StorageUtils";
 
 export const setUserInfo = (userData) => {
@@ -33,3 +33,26 @@ export const getProfileData =  () => async (dispatch,getState) => {
     console.error("Error fetching profile:", error.message);
   }
 };
+
+export const updateDispcoveryInfo = async (vendor_id,brandName,shopNowLink,title,intro)=>{
+
+  const url = CREATE_DISCOVERY_API+vendor_id;
+  console.log('url-----'+url);
+  const payload = {
+    brand_name: brandName,
+    shop_now_link: shopNowLink,
+    title: title,
+    intro: intro,
+  };
+  // console.log('payload----'+JSON.stringify(payload));
+  const token = await getUserToken();
+  const response = await axios.post(url, payload,{
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    }
+  });
+
+  return response;
+
+}
