@@ -109,13 +109,7 @@ const VendorProfile = () => {
             </TouchableOpacity>
           </View>
         </View>
-        {selectedTab === 'article' ? (
-          <ArticleForm />
-        ) : (
-          selectedTab === 'discovery' && (
-            <DiscoveryPageCreation/>
-          )
-        )}
+        {selectedTab === 'article' ? <ArticleForm /> : <DiscoveryPageCreation/>}
       </ScrollView>
     </View>
   );

@@ -30,6 +30,9 @@ const NavBar = () => {
           </TouchableOpacity>
 
           <TouchableOpacity style={{ alignItems: 'center' }} onPress={() => {
+            console.log('====================================');
+            console.log('Events---');
+            console.log('====================================');
             navigation.reset({
               index: 0,
               routes: [{ name: 'Events' }],

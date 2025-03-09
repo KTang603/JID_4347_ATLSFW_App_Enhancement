@@ -9,7 +9,7 @@ import AdminProfile from '../components/profile_pages/AdminProfile';
 import { getAccountType } from '../utils/StorageUtils';
 import { useDispatch } from 'react-redux';
 
-const ACCOUNT_TYPE_ADMIN = "3";
+export const ACCOUNT_TYPE_ADMIN = "3";
 const ACCOUNT_TYPE_VENDOR = "2";
 const ACCOUNT_TYPE_USER = "1";
 
@@ -19,7 +19,6 @@ const ProfilePage = ({ navigation }) => {
    const getData  = async () => { 
     const account_type = await getAccountType();
     setAccountType(account_type)
-
   }
 
   useEffect(()=>{

@@ -3,16 +3,15 @@ import {
   View,
   TextInput,
   Text,
-  Button,
   StyleSheet,
   Alert,
   ScrollView,
   TouchableOpacity,
   Keyboard,
 } from "react-native";
-import axios from "axios";
-import MY_IP_ADDRESS from "../environment_variables.mjs";
 import { useSelector } from "react-redux";
+import { createArticle } from "../redux/actions/NewsAction";
+import AppPrimaryButton from "../components/AppPrimaryButton";
 
 const ArticleForm = () => {
   const [articleTitle, setArticleTitle] = useState("");
@@ -23,42 +22,37 @@ const ArticleForm = () => {
   const userInfo = useSelector((store) => store.userInfo.userInfo);
 
   const handleSubmit = async () => {
-     Keyboard.dismiss()
-    if(articleTitle.trim().length == 0){
-      Alert.alert("Error","Article Title cannot be empty")
-    } else if(articleLink.trim().length == 0){
-      Alert.alert("Error","Article Link cannot be empty")
-    } else if(articleImage.trim().length == 0){
-      Alert.alert("Error","Article Image Link cannot be empty")
-    } else if(authorPfpLink.trim().length == 0){
-      Alert.alert("Error","Author Profile Picture Link cannot be empty")
-    } else if(tags.trim().length == 0){
-      Alert.alert("Error","Tags cannot be empty")
-    } else{
-
-    try {
-      const url = `http://${MY_IP_ADDRESS}:5050/posts/create`;
-      const payload = {
-        article_title: articleTitle,
-        article_preview_image: articleImage,
-        article_link: articleLink,
-        author_id: userInfo["_id"],
-        author_name: userInfo["first_name"] + " " + userInfo["last_name"],
-        author_pfp_link: authorPfpLink,
-        tags: tags.split(",").map((tag) => tag.trim()),
-      };
-
-      const response = await axios.post(url, payload);
-
+    Keyboard.dismiss();
+    if (articleTitle.trim().length == 0) {
+      Alert.alert("Error", "Article Title cannot be empty");
+    } else if (articleLink.trim().length == 0) {
+      Alert.alert("Error", "Article Link cannot be empty");
+    } else if (articleImage.trim().length == 0) {
+      Alert.alert("Error", "Article Image Link cannot be empty");
+    } else if (authorPfpLink.trim().length == 0) {
+      Alert.alert("Error", "Author Profile Picture Link cannot be empty");
+    } else if (tags.trim().length == 0) {
+      Alert.alert("Error", "Tags cannot be empty");
+    } else {
+      const response = await createArticle(
+        articleTitle,
+        articleImage,
+        articleLink,
+        userInfo,
+        authorPfpLink,
+        tags
+      );
       if (response.data.success) {
+        setArticleTitle("");
+        setArticleImage("");
+        setArticleLink("");
+        setAuthorPfpLink("");
+        setTags("");
         Alert.alert("Article Created Successfully");
       } else {
         Alert.alert("Error", response.data.message);
       }
-    } catch (error) {
-      console.error(error);
     }
-  }
   };
 
   return (
@@ -99,14 +93,8 @@ const ArticleForm = () => {
           onChangeText={setTags}
           value={tags}
         />
-        <TouchableOpacity
-          style={styles.updateButtonStyle}
-          onPress={(view) => {
-            handleSubmit();
-          }}
-        >
-          <Text style={styles.updateButtonTextStyle}>Submit Article</Text>
-        </TouchableOpacity>
+
+        <AppPrimaryButton title="Submit Article" handleSubmit={handleSubmit} />
       </View>
     </ScrollView>
   );

@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken';
 import { users_db } from '../db/conn.mjs';
 import { ObjectId } from 'mongodb';
+import { USER_ROLES } from '../utils/constant.mjs';
 
 export const verifyToken = async (req, res, next) => {
   try {
@@ -35,14 +36,14 @@ export const verifyToken = async (req, res, next) => {
 };
 
 export const requireAdmin = (req, res, next) => {
-  console.log('Checking admin access for user:', req.user);
+  // console.log('Checking admin access for user:', req.user);
   if (!req.user) {
     console.log('No user in request');
     return res.status(403).json({ message: 'User not authenticated' });
   }
-  if (req.user.accountType !== 1) { // 1 is admin account type
-    console.log('User is not admin. Account type:', req.user.accountType);
-    return res.status(403).json({ message: 'Admin access required' });
+  if (req.user.accountType == USER_ROLES) { // 1 is user account type
+    console.log('User is not admin or not vendor. Account type:', req.user.accountType);
+    return res.status(403).json({ message: 'Admin or vendor access required' });
   }
   // console.log('Admin access granted');
   next();
