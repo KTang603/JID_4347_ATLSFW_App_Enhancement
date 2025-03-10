@@ -22,9 +22,7 @@ const SavedArticles = ({ navigation }) => {
   // redux state
   const isLogged = useSelector((store) => store.isLogged.isLogged);
 
-  if (!isLogged) {
-    navigation.reset({ index: 0, routes: [{ name: 'Log In' }], });
-  }
+ 
 
   const [isSavePressed, setSavePressed] = useState(false);
   const saved_articles_state = useSelector((store) => {

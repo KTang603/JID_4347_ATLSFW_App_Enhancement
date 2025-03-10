@@ -3,12 +3,11 @@ import {
   View,
   Text,
   TouchableOpacity,
-  Image,
-  FlatList,
   TextInput,
   Modal,
-  Button,
   StyleSheet,
+  ActivityIndicator,
+  ScrollView,
 } from "react-native";
 import MasonryList from "@react-native-seoul/masonry-list";
 import Icon from "react-native-vector-icons/FontAwesome";
@@ -16,137 +15,119 @@ import Article from "../components/Article";
 import axios from "axios";
 import MY_IP_ADDRESS from "../environment_variables.mjs";
 import { useSelector, useDispatch } from "react-redux";
-import { logout } from "../redux/actions/loginAction";
+import { fetchData } from "../redux/actions/NewsAction";
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 const NewsFeedScreen = ({ navigation }) => {
   const [showFilterModal, setShowFilterModal] = useState(false);
-  const [tags, setTags] = useState([]);
+  const newsData = useSelector(state => state.news)
+  const {articles,isProgress,tags} = newsData
   const [inputTag, setInputTag] = useState([]);
-
-  const liked_articles_state = useSelector(
-    (store) => store.liked_articles.liked_articles
-  );
-  const saved_articles_state = useSelector(
-    (store) => store.saved_articles.saved_articles
-  );
-  const isLogged = useSelector((store) => store.isLogged.isLogged);
-  const token = useSelector((store) => store.token?.token);
   const dispatch = useDispatch();
-
-  useEffect(() => {
-    console.log('Current token:', token);
-  }, [token]);
 
   const [articleData, setArticleData] = useState({ articles: [], pagination: { page: 1, pages: 1 } });
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
 
-  const fetchData = async (page = 1, loadMore = false) => {
-    try {
-      if (!token) {
-        console.error('No token available for posts fetch');
-        return;
-      }
+  // New state variables
+  const [startDate, setStartDate] = useState(null);
+  const [endDate, setEndDate] = useState(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [datePickerMode, setDatePickerMode] = useState('start');
 
-      setIsLoading(true);
-      const response = await axios.get(
-        `http://${MY_IP_ADDRESS}:5050/posts?tags=${inputTag.join(",")}&page=${page}&limit=20`,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
+  // const liked_articles_state = useSelector(
+  //   (store) => store.liked_articles.liked_articles
+  // );
+  // const saved_articles_state = useSelector(
+  //   (store) => store.saved_articles.saved_articles
+  // );
 
-      console.log('Fetched articles:', response.data.articles.map(a => ({
-        id: a._id,
-        title: a.article_title
-      })));
 
-      const articles = response.data.articles.map(article => ({
-        ...article,
-        _id: article._id?.toString() || '',
-        author_id: article.author_id?.toString() || ''
-      }));
+  // const fetchData = async (page = 1, loadMore = false) => {
+  //   try {
+  //     setIsLoading(true);
+  //     const response = await axios.get(
+  //       `http://${MY_IP_ADDRESS}:5050/posts?tags=${inputTag.join(",")}&page=${page}&limit=20`,
+  //       {
+  //         headers: {
+  //           'Authorization': `Bearer ${token}`,
+  //           'Content-Type': 'application/json'
+  //         }
+  //       }
+  //     );
+  //     console.log('Fetched articles:', response.data.articles.map(a => ({
+  //       id: a._id,
+  //       title: a.article_title
+  //     })));
 
-      console.log('Setting article data:', {
-        loadMore,
-        currentArticles: loadMore ? articleData.articles.length : 0,
-        newArticles: articles.length,
-        pagination: response.data.pagination
-      });
+  //     const articles = response.data.articles.map(article => ({
+  //       ...article,
+  //       _id: article._id?.toString() || '',
+  //       author_id: article.author_id?.toString() || ''
+  //     }));
 
-      if (loadMore) {
-        const currentArticles = articleData.articles.map(article => ({
-          ...article,
-          _id: article._id?.toString() || '',
-          author_id: article.author_id?.toString() || ''
-        }));
+  //     console.log('Setting article data:', {
+  //       loadMore,
+  //       currentArticles: loadMore ? articleData.articles.length : 0,
+  //       newArticles: articles.length,
+  //       pagination: response.data.pagination
+  //     });
 
-        setArticleData(prev => ({
-          articles: [...currentArticles, ...articles],
-          pagination: response.data.pagination
-        }));
-      } else {
-        setArticleData({
-          articles,
-          pagination: response.data.pagination
-        });
-      }
+  //     if (loadMore) {
+  //       const currentArticles = articleData.articles.map(article => ({
+  //         ...article,
+  //         _id: article._id?.toString() || '',
+  //         author_id: article.author_id?.toString() || ''
+  //       }));
 
-      console.log('Article data updated:', {
-        totalArticles: loadMore ? 
-          articleData.articles.length + articles.length : 
-          articles.length
-      });
-      setIsLoading(false);
-    } catch (error) {
-      console.error("Error during data fetch:", error.message);
-    }
-  };
+  //       setArticleData(prev => ({
+  //         articles: [...currentArticles, ...articles],
+  //         pagination: response.data.pagination
+  //       }));
+  //     } else {
+  //       setArticleData({
+  //         articles,
+  //         pagination: response.data.pagination
+  //       });
+  //     }
 
-  useEffect(() => {
-    const loadInitialData = async () => {
-      if (token) {
-        try {
-          await fetchUserLikedAndSavedArticles();
-          await fetchData();
-        } catch (error) {
-          console.error('Error loading initial data:', error);
-          if (error.response?.status === 401) {
-            dispatch(logout());
-            navigation.navigate('Log In');
-          }
-        }
-      }
-    };
-    loadInitialData();
-  }, [token]);
+  //     console.log('Article data updated:', {
+  //       totalArticles: loadMore ? 
+  //         articleData.articles.length + articles.length : 
+  //         articles.length
+  //     });
+  //     setIsLoading(false);
+  //   } catch (error) {
+  //     console.error("Error during data fetch:", error.message);
+  //   }
+  // };
 
   useEffect(() => {
-    if (token && (liked_articles_state || saved_articles_state)) {
-      console.log('Reloading data due to state change:', {
-        liked_articles_state,
-        saved_articles_state
-      });
+     dispatch(fetchData(1,true,inputTag));
+     fetchUserLikedAndSavedArticles();
+  }, []);
+
+  // useEffect(() => {
+  //   if (token && (liked_articles_state || saved_articles_state)) {
+  //     console.log('Reloading data due to state change:', {
+  //       liked_articles_state,
+  //       saved_articles_state
+  //     });
       
-      setCurrentPage(1);
-      fetchData(1, false);
-    }
-  }, [liked_articles_state, saved_articles_state]);
+  //     setCurrentPage(1);
+  //     fetchData(1, false);
+  //   }
+  // }, [liked_articles_state, saved_articles_state]);
 
-  useEffect(() => {
-    console.log('Article data updated:', {
-      totalArticles: articleData.articles.length,
-      currentPage,
-      totalPages: articleData.pagination.pages
-    });
-  }, [articleData]);
+  // useEffect(() => {
+  //   console.log('Article data updated:', {
+  //     totalArticles: articleData.articles.length,
+  //     currentPage,
+  //     totalPages: articleData.pagination.pages
+  //   });
+  // }, [articleData]);
 
-  useEffect(() => {
-    console.log('NewsFeedScreen: saved_articles_state changed:', saved_articles_state);
-  }, [saved_articles_state]);
+
 
   const fetchUserLikedAndSavedArticles = async () => {
     try {
@@ -154,6 +135,8 @@ const NewsFeedScreen = ({ navigation }) => {
         console.log('No token available for fetching user articles');
         return;
       }
+      console.log('token---'+token);
+      console.log('http://${MY_IP_ADDRESS}:5050/user/articles=----'+`http://${MY_IP_ADDRESS}:5050/user/articles`);
 
       console.log('Fetching user articles...');
 
@@ -187,10 +170,12 @@ const NewsFeedScreen = ({ navigation }) => {
       } else {
         console.error("Invalid response format:", response.data);
       }
+     
+    
     } catch (error) {
       if (error.response?.status === 401) {
         console.log('Token expired or invalid, redirecting to login');
-        dispatch(logout());
+        // dispatch(logout());
         navigation.navigate('Log In');
       } else {
         console.error("Error fetching user articles:", error.message);
@@ -199,34 +184,13 @@ const NewsFeedScreen = ({ navigation }) => {
   };
 
   const filterArticles = async () => {
-    await fetchData();
-  };
-
-  useEffect(() => {
-    const fetchTags = async () => {
-      try {
-        if (!token) {
-          console.error('No token available');
-          return;
-        }
-        const url = `http://${MY_IP_ADDRESS}:5050/tags`;
-        const response = await axios.get(url, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        });
-        if (response.data && Array.isArray(response.data)) {
-          setTags(response.data);
-        }
-      } catch (error) {
-        console.error("Error fetching tags:", error.message);
-      }
+    const dateParams = {
+      startDate: startDate?.toISOString(),
+      endDate: endDate?.toISOString()
     };
-    if (token) {
-      fetchTags();
-    }
-  }, [token]);
+    dispatch(fetchData(1, true, inputTag, dateParams));
+  };
+  
 
   const handleTagPress = (tag) => {
     if (inputTag.includes(tag)) {
@@ -248,7 +212,7 @@ const NewsFeedScreen = ({ navigation }) => {
         {articleData &&
         <MasonryList
           numColumns={2}
-          data={articleData.articles}
+          data={articles}
           keyExtractor={(item) => item["_id"]?.toString() || item["article_link"]}
           onEndReached={() => {
             if (!isLoading && currentPage < articleData.pagination.pages) {
@@ -290,111 +254,219 @@ const NewsFeedScreen = ({ navigation }) => {
           setShowFilterModal(!showFilterModal);
         }}
       >
-        <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-          <View style={{
-            height: 350,
-            width: 350,
-            padding: 30,
-            backgroundColor: "white",
-            borderRadius: 10,
-          }}>
-            <TouchableOpacity
-              style={styles.closeModalButton}
-              onPress={() => setShowFilterModal(false)}
-            >
-              <Icon name="times" size={20} color="black" />
-            </TouchableOpacity>
-            <View style={{
-              flexDirection: "row",
-              alignItems: "center",
-              marginBottom: 20,
-            }}>
-              <TextInput
-                value={inputTag.join(", ")}
-                placeholder="Search filters..."
-                style={{
-                  flex: 1,
-                  borderColor: "gray",
-                  borderWidth: 1,
-                  padding: 5,
-                  borderRadius: 5,
-                }}
-                editable={false}
-              />
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <ScrollView showsVerticalScrollIndicator={false}>
               <TouchableOpacity
-                onPress={() => filterArticles()}
-                style={{ marginLeft: 10 }}
+                style={styles.closeModalButton}
+                onPress={() => setShowFilterModal(false)}
               >
-                <Icon name="search" size={20} color="black" />
+                <Icon name="times" size={20} color="#666" />
               </TouchableOpacity>
-            </View>
-            <View style={{
-              flexDirection: "row",
-              flexWrap: "wrap",
-              justifyContent: "space-between",
-            }}>
-              {tags.map((tag) => (
+
+              <Text style={styles.modalTitle}>Filters</Text>
+
+              {/* Search Bar */}
+              <View style={styles.searchContainer}>
+                <TextInput
+                  value={inputTag.join(", ")}
+                  placeholder="Selected filters..."
+                  style={styles.searchInput}
+                  editable={false}
+                />
                 <TouchableOpacity
-                  key={tag}
-                  onPress={() => handleTagPress(tag)}
-                  style={[
-                    styles.tagButton,
-                    inputTag.includes(tag) && styles.tagButtonSelected,
-                  ]}
+                  onPress={() => filterArticles()}
+                  style={styles.searchButton}
                 >
-                  <Text style={
-                    inputTag.includes(tag)
-                      ? styles.tagTextSelected
-                      : styles.tagText
-                  }>
-                    {tag}
+                  <Icon name="search" size={20} color="#666" />
+                </TouchableOpacity>
+              </View>
+
+              {/* Categories Section */}
+              <Text style={styles.sectionTitle}>Categories</Text>
+              <View style={styles.tagsContainer}>
+                {tags.map((tag) => (
+                  <TouchableOpacity
+                    key={tag}
+                    onPress={() => handleTagPress(tag)}
+                    style={[
+                      styles.tagButton,
+                      inputTag.includes(tag) && styles.tagButtonSelected,
+                    ]}
+                  >
+                    <Text style={
+                      inputTag.includes(tag)
+                        ? styles.tagTextSelected
+                        : styles.tagText
+                    }>
+                      {tag}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {/* Date Range Section */}
+              <Text style={styles.sectionTitle}>Date Range</Text>
+              <View style={styles.dateFilterContainer}>
+                <TouchableOpacity 
+                  style={styles.dateButton}
+                  onPress={() => {
+                    setDatePickerMode('start');
+                    setShowDatePicker(true);
+                  }}
+                >
+                  <Icon name="calendar" size={16} color="#666" style={styles.dateIcon} />
+                  <Text style={styles.dateButtonText}>
+                    {startDate ? startDate.toLocaleDateString() : 'Start Date'}
                   </Text>
                 </TouchableOpacity>
-              ))}
-            </View>
+                
+                <TouchableOpacity 
+                  style={[styles.dateButton, { marginBottom: 20 }]}
+                  onPress={() => {
+                    setDatePickerMode('end');
+                    setShowDatePicker(true);
+                  }}
+                >
+                  <Icon name="calendar" size={16} color="#666" style={styles.dateIcon} />
+                  <Text style={styles.dateButtonText}>
+                    {endDate ? endDate.toLocaleDateString() : 'End Date'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
           </View>
         </View>
       </Modal>
+      {isProgress && <ActivityIndicator color={'#02833D'} size={'large'} style={{position:'absolute',left:0,right:0,top:0,bottom:0}} />}
+      {showDatePicker && (
+        <DateTimePicker
+          value={datePickerMode === 'start' ? startDate || new Date() : endDate || new Date()}
+          mode="date"
+          onChange={(event, selectedDate) => {
+            setShowDatePicker(false);
+            if (selectedDate) {
+              if (datePickerMode === 'start') {
+                setStartDate(selectedDate);
+              } else {
+                setEndDate(selectedDate);
+              }
+            }
+          }}
+        />
+      )}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  tagButton: {
-    padding: 5,
-    width: "48%",
-    borderColor: "gray",
-    borderWidth: 1,
-    borderRadius: 5,
-    marginBottom: 5,
-    marginRight: 2,
-    alignItems: "center",
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: "center",
-    backgroundColor: "#FFF",
+    alignItems: "center",
   },
-  tagButtonSelected: {
-    backgroundColor: "#C1E1C1",
+  modalContent: {
+    width: '90%',
+    maxHeight: '80%',
+    backgroundColor: "white",
+    borderRadius: 15,
+    padding: 20,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+    marginVertical: 40,
   },
-  tagText: {
-    color: "black",
-  },
-  tagTextSelected: {
-    color: "black",
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: '600',
+    marginBottom: 20,
+    textAlign: 'center',
+    color: '#333',
   },
   closeModalButton: {
     position: "absolute",
-    top: 2,
-    left: 1,
+    top: 15,
+    right: 15,
+    padding: 10,
+    zIndex: 1,
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  searchInput: {
+    flex: 1,
+    borderColor: "#ddd",
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 10,
+    marginRight: 10,
+    backgroundColor: '#f8f8f8',
+  },
+  searchButton: {
     padding: 10,
   },
-  apiQueryText: {
-    fontSize: 12,
-    color: '#757575',
-    textAlign: 'center',
-    marginTop: 5,
-    marginBottom: 10,
-    paddingHorizontal: 20,
-    fontFamily: 'monospace',
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 12,
+    color: '#333',
+  },
+  tagsContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    marginBottom: 20,
+  },
+  tagButton: {
+    padding: 8,
+    width: "48%",
+    borderColor: "#ddd",
+    borderWidth: 1,
+    borderRadius: 8,
+    marginBottom: 8,
+    alignItems: "center",
+    backgroundColor: "#fff",
+  },
+  tagButtonSelected: {
+    backgroundColor: "#e8f4ea",
+    borderColor: "#02833D",
+  },
+  tagText: {
+    color: "#666",
+  },
+  tagTextSelected: {
+    color: "#02833D",
+    fontWeight: '500',
+  },
+  dateFilterContainer: {
+    width: '100%',
+    marginBottom: 20,
+  },
+  dateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    backgroundColor: '#f8f8f8',
+    borderRadius: 8,
+    marginVertical: 6,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    width: '100%',
+  },
+  dateIcon: {
+    marginRight: 10,
+  },
+  dateButtonText: {
+    fontSize: 14,
+    color: '#666',
   },
 });
 
