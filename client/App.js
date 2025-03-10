@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import EventsScreen from "./Screens/EventsScreen";
 import NewsFeedScreen from "./Screens/NewsFeedScreen";
 import LoginScreen from "./Screens/LoginScreen";
 import SignUpScreen from "./Screens/SignUpScreen";
@@ -29,6 +30,7 @@ import ForgotPasswordScreen from "./Screens/ForgotPasswordScreen";
 import SplashPage from "./Screens/SplashPage";
 import SettingPage from './Screens/SettingPage';
 import AdminUserList from "./Screens/AdminUserList";
+import CreateEvent from "./Screens/CreateEvent";
 
 const Stack = createNativeStackNavigator();
 
@@ -73,6 +75,9 @@ const App = () => {
           <Stack.Screen name="Setting" component={SettingPage} /> 
           <Stack.Screen name="UserList" component={AdminUserList} /> 
           <Stack.Screen name="Forgot Password" component={ForgotPasswordScreen} />
+          <Stack.Screen name="Events" component={EventsScreen} />
+          <Stack.Screen name="CreateEvent" component={CreateEvent} />
+
           {/* add future screens */}
         </Stack.Navigator>
         <ConditionalNavBar currentScreen={currentScreen} />
