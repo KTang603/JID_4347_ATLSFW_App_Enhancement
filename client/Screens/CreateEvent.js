@@ -13,6 +13,9 @@ const CreateEvent = () => {
   
   // Get user_id from Redux store for event creation
   const user_id = useSelector((store) => store.user_id.user_id);
+
+  // Get token from Redux
+  const token = useSelector((store) => store.token.token); 
   
   // State to control date picker modal visibility
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -27,36 +30,47 @@ const CreateEvent = () => {
     user_id: user_id  // Include user_id who created the event
   });
 
-  // Handle form submission and API call
   const handleSubmit = async () => {
     try {
-      // Form validation - ensure all required fields are filled
+      // Log the data we're about to send
+      console.log('Sending event data:', eventData);
+  
       if (!eventData.event_title || !eventData.event_location || 
           !eventData.event_date || !eventData.event_desc || !eventData.event_link) {
         Alert.alert("Error", "Please fill all fields");
         return;
       }
-
-      // Make POST request to create event
+  
       const response = await axios.post(
         `http://${MY_IP_ADDRESS}:5050/events/create`,
-        eventData
+        {
+          event_title: eventData.event_title,
+          event_desc: eventData.event_desc,
+          event_link: eventData.event_link,
+          event_location: eventData.event_location,
+          event_date: eventData.event_date,
+          user_id: eventData.user_id,
+          requestType: "EVENT"
+        },
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
       );
-
-      // Handle successful event creation
+  
       if (response.data.success) {
-        Alert.alert("Success", response.data.message, [
+        Alert.alert("Success", "Event created successfully", [
           {
             text: "OK",
-            // Navigate back to Events screen after successful creation
             onPress: () => navigation.goBack()
           }
         ]);
       }
     } catch (error) {
-      // Handle any errors during event creation
-      Alert.alert("Error", "Failed to create event");
-      console.error("Error creating event:", error);
+      console.error("Error response:", error.response?.data);
+      Alert.alert("Error", error.response?.data?.message || "Failed to create event");
     }
   };
 
