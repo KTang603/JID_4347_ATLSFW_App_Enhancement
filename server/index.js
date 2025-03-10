@@ -12,6 +12,8 @@ import user from "./routes/user.mjs";
 import password from "./routes/password.mjs";
 import admin from "./routes/admin.mjs";
 import news from "./routes/news.mjs";
+import event from "./routes/event.mjs";
+
 
 // Replace the uri string with your MongoDB deployment's connection string.
 const API_KEY = 'pub_69919892f87f86c7d48e31dfb61e8e91e0f3b'
@@ -21,15 +23,20 @@ app.use(cors());
 
 app.use(bodyParser.json());
 // Get a list of 50 posts
-app.use('/login', login); // DONE
-app.use(signup); //DONE
-app.use(posts); //DONE
+app.use('/login', login);
+app.use(signup); 
+app.use(posts); 
+app.use(event);
 app.use('/user', user); 
 app.use('/vendor', vendor);
 app.use('/admin', admin);
 app.use('/password', password);
 app.use('/news', news);
+
 app.use((err, _req, res, next) => {
+  console.log('====================================');
+  console.log('err----'+err);
+  console.log('====================================');
   res.status(500).send("Uh oh! An unexpected error occurred.");
 });
 
