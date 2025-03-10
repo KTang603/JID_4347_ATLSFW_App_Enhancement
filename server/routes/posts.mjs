@@ -47,56 +47,38 @@ router.get("/posts", verifyToken, async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
-    const skip = (page - 1) * limit; 
+    const skip = (page - 1) * limit;
 
-    // Extracting query parameters
+    // Extract query parameters
     const tagsQuery = req.query.tags;
-    // const searchQuery = req.query.search;
-    // const sourceQuery = req.query.source;
-    // const sortBy = req.query.sortBy || 'publishDate';
-    // const order = req.query.order === 'asc' ? 1 : -1;
+    const startDate = req.query.startDate ? new Date(req.query.startDate) : null;
+    const endDate = req.query.endDate ? new Date(req.query.endDate) : null;
 
     // Build query
     let query = {};
 
-    // Source filter
-    // if (sourceQuery) {
-    //   query.source = sourceQuery;
-    // }
-    
     // Tags filter
     if (tagsQuery) {
       const tags = tagsQuery.split(",");
       query.tags = { $in: tags };
     }
 
-    // Search filter
-    // if (searchQuery) {
-    //   query.$or = [
-    //     { article_title: { $regex: searchQuery, $options: 'i' } },
-    //     { author_name: { $regex: searchQuery, $options: 'i' } }
-    //   ];
-    // }
+    // Date filter
+    if (startDate || endDate) {
+      query.publishDate = {};
+      if (startDate) query.publishDate.$gte = startDate;
+      if (endDate) query.publishDate.$lte = endDate;
+    }
 
     const collection = posts_db.collection('articles');
-   
-    // Get total count for pagination
     const total = await collection.countDocuments(query);
-    
 
-    // Get paginated results
     const articles = await collection
       .find(query)
-      // .sort({ [sortBy]: order })
+      .sort({ publishDate: -1 })
       .skip(skip)
       .limit(limit)
       .toArray();
-
-    // Ensure no negative counts
-    // for (let article of articles) {
-    //   if (article.like_count < 0) article.like_count = 0;
-    //   if (article.save_count < 0) article.save_count = 0;
-    // }
 
     res.status(200).json({
       articles,
