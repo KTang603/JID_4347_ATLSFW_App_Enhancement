@@ -121,7 +121,11 @@ const LoginScreen = ({navigation}) => {
           style={styles.input}
           secureTextEntry
         />
-
+            
+        <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
+          <Text style={styles.loginButtonText}>Login</Text>
+        </TouchableOpacity>
+            
         <View style={{ width: "75%", alignItems: "flex-end" }}>
           <TouchableOpacity
             onPress={() => navigation.navigate("Forgot Password")}
@@ -129,10 +133,6 @@ const LoginScreen = ({navigation}) => {
             <Text style={styles.buttonText}>Forgot Password?</Text>
           </TouchableOpacity>
         </View>
-
-        <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-          <Text style={styles.loginButtonText}>Login</Text>
-        </TouchableOpacity>
 
         <TouchableOpacity 
          onPress={() => navigation.navigate('Sign Up')}
