@@ -26,3 +26,8 @@ memory-bank/
 
 # Team Code Review
 Team Code Review/
+
+.idea/
+.idea/caches/
+.idea/shelf/
+.idea/workspace.xml
