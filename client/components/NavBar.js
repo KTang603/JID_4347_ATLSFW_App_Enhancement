@@ -6,15 +6,18 @@ import { useSelector, useDispatch } from 'react-redux';
 
 const NavBar = () => {
   const navigation = useNavigation();
-  const isLogged = useSelector((store) => store.isLogged.isLogged);
-    const handleProfileClick = () => {
-      if (isLogged) {
-        // navigation.navigate('Profile'); // Navigate to Profile if logged in
-        navigation.reset({ index: 0, routes: [{ name: 'Profile' }], });
-      } else {
-        navigation.reset({ index: 0, routes: [{ name: 'Log In' }], });
-      }
-    }
+  // const isLogged = useSelector((store) => store.isLogged);
+  // console.log('====================================');
+  // console.log('isLogged----'+isLogged);
+  // console.log('====================================');
+  //   const handleProfileClick = () => {
+  //     if (isLogged) {
+  //       // navigation.navigate('Profile'); // Navigate to Profile if logged in
+  //       navigation.reset({ index: 0, routes: [{ name: 'Profile' }], });
+  //     } else {
+  //       navigation.reset({ index: 0, routes: [{ name: 'Log In' }], });
+  //     }
+  //   }
 
   return (
         <View>
@@ -27,13 +30,16 @@ const NavBar = () => {
           </TouchableOpacity>
 
           <TouchableOpacity style={{ alignItems: 'center' }} onPress={() => {
+            console.log('====================================');
+            console.log('Events---');
+            console.log('====================================');
             navigation.reset({
               index: 0,
               routes: [{ name: 'Events' }],
-            });
-          }}>             
-              <Icon name="calendar" size={20} color="white" alignItems="center"/>
-              <Text style={styles.whiteText}>Events</Text>
+              });
+            }}>    
+                <Icon name="calendar" size={20} color="white" alignItems="center"/>
+                <Text style={styles.whiteText}>Events</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={{ alignItems: 'center' }} onPress={() => {
@@ -57,31 +63,37 @@ const NavBar = () => {
           </TouchableOpacity>
 
           <TouchableOpacity style={{ alignItems: 'center' }} onPress={() => {
-            navigation.navigate('Shop Now Webview', {
-              link: 'https://expo.dev',  // for test
-            });
+            // navigation.reset({
+            //   index: 0,
+            //   routes: [{ name: 'Sign Up' }],
+            // });
           }}>              
               <Icon name="shopping-cart" size={20} color="white" alignItems="center"/>
               <Text style={styles.whiteText}>Shop</Text>
-
           </TouchableOpacity>
 
           <TouchableOpacity style={{ alignItems: 'center' }} onPress={() => {
-            if (isLogged) {
-              navigation.reset({
+
+            navigation.reset({
                 index: 0,
                 routes: [{ name: 'Profile' }],
-              });
-            } else {
-              navigation.reset({
-                index: 0,
-                routes: [{ name: 'Log In' }],
-              });
-            }
+              })
+            // if (isLogged) {
+            //   navigation.reset({
+            //     index: 0,
+            //     routes: [{ name: 'Profile' }],
+            //   });
+            // } else {
+            //   navigation.reset({
+            //     index: 0,
+            //     routes: [{ name: 'Log In' }],
+            //   });
+            // }
           }}>
               <Icon name="user" size={20} color="white" alignItems="center"/>
               <Text style={styles.whiteText}>Profile</Text>
           </TouchableOpacity>
+          
         </View>
 
       {/* LOGO */}
