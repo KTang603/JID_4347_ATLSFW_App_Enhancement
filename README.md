@@ -110,6 +110,7 @@ You can use the "New File" button in the VSCode File Explorer shown below to cre
 3. Event Management
     - Fixed event creation validation
     - Improved error handling for event operations
+    - Ensured event retrieval is restricted to authenticated users (Get /events now requres JWT)
     - Enhanced date selection functionality
  
 ### Known Issues
@@ -123,6 +124,7 @@ You can use the "New File" button in the VSCode File Explorer shown below to cre
     - No event deletion feature
     - Event search functionality not implemented
     - No event analytics or metrics
+    - Event analytics missing
 
 3. Performance
     - Calendar rendering needs optimizing
@@ -137,6 +139,12 @@ You can use the "New File" button in the VSCode File Explorer shown below to cre
 5. Calendar Integration
     - Required specific date formatting
     - Needs proper event data structure
+
+7.  Shopping Discourse
+    - No integrated marketplace or vender listings
+    - Limited vendor-user interaction
+    - No purchase tracking or recommendations
+  
 
 ## Version v0.2.0
 
