@@ -13,6 +13,8 @@ import { setUserInfo } from '../redux/actions/userInfoAction';
 import { getVend } from '../redux/actions/vendAction';
 import { setToken } from '../redux/actions/tokenAction';
 import {LOGIN_API} from '../utils/ApiUtils.js'
+import {fetchTags} from '../redux/actions/NewsAction'
+import { storeAccountType, storeUserId, storeUserToken } from '../utils/StorageUtils';
 
 const LoginScreen = ({navigation}) => {
   const [email, setEmail] = useState('');
@@ -53,26 +55,32 @@ const LoginScreen = ({navigation}) => {
       });
 
       const data = response.data;
+      // console.log('data----'+JSON.stringify(data));
       if (data.success) {
           dispatch(login());
           dispatch(setID(data.user._id));
           dispatch(setUserInfo(data.user));
-          dispatch(getVend(data.user.vendor_account_initialized));
+          // dispatch(getVend(data.user.vendor_account_initialized));
           // Set token in Redux and axios defaults
           const token = data.token;
+          dispatch(fetchTags(token))        
+          storeUserId(""+data.user._id)
+          storeAccountType(""+data.user.user_roles)
+          storeUserToken(token)
           
           dispatch(setToken(token));
+          dispatch(set_acct_type(data.user.user_roles));
+
           axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
           console.log('Token set after login:', token);
 
-          if (data.user.liked_articles != null) {
-            dispatch(get_like_list(data.user.liked_articles));
-          }
-          if (data.user.saved_articles != null) {
-            dispatch(get_save_list(data.user.saved_articles));
-          }
+          // if (data.user.liked_articles != null) {
+          //   dispatch(get_like_list(data.user.liked_articles));
+          // }
+          // if (data.user.saved_articles != null) {
+          //   dispatch(get_save_list(data.user.saved_articles));
+          // }
 
-          dispatch(set_acct_type(data.account_type));
           navigation.reset({
             index: 0,
             routes: [{ name: 'News Feed' }],
@@ -113,7 +121,11 @@ const LoginScreen = ({navigation}) => {
           style={styles.input}
           secureTextEntry
         />
-
+            
+        <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
+          <Text style={styles.loginButtonText}>Login</Text>
+        </TouchableOpacity>
+            
         <View style={{ width: "75%", alignItems: "flex-end" }}>
           <TouchableOpacity
             onPress={() => navigation.navigate("Forgot Password")}
@@ -121,10 +133,6 @@ const LoginScreen = ({navigation}) => {
             <Text style={styles.buttonText}>Forgot Password?</Text>
           </TouchableOpacity>
         </View>
-
-        <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-          <Text style={styles.loginButtonText}>Login</Text>
-        </TouchableOpacity>
 
         <TouchableOpacity 
          onPress={() => navigation.navigate('Sign Up')}

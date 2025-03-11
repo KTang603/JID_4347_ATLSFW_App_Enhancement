@@ -1,12 +1,22 @@
-import React, { useState } from 'react';
-import { Button, Text, TextInput, View, StyleSheet, Alert, Switch } from 'react-native';
-import axios from 'axios';
-import hashString from '../utils/hashingUtils.mjs';
-import MY_IP_ADDRESS from '../environment_variables.mjs';
-import { isValidPassword, isValidEmail, normalizeEmail } from '../utils/format.mjs';
-import encryptWithPublicKey from '../utils/encryptionUtils.mjs';
-import { setUserInfo } from "../redux/actions/userInfoAction";
-import { useSelector, useDispatch } from "react-redux";
+import React, { useState } from "react";
+import {
+  Text,
+  TextInput,
+  View,
+  StyleSheet,
+  Alert,
+  Switch,
+  TouchableOpacity,
+  ScrollView,
+} from "react-native";
+import hashString from "../utils/hashingUtils.mjs";
+import {
+  isValidPassword,
+  isValidEmail,
+  normalizeEmail,
+} from "../utils/format.mjs";
+import AppPrimaryButton from "../components/AppPrimaryButton";
+import { makeSignup } from "../redux/actions/loginAction";
 
 const SignUpScreen = ({ navigation }) => {
   const [firstName, setFirstName] = useState("");
@@ -18,22 +28,24 @@ const SignUpScreen = ({ navigation }) => {
   const [birthday, setBirthday] = useState("");
   const [gender, setGender] = useState("");
   const [agreeSubscribe, setAgreeSubscribe] = useState(false);
-  const [user_id, setUserID] = useState("");
 
-  // REDUX
-  //send login action to store
-  const dispatch = useDispatch();
-
-  //encrypted email
 
   const handleSignUp = async () => {
     try {
       const normalizedEmail = normalizeEmail(email);
       const hashed_email = await hashString(normalizedEmail);
       const hashed_password = await hashString(password);
-      const encrypted_email = encryptWithPublicKey(normalizedEmail);
 
-      if (!isValidEmail(email)) {
+
+      if(firstName.trim().length == 0){
+        Alert.alert("Error","First Name cannot be empty")
+      } else if(lastName.trim().length == 0){
+        Alert.alert("Error","Last Name cannot be empty")
+      } else if(username.trim().length == 0){
+        Alert.alert("Error","Username cannot be empty")
+      } else if(email.trim().length == 0){
+        Alert.alert("Error","Email cannot be empty")
+      } else if (!isValidEmail(email)) {
         Alert.alert("Error", "Email format is invalid", [
           { text: "Try Again" },
         ]);
@@ -48,32 +60,28 @@ const SignUpScreen = ({ navigation }) => {
         let userData = {
           hashed_email: hashed_email,
           hashed_password: hashed_password,
-          encrypted_email: encrypted_email,
           first_name: firstName,
           last_name: lastName,
           username: username,
           gender: gender,
           phone_number: phoneNum,
-          subscribed_to_news: agreeSubscribe,
           birthday: birthday,
         };
 
-        const response = await axios.post(
-          "http://" + MY_IP_ADDRESS + ":5050/signup",
-          userData
-        );
-
-        const data = response.data;
-        if (data.success) {
-            const updatedUserInfo = {
-              ...userData,
-              user_id: data.user._id, // Assuming the server response structure includes user._id
-            };
-          dispatch(setUserInfo(updatedUserInfo));
+        const response = await makeSignup(userData)
+        if (response.success) {
           Alert.alert("Success", "Account created successfully!", [
             { text: "OK" },
           ]);
-          navigation.reset({ index: 0, routes: [{ name: 'Log In' }], });
+          setFirstName('');
+          setLastName('');
+          setUsername('');
+          setEmail('');
+          setPassword('');
+          setPhoneNum('');
+          setBirthday('');
+          setGender('');
+          setAgreeSubscribe(false)
         } else {
           Alert.alert("Error", data.message, [{ text: "Try Again" }]);
         }
@@ -87,120 +95,128 @@ const SignUpScreen = ({ navigation }) => {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.text}>Create an Account</Text>
-
-      <TextInput
-        placeholder="First Name*"
-        value={firstName}
-        onChangeText={setFirstName}
-        style={styles.input}
-      />
-      <TextInput
-        placeholder="Last Name*"
-        value={lastName}
-        onChangeText={setLastName}
-        style={styles.input}
-      />
-      <TextInput
-        placeholder="Username*"
-        value={username}
-        onChangeText={setUsername}
-        style={styles.input}
-      />
-      <TextInput
-        placeholder="Email*"
-        value={email}
-        onChangeText={setEmail}
-        style={styles.input}
-        keyboardType="email-address"
-      />
-      <TextInput
-        placeholder="Password*"
-        value={password}
-        onChangeText={setPassword}
-        style={styles.input}
-        secureTextEntry
-      />
-      <TextInput
-        placeholder="Phone Number"
-        value={phoneNum}
-        onChangeText={setPhoneNum}
-        style={styles.input}
-        keyboardType="number-pad"
-      />
-      <TextInput
-        placeholder="Birthday (yyyy-mm-dd)"
-        value={birthday}
-        onChangeText={setBirthday}
-        style={styles.input}
-      />
-      <TextInput
-        placeholder="Gender"
-        value={gender}
-        onChangeText={setGender}
-        style={styles.input}
-      />
-      <View style={styles.switchContainer}>
-        <Text>Subscribe to our newsletter? </Text>
-        <Switch
-          trackColor={{ false: "#767577", true: "#81b0ff" }}
-          thumbColor={agreeSubscribe ? "#f5dd4b" : "#f4f3f4"}
-          ios_backgroundColor="#3e3e3e"
-          onValueChange={() =>
-            setAgreeSubscribe((previousState) => !previousState)
-          }
-          value={agreeSubscribe}
+    <ScrollView>
+      <View style={styles.container}>
+        <Text style={styles.text}>Let's Get start!</Text>
+        <TextInput
+          placeholder="First Name*"
+          value={firstName}
+          onChangeText={setFirstName}
+          style={styles.input}
         />
-      </View>
-
-      <View style={styles.buttonContainer}>
-        <Button title="Sign Up" color="black" onPress={handleSignUp} />
-      </View>
-
-      <Text style={styles.text}>Already have an account?</Text>
-      <View>
-        <Button
-          title="Log in here!"
-          color="green"
-          onPress={() => navigation.reset({ index: 0, routes: [{ name: 'Log In' }], })}
+        <TextInput
+          placeholder="Last Name*"
+          value={lastName}
+          onChangeText={setLastName}
+          style={styles.input}
         />
+        <TextInput
+          placeholder="Username*"
+          value={username}
+          onChangeText={setUsername}
+          style={styles.input}
+        />
+        <TextInput
+          placeholder="Email*"
+          value={email}
+          onChangeText={setEmail}
+          style={styles.input}
+          keyboardType="email-address"
+        />
+        <TextInput
+          placeholder="Password*"
+          value={password}
+          onChangeText={setPassword}
+          style={styles.input}
+          secureTextEntry
+        />
+        <TextInput
+          placeholder="Phone Number(Optional)"
+          value={phoneNum}
+          onChangeText={setPhoneNum}
+          style={styles.input}
+          keyboardType="number-pad"
+        />
+        <TextInput
+          placeholder="Birthday (yyyy-mm-dd)"
+          value={birthday}
+          keyboardType="default"
+          onChangeText={setBirthday}
+          style={styles.input}
+        />
+        <TextInput
+          placeholder="Gender"
+          value={gender}
+          keyboardType="default"
+          onChangeText={setGender}
+          style={styles.input}
+        />
+        <View style={styles.switchContainer}>
+          <Text>Subscribe to our newsletter? </Text>
+          <Switch
+            trackColor={{ false: "#767577", true: "#81b0ff" }}
+            thumbColor={agreeSubscribe ? "#f5dd4b" : "#f4f3f4"}
+            ios_backgroundColor="#3e3e3e"
+            onValueChange={() =>
+              setAgreeSubscribe((previousState) => !previousState)
+            }
+            value={agreeSubscribe}
+          />
+        </View>
+        <AppPrimaryButton title={"Sign Up"} handleSubmit={handleSignUp} />
+
+        <TouchableOpacity
+          onPress={() => navigation.navigate("Log In")}
+          style={styles.signUpSection}
+        >
+          <Text style={styles.newHereText}>
+            Already have an account? {""}
+            <Text style={{ fontWeight: "bold" }}>Login</Text>
+          </Text>
+        </TouchableOpacity>
       </View>
-    </View>
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    justifyContent: 'center',
-    padding: 60,
+    padding: 20,
   },
   buttonContainer: {
     marginVertical: 6,
-    backgroundColor: 'lightgray',
+    backgroundColor: "lightgray",
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: 'black',
+    borderColor: "black",
   },
   switchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginVertical: 5,
   },
+  signUpSection: {
+    marginTop: 14,
+    alignItems: "center",
+  },
+  newHereText: {
+    fontSize: 18,
+    fontFamily: "Roboto",
+    fontWeight: "500",
+    textAlign: "center",
+  },
   text: {
-    fontWeight: 'bold',
+    fontWeight: "bold",
     fontSize: 25,
-    paddingTop: 10,
-    textAlign: 'center',
+    marginBottom: 20,
   },
   input: {
     height: 40,
-    borderColor: 'gray',
+    borderColor: "gray",
     borderWidth: 1,
-    borderRadius: 8,
     marginBottom: 5,
-    padding: 8,
+    marginTop: 5,
+    paddingHorizontal: 10,
   },
 });
 

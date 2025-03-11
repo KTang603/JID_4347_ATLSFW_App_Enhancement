@@ -71,10 +71,31 @@ router.get('/articles', verifyToken, async (req, res) => {
     }
 });
 
-router.patch('/edit/:user_id', async (req, res) => {
+router.get('/get_profile', verifyToken, async (req, res) => {
+        const user_id = req.query.userId;
+        // Validate user_id
+        if (!user_id || !ObjectId.isValid(user_id)) {
+            return res.status(400).json({ 
+                success: false,
+                message: 'Invalid user ID' 
+            });
+        }
+
+        const users = await users_db.collection('customer_info').findOne({_id: new ObjectId(user_id)});
+        res.status(200).json({
+            success: true,
+            ...users
+        });
+})
+
+
+router.patch('/edit', async (req, res) => {
     try {
-        const { user_id } = req.params;
+        const {user_id} = req.query;
+        console.log('user_id---'+user_id);
         const updates = req.body;
+        console.log('user_updates---'+JSON.stringify(updates));
+
     
         // Validate if there's something to update
         if (Object.keys(updates).length === 0) {

@@ -1,15 +1,21 @@
 const initialState = {
-    isLogged: false,
-  };
+  isLogged: false,
+  userName:null,
+};
 
 export default (state = initialState, action) => {
-    switch (action.type) {
-        case 'LOGIN':
-            return {
-                ...state,
-                isLogged: !state.isLogged,
-              };
-        default:
-            return state;
-    }
+  switch (action.type) {
+    case "LOGIN":
+      return {
+        ...state,
+        isLogged: true,
+      };
+    case "LOGOUT":
+      return {
+        ...state,
+        isLogged: false,
+      };
+    default:
+      return state;
+  }
 };
