@@ -63,6 +63,9 @@ const NavBar = () => {
           </TouchableOpacity>
 
           <TouchableOpacity style={{ alignItems: 'center' }} onPress={() => {
+              navigation.navigate('Shop Now Webview', {
+                link: 'https://www.shopify.com/in/blog/211022217-sell-vintage-clothing-online',  // test
+              });
             // navigation.reset({
             //   index: 0,
             //   routes: [{ name: 'Sign Up' }],
