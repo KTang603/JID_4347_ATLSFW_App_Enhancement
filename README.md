@@ -74,6 +74,70 @@ You can use the "New File" button in the VSCode File Explorer shown below to cre
 
 # Release Notes
 
+## Version v0.3.0
+### Features
+1. Profile Page Improvements
+    - Added Settings section for user preferences
+    - Implemented secure logout functionality
+    - Enhanced user profile management
+    - Added user session handling
+
+2. Events Management
+    - Created new Events tab with calendar integration
+    - Implemented event creation for admin users
+    - Added event display with detailed view for all user profiles
+    - Integrated date picker for event scheduling
+    - Added event filtering by date
+
+3. UI/UX Improvements
+    - Added splash screen for better app initialization
+    - Enhanced navigation with Events tab
+    - Improved calendar interface for event management
+    - Added responsive event cards display
+
+
+### Bug Fixes
+1. Authentication Issues
+    - Fixed token expiration handling
+    - Improved error messages for authentication failures
+    - Added proper token refresh mechanism
+
+2. Navigation Improvements
+    - Resolved navigation stack issues
+    - Fixed screen transition bugs
+    - Improved Events tab integration
+
+3. Event Management
+    - Fixed event creation validation
+    - Improved error handling for event operations
+    - Enhanced date selection functionality
+ 
+### Known Issues
+1. Calendar Interface
+    - Calendar width adjustment needs optimization
+    - Event card layout could be more responsive
+    - Date picker could have more customization options
+
+2. Event Management
+    - No event editing functionality
+    - No event deletion feature
+    - Event search functionality not implemented
+    - No event analytics or metrics
+
+3. Performance
+    - Calendar rendering needs optimizing
+    - Event loading could be more efficient
+    - Date picker response time could be improved
+
+4. Previous Defects / Challenges
+    - Token Implementation
+    - Needed secure token storage solution
+    - Had to implement proper token validation
+
+5. Calendar Integration
+    - Required specific date formatting
+    - Needs proper event data structure
+
 ## Version v0.2.0
 
 ### Features
