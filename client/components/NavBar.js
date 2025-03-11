@@ -29,9 +29,17 @@ const NavBar = () => {
               <Text style={styles.whiteText}>Home</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={{ alignItems: 'center' }}>              
-              <Icon name="calendar" size={20} color="white" alignItems="center"/>
-              <Text style={styles.whiteText}>Events</Text>
+          <TouchableOpacity style={{ alignItems: 'center' }} onPress={() => {
+            console.log('====================================');
+            console.log('Events---');
+            console.log('====================================');
+            navigation.reset({
+              index: 0,
+              routes: [{ name: 'Events' }],
+              });
+            }}>    
+                <Icon name="calendar" size={20} color="white" alignItems="center"/>
+                <Text style={styles.whiteText}>Events</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={{ alignItems: 'center' }} onPress={() => {
@@ -85,6 +93,7 @@ const NavBar = () => {
               <Icon name="user" size={20} color="white" alignItems="center"/>
               <Text style={styles.whiteText}>Profile</Text>
           </TouchableOpacity>
+          
         </View>
 
       {/* LOGO */}
