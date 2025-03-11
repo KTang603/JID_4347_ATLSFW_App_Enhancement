@@ -6,12 +6,12 @@ import {
   Pressable,
   TouchableOpacity,
   Dimensions,
+  Alert,
 } from "react-native";
 import { AntDesign } from "@expo/vector-icons";
 import { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { like, unlike } from "../redux/actions/likeAction";
-import { save, unsave } from "../redux/actions/saveAction";
+// Remove unused imports
 import { logout } from "../redux/actions/loginAction";
 import Icon from "react-native-vector-icons/FontAwesome";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -19,6 +19,8 @@ import AuthorNameScreen from "../Screens/AuthorNameScreen";
 import axios from "axios";
 import MY_IP_ADDRESS from "../environment_variables.mjs";
 import { useNavigation } from "@react-navigation/native";
+import { getAuthToken } from "../utils/TokenUtils";
+import { setToken } from "../redux/actions/tokenAction";
 
 const Article = (props) => {
   const {
@@ -109,22 +111,45 @@ const Article = (props) => {
 
   const handleLike = async () => {
     if (isLoading) return;
-
-    if (!isLogged || !token) {
-      dispatch(logout());
-      navigation.navigate('Log In');
-      return;
-    }
     setIsLoading(true);
 
-    const newLikedState = !liked;
-    setLiked(newLikedState);
-    setLikeCount(prev => {
-      const newCount = newLikedState ? prev + 1 : prev - 1;
-      return Math.max(0, newCount);
-    });
-
     try {
+      // Get token using our utility function
+      const authToken = await getAuthToken(token);
+      
+      // If no token is available, navigate to login
+      if (!authToken) {
+        console.log('No authentication token available');
+        setIsLoading(false);
+        
+        Alert.alert(
+          "Authentication Required",
+          "Please log in to like articles",
+          [
+            { 
+              text: "OK", 
+              onPress: () => {
+                dispatch(logout());
+                navigation.navigate('Log In');
+              }
+            }
+          ]
+        );
+        return;
+      }
+      
+      // If token exists but isn't in Redux, update Redux
+      if (!token && authToken) {
+        dispatch(setToken(authToken));
+      }
+
+      const newLikedState = !liked;
+      setLiked(newLikedState);
+      setLikeCount(prev => {
+        const newCount = newLikedState ? prev + 1 : prev - 1;
+        return Math.max(0, newCount);
+      });
+
       // Debug logging
       console.log('Current state:', {
         liked_articles_state,
@@ -149,7 +174,7 @@ const Article = (props) => {
           newLikedArticles
         });
         
-        await addedToDB(newLikedArticles);
+        await addedToDB(newLikedArticles, authToken);
       } else {
         // Remove article from liked list
         const targetId = article_id.toString();
@@ -161,13 +186,13 @@ const Article = (props) => {
           newLikedArticles
         });
         
-        await removeFromDB(newLikedArticles);
+        await removeFromDB(newLikedArticles, authToken);
       }
     } catch (error) {
       // Revert UI state on error
-      setLiked(!newLikedState);
+      setLiked(!liked);
       setLikeCount(prev => {
-        const newCount = !newLikedState ? prev + 1 : prev - 1;
+        const newCount = liked ? prev + 1 : prev - 1;
         return Math.max(0, newCount);
       });
       console.error('Like action failed:', error);
@@ -176,7 +201,7 @@ const Article = (props) => {
     }
   };
 
-  const addedToDB = async (liked_articles) => {
+  const addedToDB = async (liked_articles, authToken) => {
     try {
       // Debug logging
       console.log('Adding like:', {
@@ -184,12 +209,35 @@ const Article = (props) => {
         liked_articles,
       });
 
+      // Ensure liked_articles is a valid array
+      if (!Array.isArray(liked_articles)) {
+        console.error('liked_articles is not an array:', liked_articles);
+        liked_articles = [];
+      }
+      
+      // Ensure all elements are strings
+      const validLikedArticles = liked_articles
+        .filter(id => id != null)
+        .map(id => id.toString());
+      
+      console.log('Sending request with validated liked_articles:', validLikedArticles);
+      
+      // Ensure article_id is a string and log its type
+      console.log('Article ID type:', typeof article_id, article_id);
+      const articleIdStr = article_id.toString();
+      console.log('Article ID after toString:', typeof articleIdStr, articleIdStr);
+      
+      // Log the full URL we're sending the request to
+      const url = `http://${MY_IP_ADDRESS}:5050/posts/${articleIdStr}/?like=1`;
+      console.log('Making API request to:', url);
+      
+      // Use the original URL format with path parameter
       const response = await axios.post(
-        `http://${MY_IP_ADDRESS}:5050/posts/${article_id.toString()}/?like=1`,
-        { liked_articles },
+        url,
+        { liked_articles: validLikedArticles },
         {
           headers: {
-            'Authorization': `Bearer ${token}`
+            'Authorization': `Bearer ${authToken}`
           }
         }
       );
@@ -201,7 +249,14 @@ const Article = (props) => {
           liked_articles,
           response: response.data
         });
-        dispatch(like(article_id.toString()));
+        // Use the correct action type
+        try {
+          dispatch({ type: 'LIKE', payload: article_id.toString() });
+          console.log('LIKE action dispatched successfully');
+        } catch (dispatchError) {
+          console.error('Error dispatching LIKE action:', dispatchError);
+          throw dispatchError;
+        }
       } else {
         throw new Error(response.data.message || 'Like action failed');
       }
@@ -216,7 +271,7 @@ const Article = (props) => {
     }
   };
 
-  const removeFromDB = async (liked_articles) => {
+  const removeFromDB = async (liked_articles, authToken) => {
     try {
       // Debug logging
       console.log('Removing like:', {
@@ -224,12 +279,35 @@ const Article = (props) => {
         liked_articles,
       });
 
+      // Ensure liked_articles is a valid array
+      if (!Array.isArray(liked_articles)) {
+        console.error('liked_articles is not an array:', liked_articles);
+        liked_articles = [];
+      }
+      
+      // Ensure all elements are strings
+      const validLikedArticles = liked_articles
+        .filter(id => id != null)
+        .map(id => id.toString());
+      
+      console.log('Sending request with validated liked_articles:', validLikedArticles);
+      
+      // Ensure article_id is a string and log its type
+      console.log('Article ID type:', typeof article_id, article_id);
+      const articleIdStr = article_id.toString();
+      console.log('Article ID after toString:', typeof articleIdStr, articleIdStr);
+      
+      // Log the full URL we're sending the request to
+      const url = `http://${MY_IP_ADDRESS}:5050/posts/${articleIdStr}/?like=-1`;
+      console.log('Making API request to:', url);
+      
+      // Use the original URL format with path parameter
       const response = await axios.post(
-        `http://${MY_IP_ADDRESS}:5050/posts/${article_id.toString()}/?like=-1`,
-        { liked_articles },
+        url,
+        { liked_articles: validLikedArticles },
         {
           headers: {
-            'Authorization': `Bearer ${token}`
+            'Authorization': `Bearer ${authToken}`
           }
         }
       );
@@ -241,7 +319,14 @@ const Article = (props) => {
           liked_articles,
           response: response.data
         });
-        dispatch(unlike(article_id.toString()));
+        // Use the correct action type
+        try {
+          dispatch({ type: 'UNLIKE', payload: article_id.toString() });
+          console.log('UNLIKE action dispatched successfully');
+        } catch (dispatchError) {
+          console.error('Error dispatching UNLIKE action:', dispatchError);
+          throw dispatchError;
+        }
       } else {
         throw new Error(response.data.message || 'Unlike action failed');
       }
@@ -257,42 +342,93 @@ const Article = (props) => {
   };
 
   const handleSave = async () => {
+    // Add debug logging
+    console.log('handleSave called, current state:', {
+      isSavePressed,
+      saveCount,
+      article_id,
+      isLoading
+    });
+    
     if (isLoading) return;
-
-    if (!isLogged || !token) {
-      dispatch(logout());
-      navigation.navigate('Log In');
-      return;
-    }
     setIsLoading(true);
 
-    const newSaveState = !isSavePressed;
-    let saved_articles = [];
-
-    // Update UI immediately
-    setSavePressed(newSaveState);
-    setSaveCount(prev => {
-      const newCount = newSaveState ? prev + 1 : prev - 1;
-      return Math.max(0, newCount);
-    });
-
     try {
+      // Get token using our utility function
+      const authToken = await getAuthToken(token);
+      
+      // If no token is available, navigate to login
+      if (!authToken) {
+        console.log('No authentication token available');
+        setIsLoading(false);
+        
+        Alert.alert(
+          "Authentication Required",
+          "Please log in to save articles",
+          [
+            { 
+              text: "OK", 
+              onPress: () => {
+                dispatch(logout());
+                navigation.navigate('Log In');
+              }
+            }
+          ]
+        );
+        return;
+      }
+      
+      // If token exists but isn't in Redux, update Redux
+      if (!token && authToken) {
+        dispatch(setToken(authToken));
+      }
+
+      const newSaveState = !isSavePressed;
+      let saved_articles = [];
+
+      // Update UI immediately
+      setSavePressed(newSaveState);
+      setSaveCount(prev => {
+        const newCount = newSaveState ? prev + 1 : prev - 1;
+        return Math.max(0, newCount);
+      });
+
       if (newSaveState) {
-        // Ensure we're working with strings
-        const currentSavedArticles = saved_articles_state.map(id => id.toString());
+        // Ensure we're working with strings and valid arrays
+        const currentSavedArticles = Array.isArray(saved_articles_state) 
+          ? saved_articles_state.map(id => id?.toString()).filter(Boolean)
+          : [];
+        
         saved_articles = [...new Set([...currentSavedArticles, article_id.toString()])];
-        await saveToDB(saved_articles);
+        
+        console.log('Adding to saved articles:', {
+          currentSavedArticles,
+          newArticleId: article_id.toString(),
+          newSavedArticles: saved_articles
+        });
+        
+        await saveToDB(saved_articles, authToken);
       } else {
-        // Ensure we're working with strings
-        const currentSavedArticles = saved_articles_state.map(id => id.toString());
+        // Ensure we're working with strings and valid arrays
+        const currentSavedArticles = Array.isArray(saved_articles_state) 
+          ? saved_articles_state.map(id => id?.toString()).filter(Boolean)
+          : [];
+        
         saved_articles = currentSavedArticles.filter(id => id !== article_id.toString());
-        await unsaveFromDB(saved_articles);
+        
+        console.log('Removing from saved articles:', {
+          currentSavedArticles,
+          targetId: article_id.toString(),
+          newSavedArticles: saved_articles
+        });
+        
+        await unsaveFromDB(saved_articles, authToken);
       }
     } catch (error) {
       // Revert UI state on error
-      setSavePressed(!newSaveState);
+      setSavePressed(!isSavePressed);
       setSaveCount(prev => {
-        const newCount = !newSaveState ? prev + 1 : prev - 1;
+        const newCount = isSavePressed ? prev + 1 : prev - 1;
         return Math.max(0, newCount);
       });
       console.error('Save action failed:', {
@@ -306,58 +442,152 @@ const Article = (props) => {
     }
   };
 
-  const saveToDB = async (saved_articles) => {
+  const saveToDB = async (saved_articles, authToken) => {
     try {
+      // Add more debug logging
+      console.log('saveToDB called with:', {
+        saved_articles,
+        authToken: authToken ? 'token exists' : 'no token',
+        article_id
+      });
+      
+      // Ensure article_id is a string and log its type
+      console.log('Article ID type:', typeof article_id, article_id);
+      const articleIdStr = article_id.toString();
+      console.log('Article ID after toString:', typeof articleIdStr, articleIdStr);
+      
+      // Log the full URL we're sending the request to
+      const url = `http://${MY_IP_ADDRESS}:5050/posts/${articleIdStr}/?save=1`;
+      console.log('Making API request to:', url);
+      
+      // Ensure saved_articles is a valid array
+      if (!Array.isArray(saved_articles)) {
+        console.error('saved_articles is not an array:', saved_articles);
+        saved_articles = [];
+      }
+      
+      // Ensure all elements are strings
+      const validSavedArticles = saved_articles
+        .filter(id => id != null)
+        .map(id => id.toString());
+      
+      console.log('Sending request with validated saved_articles:', validSavedArticles);
+      
+      // Use the original URL format with path parameter
       const response = await axios.post(
-        `http://${MY_IP_ADDRESS}:5050/posts/${article_id.toString()}/?save=1`,
-        { saved_articles },
+        url,
+        { saved_articles: validSavedArticles },
         {
           headers: {
-            'Authorization': `Bearer ${token}`
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json'
           }
         }
       );
+
+      console.log('API response received:', response.data);
 
       if (response.data.success) {
         // Debug logging
         console.log('Save successful:', {
-          article_id,
+          article_id: articleIdStr,
           saved_articles,
           response: response.data
         });
-        dispatch(save(article_id.toString()));
+        
+        // Use the correct action type
+        console.log('Dispatching SAVE action with payload:', articleIdStr);
+        try {
+          dispatch({ type: 'SAVE', payload: articleIdStr });
+          console.log('SAVE action dispatched successfully');
+        } catch (dispatchError) {
+          console.error('Error dispatching SAVE action:', dispatchError);
+          throw dispatchError;
+        }
       } else {
         throw new Error(response.data.message || 'Save action failed');
       }
     } catch (error) {
+      console.error('Error in saveToDB:', error);
+      if (error.response) {
+        console.error('Response data:', error.response.data);
+        console.error('Response status:', error.response.status);
+      }
       throw error;
     }
   };
 
-  const unsaveFromDB = async (saved_articles) => {
+  const unsaveFromDB = async (saved_articles, authToken) => {
     try {
+      // Add more debug logging
+      console.log('unsaveFromDB called with:', {
+        saved_articles,
+        authToken: authToken ? 'token exists' : 'no token',
+        article_id
+      });
+      
+      // Ensure article_id is a string and log its type
+      console.log('Article ID type:', typeof article_id, article_id);
+      const articleIdStr = article_id.toString();
+      console.log('Article ID after toString:', typeof articleIdStr, articleIdStr);
+      
+      // Log the full URL we're sending the request to
+      const url = `http://${MY_IP_ADDRESS}:5050/posts/${articleIdStr}/?save=-1`;
+      console.log('Making API request to:', url);
+      
+      // Ensure saved_articles is a valid array
+      if (!Array.isArray(saved_articles)) {
+        console.error('saved_articles is not an array:', saved_articles);
+        saved_articles = [];
+      }
+      
+      // Ensure all elements are strings
+      const validSavedArticles = saved_articles
+        .filter(id => id != null)
+        .map(id => id.toString());
+      
+      console.log('Sending request with validated saved_articles:', validSavedArticles);
+      
+      // Use the original URL format with path parameter
       const response = await axios.post(
-        `http://${MY_IP_ADDRESS}:5050/posts/${article_id.toString()}/?save=-1`,
-        { saved_articles },
+        url,
+        { saved_articles: validSavedArticles },
         {
           headers: {
-            'Authorization': `Bearer ${token}`
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json'
           }
         }
       );
 
+      console.log('API response received:', response.data);
+
       if (response.data.success) {
         // Debug logging
         console.log('Unsave successful:', {
-          article_id,
+          article_id: articleIdStr,
           saved_articles,
           response: response.data
         });
-        dispatch(unsave(article_id.toString()));
+        
+        // Use the correct action type
+        console.log('Dispatching UNSAVE action with payload:', articleIdStr);
+        try {
+          dispatch({ type: 'UNSAVE', payload: articleIdStr });
+          console.log('UNSAVE action dispatched successfully');
+        } catch (dispatchError) {
+          console.error('Error dispatching UNSAVE action:', dispatchError);
+          throw dispatchError;
+        }
       } else {
         throw new Error(response.data.message || 'Unsave action failed');
       }
     } catch (error) {
+      console.error('Error in unsaveFromDB:', error);
+      if (error.response) {
+        console.error('Response data:', error.response.data);
+        console.error('Response status:', error.response.status);
+      }
       throw error;
     }
   };

@@ -9,6 +9,8 @@ import {
   Modal,
   Button,
   StyleSheet,
+  Alert,
+  ActivityIndicator,
 } from "react-native";
 import MasonryList from "@react-native-seoul/masonry-list";
 import Icon from "react-native-vector-icons/FontAwesome";
@@ -16,56 +18,82 @@ import Article from "../components/Article";
 import axios from "axios";
 import MY_IP_ADDRESS from "../environment_variables.mjs";
 import { useSelector, useDispatch } from "react-redux";
+import { getAuthToken } from "../utils/TokenUtils";
+import { setToken } from "../redux/actions/tokenAction";
 
 const SavedArticles = ({ navigation }) => {
   const dispatch = useDispatch();
-  // redux state
   const isLogged = useSelector((store) => store.isLogged.isLogged);
-
- 
-
   const [isSavePressed, setSavePressed] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+  
   const saved_articles_state = useSelector((store) => {
-    // Debug logging
     console.log('SavedArticles: Redux store state:', store.saved_articles);
     return store.saved_articles.saved_articles;
   });
 
-  // Debug logging for state changes
-  useEffect(() => {
-    console.log('SavedArticles: saved_articles_state changed:', saved_articles_state);
-  }, [saved_articles_state]);
-
-  const handleSavePress = () => {
-    // Toggle the state when the Save button is pressed
-    setSavePressed(!isSavePressed);
-  };
-
   const [articleData, setArticleData] = useState();
   
-  const token = useSelector((store) => store.token?.token);
+  // Get token from Redux
+  const reduxToken = useSelector((store) => store.token?.token);
 
-  // Initial data load when token changes
+  // Initial data load
   useEffect(() => {
-    if (token) {
-      fetchData();
-    }
-  }, [token]);
+    loadSavedArticles();
+  }, []);
 
   // Refetch data when saved articles state changes
   useEffect(() => {
-    if (token && saved_articles_state) {
-      fetchData();
+    if (saved_articles_state) {
+      loadSavedArticles();
     }
   }, [saved_articles_state]);
 
-  const fetchData = async () => {
+  const loadSavedArticles = async () => {
     try {
+      setIsLoading(true);
+      setError(null);
+      
+      // Get token using our utility function
+      const token = await getAuthToken(reduxToken);
+      
+      // If no token is available, navigate to login
       if (!token) {
-        console.error('No token available for posts fetch');
+        console.log('No authentication token available');
+        setIsLoading(false);
+        
+        Alert.alert(
+          "Authentication Required",
+          "Please log in to view saved articles",
+          [
+            { 
+              text: "OK", 
+              onPress: () => navigation.navigate('Log In')
+            }
+          ]
+        );
         return;
       }
+      
+      // If token exists but isn't in Redux, update Redux
+      if (!reduxToken && token) {
+        dispatch(setToken(token));
+      }
+      
+      // Fetch data
+      await fetchData(token);
+      
+    } catch (error) {
+      console.error("Error loading saved articles:", error);
+      setError("Failed to load saved articles. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
+  const fetchData = async (token) => {
+    try {
       // Get total number of articles first
       const countResponse = await axios.get(
         `http://${MY_IP_ADDRESS}:5050/posts?limit=1`,
@@ -96,52 +124,111 @@ const SavedArticles = ({ navigation }) => {
       
       // Debug logging
       console.log('Saved articles state:', saved_articles_state);
-      console.log('All articles:', allArticles.map(a => ({ id: a._id, title: a.article_title })));
       
       // Convert all IDs to strings for comparison
       const savedArticlesStr = saved_articles_state.map(id => id.toString());
-      console.log('Saved articles as strings:', savedArticlesStr);
       
       const filteredData = allArticles.filter((article) => {
         const articleId = article._id.toString();
-        const isIncluded = savedArticlesStr.includes(articleId);
-        console.log(`Article ${articleId} (${article.article_title}) included: ${isIncluded}`);
-        return isIncluded;
+        return savedArticlesStr.includes(articleId);
       });
       
-      console.log('Filtered articles:', filteredData.map(a => ({ id: a._id, title: a.article_title })));
       setArticleData(filteredData);
     } catch (error) {
-      console.error("Error during data fetch:", error.message);
+      if (error.response?.status === 401) {
+        console.log('Token expired or invalid, redirecting to login');
+        Alert.alert(
+          "Session Expired",
+          "Your session has expired. Please log in again.",
+          [
+            { 
+              text: "OK", 
+              onPress: () => navigation.navigate('Log In')
+            }
+          ]
+        );
+      } else {
+        console.error("Error during data fetch:", error.message);
+        setError("Failed to load articles. Please try again.");
+      }
     }
   };
 
   return (
     <View style={{ flex: 1 }}>
+      {error && (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity 
+            style={styles.retryButton}
+            onPress={loadSavedArticles}
+          >
+            <Text style={styles.retryButtonText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+      
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        {articleData && 
-        <MasonryList
-          numColumns={2}
-          data={articleData}
-          keyExtractor={(item) => item["_id"]}
-          renderItem={({ item, index }) => (
-            <Article
-              article={{
-                title: item["article_title"],
-                image: item["article_preview_image"],
-                author: item["author_name"],
-                likes: item["like_count"],
-                saves: item["save_count"],
-                article_id: item["_id"].toString(),
-                article_link: item["article_link"],
-              }}
-            ></Article>
-          )}
-        />
-        }
+        {isLoading ? (
+          <ActivityIndicator size="large" color="#02833D" />
+        ) : articleData && articleData.length > 0 ? (
+          <MasonryList
+            numColumns={2}
+            data={articleData}
+            keyExtractor={(item) => item["_id"]}
+            renderItem={({ item }) => (
+              <Article
+                article={{
+                  title: item["article_title"],
+                  image: item["article_preview_image"],
+                  author: item["author_name"],
+                  likes: item["like_count"],
+                  saves: item["save_count"],
+                  article_id: item["_id"].toString(),
+                  article_link: item["article_link"],
+                }}
+              />
+            )}
+          />
+        ) : (
+          <Text style={styles.noArticlesText}>No saved articles found</Text>
+        )}
       </View>
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  errorContainer: {
+    backgroundColor: '#ffebee',
+    padding: 15,
+    margin: 10,
+    borderRadius: 5,
+    borderLeftWidth: 4,
+    borderLeftColor: '#f44336',
+  },
+  errorText: {
+    color: '#d32f2f',
+    fontSize: 14,
+    marginBottom: 10,
+  },
+  retryButton: {
+    alignSelf: 'flex-end',
+    backgroundColor: '#02833D',
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 4,
+  },
+  retryButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  noArticlesText: {
+    fontSize: 16,
+    color: '#757575',
+    textAlign: 'center',
+  },
+});
 
 export default SavedArticles;

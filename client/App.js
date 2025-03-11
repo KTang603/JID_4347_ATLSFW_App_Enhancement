@@ -31,6 +31,14 @@ import SplashPage from "./Screens/SplashPage";
 import SettingPage from './Screens/SettingPage';
 import AdminUserList from "./Screens/AdminUserList";
 import CreateEvent from "./Screens/CreateEvent";
+import { configureAxios } from './utils/AxiosConfig';
+import axios from 'axios';
+
+// Initialize axios configuration with interceptors
+configureAxios();
+
+// Log that axios has been configured
+console.log("Axios configured with token interceptors");
 
 const Stack = createNativeStackNavigator();
 
@@ -45,6 +53,11 @@ const App = () => {
   console.log("found local ip @", MY_IP_ADDRESS);
   const [currentScreen, setCurrentScreen] = useState('Log In');
 
+  // Set default headers for all axios requests (optional, as the interceptor will handle this)
+  // useEffect(() => {
+  //   axios.defaults.headers.common['Content-Type'] = 'application/json';
+  // }, []);
+
   return (
     <Provider store={store}>
       <NavigationContainer
@@ -55,7 +68,6 @@ const App = () => {
       >
         <Stack.Navigator
           initialRouteName="Splash"
-
           screenOptions={{
             headerStyle: {
               backgroundColor: "#02833D",

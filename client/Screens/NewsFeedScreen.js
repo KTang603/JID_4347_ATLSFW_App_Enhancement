@@ -7,6 +7,7 @@ import {
   Modal,
   StyleSheet,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import MasonryList from "@react-native-seoul/masonry-list";
 import Icon from "react-native-vector-icons/FontAwesome";
@@ -15,120 +16,70 @@ import axios from "axios";
 import MY_IP_ADDRESS from "../environment_variables.mjs";
 import { useSelector, useDispatch } from "react-redux";
 import { fetchData } from "../redux/actions/NewsAction";
+import { getAuthToken } from "../utils/TokenUtils";
+import { setToken } from "../redux/actions/tokenAction";
 
 const NewsFeedScreen = ({ navigation }) => {
   const [showFilterModal, setShowFilterModal] = useState(false);
-  const newsData = useSelector(state => state.news)
-  const {articles,isProgress,tags} = newsData
+  const newsData = useSelector(state => state.news);
+  const {articles, isProgress, tags} = newsData;
   const [inputTag, setInputTag] = useState([]);
   const dispatch = useDispatch();
+  const reduxToken = useSelector((state) => state.token.token);
 
   const [articleData, setArticleData] = useState({ articles: [], pagination: { page: 1, pages: 1 } });
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
-
-  // const liked_articles_state = useSelector(
-  //   (store) => store.liked_articles.liked_articles
-  // );
-  // const saved_articles_state = useSelector(
-  //   (store) => store.saved_articles.saved_articles
-  // );
-
-
-  // const fetchData = async (page = 1, loadMore = false) => {
-  //   try {
-  //     setIsLoading(true);
-  //     const response = await axios.get(
-  //       `http://${MY_IP_ADDRESS}:5050/posts?tags=${inputTag.join(",")}&page=${page}&limit=20`,
-  //       {
-  //         headers: {
-  //           'Authorization': `Bearer ${token}`,
-  //           'Content-Type': 'application/json'
-  //         }
-  //       }
-  //     );
-  //     console.log('Fetched articles:', response.data.articles.map(a => ({
-  //       id: a._id,
-  //       title: a.article_title
-  //     })));
-
-  //     const articles = response.data.articles.map(article => ({
-  //       ...article,
-  //       _id: article._id?.toString() || '',
-  //       author_id: article.author_id?.toString() || ''
-  //     }));
-
-  //     console.log('Setting article data:', {
-  //       loadMore,
-  //       currentArticles: loadMore ? articleData.articles.length : 0,
-  //       newArticles: articles.length,
-  //       pagination: response.data.pagination
-  //     });
-
-  //     if (loadMore) {
-  //       const currentArticles = articleData.articles.map(article => ({
-  //         ...article,
-  //         _id: article._id?.toString() || '',
-  //         author_id: article.author_id?.toString() || ''
-  //       }));
-
-  //       setArticleData(prev => ({
-  //         articles: [...currentArticles, ...articles],
-  //         pagination: response.data.pagination
-  //       }));
-  //     } else {
-  //       setArticleData({
-  //         articles,
-  //         pagination: response.data.pagination
-  //       });
-  //     }
-
-  //     console.log('Article data updated:', {
-  //       totalArticles: loadMore ? 
-  //         articleData.articles.length + articles.length : 
-  //         articles.length
-  //     });
-  //     setIsLoading(false);
-  //   } catch (error) {
-  //     console.error("Error during data fetch:", error.message);
-  //   }
-  // };
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-     dispatch(fetchData(1,true,inputTag));
-     fetchUserLikedAndSavedArticles();
+    loadInitialData();
   }, []);
 
-  // useEffect(() => {
-  //   if (token && (liked_articles_state || saved_articles_state)) {
-  //     console.log('Reloading data due to state change:', {
-  //       liked_articles_state,
-  //       saved_articles_state
-  //     });
+  const loadInitialData = async () => {
+    try {
+      // Get token using our utility function
+      const token = await getAuthToken(reduxToken);
       
-  //     setCurrentPage(1);
-  //     fetchData(1, false);
-  //   }
-  // }, [liked_articles_state, saved_articles_state]);
+      // If no token is available, navigate to login
+      if (!token) {
+        console.log('No authentication token available');
+        
+        Alert.alert(
+          "Authentication Required",
+          "Please log in to view news feed",
+          [
+            { 
+              text: "OK", 
+              onPress: () => navigation.navigate('Log In')
+            }
+          ]
+        );
+        return;
+      }
+      
+      // If token exists but isn't in Redux, update Redux
+      if (!reduxToken && token) {
+        dispatch(setToken(token));
+      }
+      
+      // Fetch data using the token
+      dispatch(fetchData(1, true, inputTag));
+      
+      // Fetch user liked and saved articles
+      await fetchUserLikedAndSavedArticles(token);
+    } catch (error) {
+      console.error("Error loading initial data:", error);
+      setError("Failed to load data. Please try again.");
+    }
+  };
 
-  // useEffect(() => {
-  //   console.log('Article data updated:', {
-  //     totalArticles: articleData.articles.length,
-  //     currentPage,
-  //     totalPages: articleData.pagination.pages
-  //   });
-  // }, [articleData]);
-
-
-
-  const fetchUserLikedAndSavedArticles = async () => {
+  const fetchUserLikedAndSavedArticles = async (token) => {
     try {
       if (!token) {
         console.log('No token available for fetching user articles');
         return;
       }
-      console.log('token---'+token);
-      console.log('http://${MY_IP_ADDRESS}:5050/user/articles=----'+`http://${MY_IP_ADDRESS}:5050/user/articles`);
 
       console.log('Fetching user articles...');
 
@@ -142,8 +93,6 @@ const NewsFeedScreen = ({ navigation }) => {
         }
       );
       
-      console.log('User articles response:', response.data);
-      
       if (response.data && response.data.success) {
         const likedArticles = Array.isArray(response.data.liked_articles)
           ? response.data.liked_articles.map(id => id?.toString()).filter(Boolean)
@@ -152,23 +101,24 @@ const NewsFeedScreen = ({ navigation }) => {
           ? response.data.saved_articles.map(id => id?.toString()).filter(Boolean)
           : [];
 
-        console.log('Processed articles:', {
-          liked: likedArticles,
-          saved: savedArticles
-        });
-
         dispatch({ type: 'GET_LIKE_LIST', payload: likedArticles });
         dispatch({ type: 'GET_SAVE_LIST', payload: savedArticles });
       } else {
         console.error("Invalid response format:", response.data);
       }
-     
-    
     } catch (error) {
       if (error.response?.status === 401) {
         console.log('Token expired or invalid, redirecting to login');
-        // dispatch(logout());
-        navigation.navigate('Log In');
+        Alert.alert(
+          "Session Expired",
+          "Your session has expired. Please log in again.",
+          [
+            { 
+              text: "OK", 
+              onPress: () => navigation.navigate('Log In')
+            }
+          ]
+        );
       } else {
         console.error("Error fetching user articles:", error.message);
       }
@@ -176,9 +126,11 @@ const NewsFeedScreen = ({ navigation }) => {
   };
 
   const filterArticles = async () => {
-    dispatch(fetchData(1,true,inputTag));
+    const token = await getAuthToken(reduxToken);
+    if (token) {
+      dispatch(fetchData(1, true, inputTag));
+    }
   };
-  
 
   const handleTagPress = (tag) => {
     if (inputTag.includes(tag)) {
@@ -190,6 +142,18 @@ const NewsFeedScreen = ({ navigation }) => {
 
   return (
     <View style={{ flex: 1 }}>
+      {error && (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity 
+            style={styles.retryButton}
+            onPress={loadInitialData}
+          >
+            <Text style={styles.retryButtonText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+      
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
         <TouchableOpacity
           onPress={() => setShowFilterModal(true)}
@@ -197,41 +161,44 @@ const NewsFeedScreen = ({ navigation }) => {
         >
           <Icon name="filter" size={30} color="black" />
         </TouchableOpacity>
-        {articleData &&
-        <MasonryList
-          numColumns={2}
-          data={articles}
-          keyExtractor={(item) => item["_id"]?.toString() || item["article_link"]}
-          onEndReached={() => {
-            if (!isLoading && currentPage < articleData.pagination.pages) {
-              setCurrentPage(prev => prev + 1);
-              fetchData(currentPage + 1, true);
-            }
-          }}
-          onEndReachedThreshold={0.5}
-          renderItem={({ item }) => {
-            console.log('Rendering article:', {
-              id: item["_id"],
-              title: item["article_title"]
-            });
+        
+        {articles && articles.length > 0 ? (
+          <MasonryList
+            numColumns={2}
+            data={articles}
+            keyExtractor={(item) => item["_id"]?.toString() || item["article_link"]}
+            onEndReached={() => {
+              if (!isLoading && currentPage < articleData.pagination.pages) {
+                setCurrentPage(prev => prev + 1);
+                dispatch(fetchData(currentPage + 1, true, inputTag));
+              }
+            }}
+            onEndReachedThreshold={0.5}
+            renderItem={({ item }) => {
+              console.log('Rendering article:', {
+                id: item["_id"],
+                title: item["article_title"]
+              });
 
-            return (
-              <Article
-                article={{
-                  title: item["article_title"],
-                  image: item["article_preview_image"],
-                  author: item["author_name"],
-                  likes: item["like_count"],
-                  saves: item["save_count"],
-                  article_id: item["_id"]?.toString() || '',
-                  article_link: item["article_link"],
-                  author_id: item["author_id"]?.toString() || '',
-                }}
-              />
-            );
-          }}
-        />
-        }
+              return (
+                <Article
+                  article={{
+                    title: item["article_title"],
+                    image: item["article_preview_image"],
+                    author: item["author_name"],
+                    likes: item["like_count"],
+                    saves: item["save_count"],
+                    article_id: item["_id"]?.toString() || '',
+                    article_link: item["article_link"],
+                    author_id: item["author_id"]?.toString() || '',
+                  }}
+                />
+              );
+            }}
+          />
+        ) : (
+          <Text style={{ marginTop: 20 }}>No articles found</Text>
+        )}
       </View>
 
       <Modal
@@ -285,7 +252,7 @@ const NewsFeedScreen = ({ navigation }) => {
               flexWrap: "wrap",
               justifyContent: "space-between",
             }}>
-              {tags.map((tag) => (
+              {tags && tags.map((tag) => (
                 <TouchableOpacity
                   key={tag}
                   onPress={() => handleTagPress(tag)}
@@ -348,6 +315,31 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     paddingHorizontal: 20,
     fontFamily: 'monospace',
+  },
+  errorContainer: {
+    backgroundColor: '#ffebee',
+    padding: 15,
+    margin: 10,
+    borderRadius: 5,
+    borderLeftWidth: 4,
+    borderLeftColor: '#f44336',
+  },
+  errorText: {
+    color: '#d32f2f',
+    fontSize: 14,
+    marginBottom: 10,
+  },
+  retryButton: {
+    alignSelf: 'flex-end',
+    backgroundColor: '#02833D',
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 4,
+  },
+  retryButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '500',
   },
 });
 

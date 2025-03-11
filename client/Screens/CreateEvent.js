@@ -4,21 +4,25 @@ import AppPrimaryButton from "../components/AppPrimaryButton";
 import axios from "axios";
 import MY_IP_ADDRESS from "../environment_variables.mjs";
 import { useNavigation } from "@react-navigation/native";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import { Calendar } from "react-native-calendars";
+import { getAuthToken } from "../utils/TokenUtils";
+import { setToken } from "../redux/actions/tokenAction";
 
 const CreateEvent = () => {
   // Navigation hook for moving between screens
   const navigation = useNavigation();
+  const dispatch = useDispatch();
   
   // Get user_id from Redux store for event creation
   const user_id = useSelector((store) => store.user_id.user_id);
 
   // Get token from Redux
-  const token = useSelector((store) => store.token.token); 
+  const reduxToken = useSelector((store) => store.token.token); 
   
   // State to control date picker modal visibility
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   
   // State to manage form data - matches the API endpoint requirements
   const [eventData, setEventData] = useState({
@@ -32,14 +36,43 @@ const CreateEvent = () => {
 
   const handleSubmit = async () => {
     try {
-      // Log the data we're about to send
-      console.log('Sending event data:', eventData);
-  
+      // Validate form data
       if (!eventData.event_title || !eventData.event_location || 
           !eventData.event_date || !eventData.event_desc || !eventData.event_link) {
         Alert.alert("Error", "Please fill all fields");
         return;
       }
+
+      setIsLoading(true);
+
+      // Get token using our utility function
+      const token = await getAuthToken(reduxToken);
+      
+      // If no token is available, navigate to login
+      if (!token) {
+        console.log('No authentication token available');
+        setIsLoading(false);
+        
+        Alert.alert(
+          "Authentication Required",
+          "Please log in to create events",
+          [
+            { 
+              text: "OK", 
+              onPress: () => navigation.navigate('Log In')
+            }
+          ]
+        );
+        return;
+      }
+      
+      // If token exists but isn't in Redux, update Redux
+      if (!reduxToken && token) {
+        dispatch(setToken(token));
+      }
+  
+      // Log the data we're about to send
+      console.log('Sending event data:', eventData);
   
       const response = await axios.post(
         `http://${MY_IP_ADDRESS}:5050/events/create`,
@@ -67,10 +100,31 @@ const CreateEvent = () => {
             onPress: () => navigation.goBack()
           }
         ]);
+      } else {
+        Alert.alert("Error", response.data.message || "Failed to create event");
       }
     } catch (error) {
-      console.error("Error response:", error.response?.data);
-      Alert.alert("Error", error.response?.data?.message || "Failed to create event");
+      console.error("Error creating event:", error);
+      
+      if (error.response?.status === 401) {
+        Alert.alert(
+          "Session Expired",
+          "Your session has expired. Please log in again.",
+          [
+            { 
+              text: "OK", 
+              onPress: () => navigation.navigate('Log In')
+            }
+          ]
+        );
+      } else {
+        Alert.alert(
+          "Error", 
+          error.response?.data?.message || "Failed to create event. Please try again."
+        );
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -125,7 +179,11 @@ const CreateEvent = () => {
       />
 
       {/* Submit Button - Uses custom AppPrimaryButton component */}
-      <AppPrimaryButton title={"Add Event"} handleSubmit={handleSubmit} />
+      <AppPrimaryButton 
+        title={isLoading ? "Creating..." : "Add Event"} 
+        handleSubmit={handleSubmit}
+        disabled={isLoading}
+      />
 
       {/* Date Picker Modal */}
       <Modal

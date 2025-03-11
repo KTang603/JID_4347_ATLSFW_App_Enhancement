@@ -9,22 +9,28 @@ import {
   ScrollView,
   Linking,
 } from "react-native";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import AppPrimaryButton from "../components/AppPrimaryButton";
 import { ACCOUNT_TYPE_ADMIN } from "../Screens/ProfilePage";
 import { useNavigation } from "@react-navigation/native";
 import axios from "axios";
 import MY_IP_ADDRESS from "../environment_variables.mjs";
+import { getAuthToken, isTokenValid } from "../utils/TokenUtils";
+import { setToken } from "../redux/actions/tokenAction";
 
 const EventsScreen = () => {
   // State management
   const [selectedDate, setSelectedDate] = useState("");
   const [events, setEvents] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+  
   const navigation = useNavigation();
+  const dispatch = useDispatch();
 
   // Get user info from Redux store to check if admin
   const userInfo = useSelector((state) => state.userInfo?.userInfo);
-  const token = useSelector((state) => state.token.token);
+  const reduxToken = useSelector((state) => state.token.token);
   const isAdmin = userInfo?.user_roles == ACCOUNT_TYPE_ADMIN;
 
   // Fetch events when screen loads or returns to focus
@@ -42,21 +48,72 @@ const EventsScreen = () => {
 
   // Fetch events from API
   const fetchEvents = async () => {
+    setIsLoading(true);
+    setError(null);
+    
     try {
-      const response = await axios.get(`http://${MY_IP_ADDRESS}:5050/events`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      // Get token using our utility function
+      const token = await getAuthToken(reduxToken);
+      
+      // If no token is available, navigate to login
+      if (!token) {
+        console.log('No authentication token available');
+        setIsLoading(false);
+        
+        // Show a brief message before redirecting
+        Alert.alert(
+          "Authentication Required",
+          "Please log in to view events",
+          [
+            { 
+              text: "OK", 
+              onPress: () => navigation.navigate('Log In')
+            }
+          ]
+        );
+        return;
+      }
+
+       // If token exists but isn't in Redux, update Redux
+    if (!reduxToken && token) {
+      dispatch(setToken(token));
+    }
+    
+    // Make API request with token
+    const response = await axios.get(`http://${MY_IP_ADDRESS}:5050/events`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+      
+      // Process response data
       const eventsArray = Array.isArray(response.data) 
         ? response.data 
-        : Object.values(response.data);
+        : response.data && typeof response.data === 'object'
+          ? Object.values(response.data)
+          : [];
+      
       setEvents(eventsArray);
+      setIsLoading(false);
     } catch (error) {
       console.error('Error in fetchEvents:', error);
-      Alert.alert("Error", "Failed to load events");
+    
+      // Handle token-related errors
+      if (error.response && error.response.status === 401) {
+        setError('Your session has expired.');
+        
+        // Navigate to login after a short delay
+        setTimeout(() => {
+          navigation.navigate('Log In');
+        }, 1500);
+      } else {
+        setError('Failed to load events. Please try again later.');
+      }
+      
       setEvents([]);
-    }
+      setIsLoading(false);
+      }
   };
 
   // Filter events for selected date
@@ -106,6 +163,19 @@ const EventsScreen = () => {
   return (
     <ScrollView style={{ backgroundColor: 'white' }}>
       <View style={styles.container}>
+        {/* Display error message if there is one */}
+        {error && (
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>{error}</Text>
+            <TouchableOpacity 
+              style={styles.retryButton}
+              onPress={fetchEvents}
+            >
+              <Text style={styles.retryButtonText}>Retry</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+        
         {/* Calendar Component */}
         <View style={styles.calendarContainer}>
           <Calendar
@@ -138,6 +208,13 @@ const EventsScreen = () => {
             }}
           />
         </View>
+
+        {/* Loading indicator */}
+        {isLoading && (
+          <View style={styles.loadingContainer}>
+            <Text style={styles.loadingText}>Loading events...</Text>
+          </View>
+        )}
 
         {/* Add Event Button (Admin Only) */}
         {isAdmin && (
@@ -177,89 +254,42 @@ const EventsScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    backgroundColor: "white",
-    paddingBottom: 20
-  },
-  calendarContainer: {
-    width: '100%',
-    alignItems: 'center',
-    paddingVertical: 10,
-    backgroundColor: 'white'
-  },
-  addEventButtonContainer: {
-    width: "100%",
-    alignItems: "center",
-    marginVertical: 10,
-    backgroundColor: 'white'
-  },
-  eventsListContainer: {
-    alignItems: 'center',
-    paddingVertical: 10,
-    backgroundColor: 'white'
-  },
-  eventCard: {
-    backgroundColor: 'white',
-    borderRadius: 10,
+  // Existing styles...
+  
+  // Add these new styles
+  errorContainer: {
+    backgroundColor: '#ffebee',
     padding: 15,
-    marginVertical: 8,
-    marginHorizontal: 16,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-    width: '90%',
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
+    margin: 10,
+    borderRadius: 5,
+    borderLeftWidth: 4,
+    borderLeftColor: '#f44336',
   },
-  eventTitle: {
+  errorText: {
+    color: '#d32f2f',
     fontSize: 14,
-    fontWeight: 'bold',
-    marginBottom: 8,
-    color: '#333',
+    marginBottom: 10,
   },
-  locationContainer: {
-    marginBottom: 8,
+  retryButton: {
+    alignSelf: 'flex-end',
+    backgroundColor: '#02833D',
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 4,
   },
-  eventLocation: {
+  retryButtonText: {
+    color: 'white',
     fontSize: 14,
+    fontWeight: '500',
+  },
+  loadingContainer: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  loadingText: {
     color: '#666',
-  },
-  eventDescription: {
     fontSize: 14,
-    color: '#444',
-    marginBottom: 12,
-    lineHeight: 20,
   },
-  linkContainer: {
-    marginTop: 8,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
-  },
-  eventLink: {
-    color: '#0066cc',
-    fontSize: 14,
-    textDecorationLine: 'underline',
-  },
-  noEventsText: {
-    fontSize: 14,
-    color: '#666',
-    fontStyle: 'italic',
-    textAlign: 'center',
-    padding: 20
-  },
-  selectDateText: {
-    fontSize: 14,
-    color: '#666',
-    fontStyle: 'italic',
-    textAlign: 'center',
-    padding: 20
-  }
 });
 
 export default EventsScreen;
