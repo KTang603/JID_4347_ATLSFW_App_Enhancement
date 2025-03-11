@@ -232,8 +232,6 @@ You can use the "New File" button in the VSCode File Explorer shown below to cre
    - Added an admin authorization system for user and vendor management.
    - Implemented vendor status verification and deauthorization with proper error handling.
 
-
-
 ### Bug Fixes
 - None in this release.
 
@@ -244,7 +242,6 @@ N/A
 N/A
 
 **NOTE:**
-
 
 ## Team Links
 1. Github: https://github.com/KTang603/JID-4347-ATLSFW-App-Enhancement
