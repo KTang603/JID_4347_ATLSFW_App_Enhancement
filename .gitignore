@@ -26,3 +26,6 @@ memory-bank/
 
 # Team Code Review
 Team Code Review/
+
+# IntelliJ / WebStorm / PyCharm / JetBrains IDE
+.idea/
