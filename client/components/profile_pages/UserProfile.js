@@ -1,29 +1,31 @@
-import React, { useState } from 'react';
-import { StyleSheet, View, Text, Image, TouchableOpacity, Switch, ScrollView, Button, TextInput } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { StyleSheet, View, Text, Image, TouchableOpacity, Switch, ScrollView, Button, TextInput, Alert } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system';
 import { useSelector, useDispatch } from "react-redux";
 import axios from "axios";
 import MY_IP_ADDRESS from "../../environment_variables.mjs";
-import { setUserInfo } from "../../redux/actions/userInfoAction";
+import { getProfileData, setUserInfo } from "../../redux/actions/userInfoAction";
+import { getUserId } from '../../utils/StorageUtils';
+import {SETTING_ICON} from '../../assets/index'
+import { useNavigation } from '@react-navigation/native';
+import ProfileHeader from '../ProfileHeader';
 
 const UserProfile = () => {
-  const userInfo = useSelector((store) => store.userInfo.userInfo);
   const [selectedTab, setSelectedTab] = useState('contact');
-  const [isEnabled, setIsEnabled] = useState(false);
   const [selectedInterests, setSelectedInterests] = useState([]);
   const [editMode, setEditMode] = useState(false);
   const [imageUri, setImageUri] = useState(null);
   const [savedPath, setSavedPath] = useState(null);
+  const userInfo = useSelector((store) => store.userInfo.userInfo);
+  const navigation = useNavigation();
+
   const [editedFirstName, setEditedFirstName] = useState(userInfo["first_name"]);
   const [editedLastName, setEditedLastName] = useState(userInfo["last_name"]);
   const [editedUsername, setEditedUsername] = useState(userInfo["username"]);
   const [editedBirthday, setEditedBirthday] = useState(userInfo["birthday"]);
   const [editedPhoneNumber, setEditedPhoneNumber] = useState(userInfo["phone_number"]);
   const dispatch = useDispatch();
-  const user_id = useSelector((store) => store.user_id.user_id);
-
-  const toggleSwitch = () => setIsEnabled(previousState => !previousState);
 
   const toggleInterest = interest => {
     setSelectedInterests(prevSelectedInterests =>
@@ -33,41 +35,49 @@ const UserProfile = () => {
     );
   };
 
+
+
   const selectTab = (tab) => {
     setSelectedTab(tab);
   };
 
-  const switchEditMode = () => {
-    setEditMode(true);
-    setEditedFirstName(userInfo.first_name);
-    setEditedLastName(userInfo.last_name);
-    setEditedUsername(userInfo.username);
-    setEditedBirthday(userInfo.birthday);
-    setEditedPhoneNumber(userInfo.phone_number);
-  };
 
-  const saveChanges = async () => {
-    setEditMode(false);
-    if (imageUri) {
-      const newPath = await saveImageLocally(imageUri);
-      setSavedPath(newPath);
+
+  const updateProfile = async () => {
+    // if (imageUri) {
+    //   const newPath = await saveImageLocally(imageUri);
+    //   setSavedPath(newPath);
+    // }
+    const userId = await getUserId();
+    if(editedFirstName.trim().length == 0){
+      Alert.alert("Error","First Name cannot be empty")
+    } else if(editedLastName.trim().length == 0){
+      Alert.alert("Error","Last Name cannot be empty")
+    } else if(editedBirthday.trim().length == 0){
+      Alert.alert("Error","BirthDate cannot be empty")
+    } else if(editedPhoneNumber.trim().length == 0){
+      Alert.alert("Error","Phone number cannot be empty")
+    } else {
+      const updatedUserInfo = {
+        first_name: editedFirstName,
+        last_name: editedLastName,
+        username: editedUsername,
+        birthday: editedBirthday,
+        phone_number: editedPhoneNumber,
+      };
+        // Send the user data to your backend
+    const response = await axios({
+      method:'PATCH',
+      url: "http://" + MY_IP_ADDRESS + ":5050/user/edit/" ,
+      params: {
+        user_id: userId
+      },
+     data: updatedUserInfo
     }
-
-    const updatedUserInfo = {
-      first_name: editedFirstName,
-      last_name: editedLastName,
-      username: editedUsername,
-      birthday: editedBirthday,
-      phone_number: editedPhoneNumber,
-    };
-
-    // Send the user data to your backend
-    const response = await axios.patch(
-      "http://" + MY_IP_ADDRESS + ":5050/edit/" + user_id,
-      updatedUserInfo
     );
 
     if (response.status == 200) {
+      Alert.alert("Action","Your profile is updated successfully !!")
       dispatch(
         setUserInfo({
           ...userInfo,
@@ -78,6 +88,7 @@ const UserProfile = () => {
           phone_number: editedPhoneNumber,
         })
       );
+    }
     }
   };
 
@@ -124,12 +135,105 @@ const UserProfile = () => {
     );
   };
 
+
+  const profileTabBar =()=>{
+   return <View style={styles.infoContainer}>
+    <TouchableOpacity
+      style={[
+        styles.infoTab,
+        selectedTab === "contact" && styles.selectedTab,
+      ]}
+      onPress={() => selectTab("contact")}
+    >
+      <Text style={selectedTab === "contact" && styles.selectedTabText}>
+        Contact
+      </Text>
+    </TouchableOpacity>
+    <TouchableOpacity
+      style={[
+        styles.infoTab,
+        selectedTab === "interests" && styles.selectedTab,
+      ]}
+      onPress={() => selectTab("interests")}
+    >
+      <Text
+        style={selectedTab === "interests" && styles.selectedTabText}
+      >
+        Interests
+      </Text>
+    </TouchableOpacity>
+  </View>
+  }
+
+  const contactTab =()=>{
+    return <View style={styles.contactSection}>
+    <Text style={styles.label}>First Name:</Text>
+    <TextInput
+        value={editedFirstName}
+        onChangeText={setEditedFirstName}
+        style={styles.input}
+      />
+    <Text style={styles.label}>Last Name:</Text>
+
+    <TextInput
+        value={editedLastName}
+        onChangeText={setEditedLastName}
+        style={styles.input}
+      />
+
+    <Text style={styles.label}>Username:</Text>
+    <TextInput
+        value={editedUsername}
+        onChangeText={setEditedUsername}
+        style={styles.input}
+      />
+
+    <Text style={styles.label}>Phone Number(Optional):</Text>
+    <TextInput
+        value={editedPhoneNumber}
+        onChangeText={setEditedPhoneNumber}
+        keyboardType="number-pad"
+        style={styles.input}
+      />
+
+  
+    <Text style={styles.label}>Birthday:</Text>
+
+    <TextInput
+        value={editedBirthday}
+        onChangeText={setEditedBirthday}
+        style={styles.input}
+      />
+
+<TouchableOpacity style={styles.updateButtonStyle} onPress={(view)=>{updateProfile()}}>
+          <Text style={styles.updateButtonTextStyle}>Update</Text>
+        </TouchableOpacity>
+  </View>
+  }
+
+  const interestsTab =()=>{
+    return <View style={styles.detailsSection}>
+    <Text style={styles.interestText}>
+      What sustainable information are you interested in?
+    </Text>
+    {interestsList.map((interest) => (
+      <View key={interest} style={styles.interestItem}>
+        <Checkbox
+          isSelected={selectedInterests.includes(interest)}
+          onToggle={() => toggleInterest(interest)}
+        />
+        <Text style={styles.interestText}>{interest}</Text>
+      </View>
+    ))}
+  </View>
+  }
+
   const interestsList = ['Events', 'Tips/Tricks (DIY)', 'News', 'Shopping'];
 
   return (
     <View style={styles.container}>
       <ScrollView>
-        <View style={styles.header}></View>
+      <ProfileHeader />
         <View style={styles.profileSection}>
           <TouchableOpacity onPress={pickImage} disabled={!editMode}>
             <Image
@@ -143,111 +247,13 @@ const UserProfile = () => {
           {editMode && (
             <Button title="Change Profile Picture" onPress={pickImage} />
           )}
-          <View style={styles.infoContainer}>
-            <TouchableOpacity
-              style={[
-                styles.infoTab,
-                selectedTab === "contact" && styles.selectedTab,
-              ]}
-              onPress={() => selectTab("contact")}
-            >
-              <Text style={selectedTab === "contact" && styles.selectedTabText}>
-                Contact
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.infoTab,
-                selectedTab === "interests" && styles.selectedTab,
-              ]}
-              onPress={() => selectTab("interests")}
-            >
-              <Text
-                style={selectedTab === "interests" && styles.selectedTabText}
-              >
-                Interests
-              </Text>
-            </TouchableOpacity>
-          </View>
         </View>
-        {selectedTab === "contact" && (
-          <View style={styles.contactSection}>
-            <Text style={styles.label}>First Name:</Text>
-            {editMode ? (
-              <TextInput
-                value={editedFirstName}
-                onChangeText={setEditedFirstName}
-                style={styles.input}
-              />
-            ) : (
-              <Text style={styles.value}>{userInfo["first_name"]}</Text>
-            )}
-
-            <Text style={styles.label}>Last Name:</Text>
-            {editMode ? (
-              <TextInput
-                value={editedLastName}
-                onChangeText={setEditedLastName}
-                style={styles.input}
-              />
-            ) : (
-              <Text style={styles.value}>{userInfo["last_name"]}</Text>
-            )}
-
-            <Text style={styles.label}>Username:</Text>
-            {editMode ? (
-              <TextInput
-                value={editedUsername}
-                onChangeText={setEditedUsername}
-                style={styles.input}
-              />
-            ) : (
-              <Text style={styles.value}>{userInfo["username"]}</Text>
-            )}
-
-            <Text style={styles.label}>Phone Number:</Text>
-            {editMode ? (
-              <TextInput
-                value={editedPhoneNumber}
-                onChangeText={setEditedPhoneNumber}
-                keyboardType="number-pad"
-                style={styles.input}
-              />
-            ) : (
-              <Text style={styles.value}>{userInfo["phone_number"]}</Text>
-            )}
-
-            <Text style={styles.label}>Birthday:</Text>
-            {editMode ? (
-              <TextInput
-                value={editedBirthday}
-                onChangeText={setEditedBirthday}
-                style={styles.input}
-              />
-            ) : (
-              <Text style={styles.value}>{userInfo["birthday"]}</Text>
-            )}
-          </View>
-        )}
-        {selectedTab === "interests" && (
-          <View style={styles.detailsSection}>
-            <Text style={styles.interestText}>
-              What sustainable information are you interested in?
-            </Text>
-            {interestsList.map((interest) => (
-              <View key={interest} style={styles.interestItem}>
-                <Checkbox
-                  isSelected={selectedInterests.includes(interest)}
-                  onToggle={() => toggleInterest(interest)}
-                />
-                <Text style={styles.interestText}>{interest}</Text>
-              </View>
-            ))}
-          </View>
-        )}
+        {profileTabBar()}
+        {selectedTab === "contact" ? contactTab() :interestsTab() }
+       
       </ScrollView>
       {/* Footer section */}
-      <View style={styles.footer}>
+      {/* <View style={styles.footer}>
         <View style={styles.notificationSection}>
           <Text style={styles.notificationText}>
             Subscribe to Notifications?
@@ -275,7 +281,7 @@ const UserProfile = () => {
             <Text>Save Changes</Text>
           </TouchableOpacity>
         )}
-      </View>
+      </View> */}
     </View>
   );
   };
@@ -284,6 +290,23 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: 'white',
+  },
+  updateButtonStyle: {
+    backgroundColor: 'lightgray',
+    borderRadius: 3,
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    alignSelf: 'center',
+    marginTop:15,
+    paddingVertical: 12,
+  },
+  updateButtonTextStyle: {
+    fontSize: 18,
+    fontFamily: 'Roboto',
+    fontWeight: '500',
+    color: 'black',
+    textAlign: 'center',
   },
   header: {
     backgroundColor: '#02833D', // A green color similar to the one in the image.
@@ -385,14 +408,13 @@ const styles = StyleSheet.create({
   contactSection: {
     padding: 16,
     color: '#424242',
-    alignItems: 'center',
     justifyContent: 'center',
   },
   input: {
     height: 40,
     borderColor: "gray",
     borderWidth: 1,
-    marginBottom: 15,
+    marginBottom: 5,
     paddingHorizontal: 10,
   },
   label: {

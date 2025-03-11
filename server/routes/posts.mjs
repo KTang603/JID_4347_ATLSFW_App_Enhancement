@@ -7,9 +7,12 @@ import { verifyToken, requireAdmin } from "../middleware/auth.mjs";
 const router = express.Router();
 
 // Middleware to verify token for protected routes
+//ADMIN
 router.use(['/posts/create', '/posts/delete', '/posts/update'], verifyToken);
 
+
 router.get("/tags", verifyToken, async (req, res) => {
+  //read from DB
   res.status(200).json(tagsList);
 });
 
@@ -44,22 +47,22 @@ router.get("/posts", verifyToken, async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
-    const skip = (page - 1) * limit;
-    
+    const skip = (page - 1) * limit; 
+
     // Extracting query parameters
     const tagsQuery = req.query.tags;
-    const searchQuery = req.query.search;
-    const sourceQuery = req.query.source;
-    const sortBy = req.query.sortBy || 'publishDate';
-    const order = req.query.order === 'asc' ? 1 : -1;
+    // const searchQuery = req.query.search;
+    // const sourceQuery = req.query.source;
+    // const sortBy = req.query.sortBy || 'publishDate';
+    // const order = req.query.order === 'asc' ? 1 : -1;
 
     // Build query
     let query = {};
 
     // Source filter
-    if (sourceQuery) {
-      query.source = sourceQuery;
-    }
+    // if (sourceQuery) {
+    //   query.source = sourceQuery;
+    // }
     
     // Tags filter
     if (tagsQuery) {
@@ -68,31 +71,32 @@ router.get("/posts", verifyToken, async (req, res) => {
     }
 
     // Search filter
-    if (searchQuery) {
-      query.$or = [
-        { article_title: { $regex: searchQuery, $options: 'i' } },
-        { author_name: { $regex: searchQuery, $options: 'i' } }
-      ];
-    }
+    // if (searchQuery) {
+    //   query.$or = [
+    //     { article_title: { $regex: searchQuery, $options: 'i' } },
+    //     { author_name: { $regex: searchQuery, $options: 'i' } }
+    //   ];
+    // }
 
     const collection = posts_db.collection('articles');
-
+   
     // Get total count for pagination
     const total = await collection.countDocuments(query);
     
+
     // Get paginated results
     const articles = await collection
       .find(query)
-      .sort({ [sortBy]: order })
+      // .sort({ [sortBy]: order })
       .skip(skip)
       .limit(limit)
       .toArray();
 
     // Ensure no negative counts
-    for (let article of articles) {
-      if (article.like_count < 0) article.like_count = 0;
-      if (article.save_count < 0) article.save_count = 0;
-    }
+    // for (let article of articles) {
+    //   if (article.like_count < 0) article.like_count = 0;
+    //   if (article.save_count < 0) article.save_count = 0;
+    // }
 
     res.status(200).json({
       articles,

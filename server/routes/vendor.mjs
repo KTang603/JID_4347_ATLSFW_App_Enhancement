@@ -19,10 +19,10 @@ router.use(['/authorize', '/deauthorize'], verifyToken, requireAdmin);
 // Middleware to ensure only vendors can access their own routes
 router.use(['/discover/create'], verifyToken, async (req, res, next) => {
     try {
-        const { vendor_id } = req.params;
-        if (req.user.id !== vendor_id) {
-            return res.status(403).json({ success: false, message: "Access denied" });
-        }
+        // const { vendor_id } = req.params;
+        // if (req.user.id !== vendor_id) {
+        //     return res.status(403).json({ success: false, message: "Access denied" });
+        // }
         next();
     } catch (error) {
         console.error('Error in vendor auth middleware:', error);
@@ -73,12 +73,26 @@ router.post("/discover/create/:vendor_id", async (req, res) => {
             return res.status(400).send("Incomplete discovery information");
         }
 
-        const collection = users_db.collection('vendor_info');  // replace YOUR_DB_NAME_HERE with your database name
-        const result = await collection.updateOne({ vendor_id: new ObjectId(vendor_id) }, { $set: { vendor_account_initialized: true, brand_name, shop_now_link, title, intro }});
-        if (result.matchedCount === 0) {
-            return res.status(400).json({ success: false, message: "Vendor does not exist" });
-        } else {
-            res.status(200).send("Discovery page created successfully");
+        const userDB = users_db.collection('customer_info');
+        
+        const users = await userDB.findOne({_id: new ObjectId(vendor_id)});
+        const discoveryInfo = req.body;
+
+        const userInfo = {...users,discovery_info:{...discoveryInfo}};
+        // Update user document
+        const result = await userDB.updateOne(
+            { _id: new ObjectId(vendor_id) },
+            { $set: userInfo }
+        );
+
+        if(result.matchedCount){
+            res.status(200).json({
+                success: true,
+                user: userInfo,
+                message: "Discovery page created successfully"
+              });
+        } else{
+            res.status(400).send("Something went wrong");
         }
 
     } catch (err) {
