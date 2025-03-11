@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { NavigationContainer, useNavigation } from "@react-navigation/native";
+import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import {
   Button,
@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import CommunityScreen from "./Screens/CommunityScreen";
+import NewsFeedScreen from "./Screens/NewsFeedScreen";
 import LoginScreen from "./Screens/LoginScreen";
 import SignUpScreen from "./Screens/SignUpScreen";
 import MY_IP_ADDRESS from "./environment_variables.mjs";
@@ -25,14 +25,29 @@ import AuthorNameScreen from "./Screens/AuthorNameScreen";
 import ProfilePage from "./Screens/ProfilePage";
 import NavBar from "./components/NavBar";
 import ShopNowWebview from "./Screens/ShopNowWebview";
+import ForgotPasswordScreen from "./Screens/ForgotPasswordScreen";
 
 const Stack = createNativeStackNavigator();
+
+const ConditionalNavBar = ({ currentScreen }) => {
+  if (['Log In', 'Sign Up', 'Forgot Password'].includes(currentScreen)) {
+    return null;
+  }
+  return <NavBar />;
+};
+
 const App = () => {
   console.log("found local ip @", MY_IP_ADDRESS);
+  const [currentScreen, setCurrentScreen] = useState('Log In');
 
   return (
     <Provider store={store}>
-      <NavigationContainer>
+      <NavigationContainer
+        onStateChange={(state) => {
+          const currentRoute = state?.routes[state?.index]?.name;
+          setCurrentScreen(currentRoute || 'Log In');
+        }}
+      >
         <Stack.Navigator
           initialRouteName="Log In"
           screenOptions={{
@@ -44,15 +59,16 @@ const App = () => {
         >
           <Stack.Screen name="Log In" component={LoginScreen} />
           <Stack.Screen name="Sign Up" component={SignUpScreen} />
-          <Stack.Screen name="Community" component={CommunityScreen} />
+          <Stack.Screen name="News Feed" component={NewsFeedScreen} />
           <Stack.Screen name="Author" component={AuthorNameScreen} />
           <Stack.Screen name="Profile" component={ProfilePage} />
           <Stack.Screen name="Saved Articles" component={SavedArticles} />
           <Stack.Screen name="Article Webview" component={ArticleContent} />
           <Stack.Screen name="Shop Now Webview" component={ShopNowWebview} /> 
+          <Stack.Screen name="Forgot Password" component={ForgotPasswordScreen} />
           {/* add future screens */}
         </Stack.Navigator>
-        <NavBar />
+        <ConditionalNavBar currentScreen={currentScreen} />
       </NavigationContainer>
     </Provider>
   );

@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
-import { Button, Text, TextInput, View, StyleSheet, Alert } from 'react-native';
+import { Text, TextInput, View, StyleSheet, Alert, TouchableOpacity, Platform, Image, ScrollView, ActivityIndicator } from 'react-native';
 import axios from 'axios';
-import encryptWithPublicKey from '../utils/encryptionUtils.mjs';
 import hashString from '../utils/hashingUtils.mjs';
-import MY_IP_ADDRESS from '../environment_variables.mjs';
+import { normalizeEmail } from '../utils/format.mjs';
 import { useSelector, useDispatch } from 'react-redux';
 import { login } from '../redux/actions/loginAction';
 import { setID } from '../redux/actions/idAction';
@@ -12,47 +11,60 @@ import { get_save_list } from '../redux/actions/saveAction';
 import { set_acct_type } from '../redux/actions/accountAction';
 import { setUserInfo } from '../redux/actions/userInfoAction';
 import { getVend } from '../redux/actions/vendAction';
+import { setToken } from '../redux/actions/tokenAction';
+import {LOGIN_API} from '../utils/ApiUtils.js'
 
 const LoginScreen = ({navigation}) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [counter, setCounter] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
 
-  //redux stuff
   const dispatch = useDispatch();
- 
   const isLogged = useSelector((store) => store.isLogged.isLogged);
   const user_id = useSelector((store) => store.user_id.user_id);
   const account_type = useSelector((store) => store.acct_type.acct_type);
 
   const handleLogin = async () => {
+    if (!email || !password) {
+      Alert.alert('Error', 'Please enter both email and password');
+      return;
+    }
+    setIsLoading(true);
     try {
-
-      const hashed_email = await hashString(email);
+      const normalizedEmail = normalizeEmail(email);
+      const hashed_email = await hashString(normalizedEmail);
       const hashed_password = await hashString(password);
 
-      // Send the user data to your backend
-      const response = await axios.post('http://' + MY_IP_ADDRESS + ':5050/', {
+      const response = await axios({
+        method: 'post',
+        url: LOGIN_API,
+        data: {
           hashed_email,
           hashed_password,
-        });
+        },
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        timeout: 5000,
+        validateStatus: function (status) {
+          return status >= 200 && status < 500;
+        }
+      });
 
       const data = response.data;
-
       if (data.success) {
- 
-          // SET REDUX STATES
-
-          //send login action to store
           dispatch(login());
-          //set user ID to store
           dispatch(setID(data.user._id));
-          // set userInfo
           dispatch(setUserInfo(data.user));
-          // set vendor initialized boolean state
           dispatch(getVend(data.user.vendor_account_initialized));
+          // Set token in Redux and axios defaults
+          const token = data.token;
+          
+          dispatch(setToken(token));
+          axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+          console.log('Token set after login:', token);
 
-          // get previously liked and saved articles list if it exists
           if (data.user.liked_articles != null) {
             dispatch(get_like_list(data.user.liked_articles));
           }
@@ -60,95 +72,148 @@ const LoginScreen = ({navigation}) => {
             dispatch(get_save_list(data.user.saved_articles));
           }
 
-          //set account type
           dispatch(set_acct_type(data.account_type));
-
-        // Handle success (e.g., navigate to another screen)
-        navigation.reset({ index: 0, routes: [{ name: 'Community' }], });
+          navigation.reset({
+            index: 0,
+            routes: [{ name: 'News Feed' }],
+          });
+      } else {
+        Alert.alert('Login Error', data.message || 'Login failed. Please try again.');
       }
     } catch (error) {
-      console.error('Error during login:', error.response.data.message);
-        Alert.alert('Login Error', error.response.data.message,
-          [{text:'Try Again',
-            cancelable: true,
-            },
-          ],
-        );
+      console.error('Error during login:', error?.response?.data?.message || error.message);
+      Alert.alert('Login Error', error?.response?.data?.message || 'Failed to connect to server. Please try again.',
+        [{text:'Try Again', cancelable: true}]
+      );
+    } finally {
+      setIsLoading(false);
     }
   };
-/* Login to Your Account */
-
 
   return (
+    <ScrollView style={{flex:1,backgroundColor: "#fff" }}>
 
-    <View style={styles.container}>
-      <Text style={{...styles.text, paddingBottom: 10}}>Log In</Text>
-      <TextInput
-        placeholder="Email"
-        value={email}
-        onChangeText={setEmail}
-        style={styles.input}
-        keyboardType="email-address"
-      />
-
-      <TextInput
-        placeholder="Password"
-        value={password}
-        onChangeText={setPassword}
-        style={styles.input}
-        secureTextEntry
-      />
-      <View style={styles.buttonContainer}>
-        <Button 
-          title="Login"
-          color="black"
-          onPress={handleLogin} />
-      </View>
-      {/* {isLogged ? <Text>logged in</Text> : <Text>not logged in</Text>} */}
-      <Text style={styles.text}>New here?</Text>
-
-      <View>
-        <Button 
-          title="Sign up here!"
-          color="green"
-          onPress={() => navigation.navigate('Sign Up')}
+      <View style={styles.container}>
+        <Image
+          source={require("../components/ATLSFWlogo.jpg")}
+          style={styles.logo}
         />
+        <TextInput
+          placeholder="Email"
+          value={email}
+          onChangeText={setEmail}
+          style={[styles.input, { marginTop: 25 }]}
+          keyboardType="email-address"
+        />
+
+        <TextInput
+          placeholder="Password"
+          value={password}
+          onChangeText={setPassword}
+          style={styles.input}
+          secureTextEntry
+        />
+
+        <View style={{ width: "75%", alignItems: "flex-end" }}>
+          <TouchableOpacity
+            onPress={() => navigation.navigate("Forgot Password")}
+          >
+            <Text style={styles.buttonText}>Forgot Password?</Text>
+          </TouchableOpacity>
+        </View>
+
+        <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
+          <Text style={styles.loginButtonText}>Login</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+         onPress={() => navigation.navigate('Sign Up')}
+         style={styles.signUpSection}>
+          <Text style={styles.newHereText}>
+            Don't have an account?
+            <Text style={{ fontWeight: "bold" }}> Sign up</Text>
+          </Text>
+  
+        </TouchableOpacity>
       </View>
-      
-      </View>
+     
+     {isLoading && <ActivityIndicator style={{position:'absolute',left:0,right:0,top:0,bottom:0}} size="large" color="#0000ff" /> }
+
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    justifyContent: 'center',
-    padding: 60,
+    alignItems: 'center',
+    padding: 20,
   },
-  buttonContainer: {
-    marginRight:90,
-    marginLeft:90,
-    marginTop:0,
-    paddingTop:1,
-    paddingBottom:1,
-    backgroundColor:'lightgray',
-    borderRadius:8,
-    borderWidth: 1,
-    borderColor: 'black',
+  logoContainer: {
+    alignItems: 'center',
+    paddingBottom: 20,
   },
-  text: {
-    fontWeight: 'bold',
-    fontSize: 25,
-    paddingTop: 70,
-    textAlign: 'center',
+  logo: {
+    width: 150,
+    height: 50,
+    marginTop: 25,
+    resizeMode: 'contain',
   },
   input: {
     height: 40,
     borderColor: 'gray',
     borderWidth: 1,
-    borderRadius:8,
-    marginBottom: 12,
-    padding: 8,
+    borderRadius: 5,
+    marginBottom: 15,
+    paddingHorizontal: 10,
+    width: '75%',
+    alignSelf: 'center',
+  },
+  loginButton: {
+    backgroundColor: 'lightgray',
+    borderRadius: 3,
+    width: '75%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    alignSelf: 'center',
+    marginTop:15,
+    paddingVertical: 12,
+  },
+  button: {
+    borderRadius: 3,
+    width: 120,
+    alignItems: 'center',
+    justifyContent: 'center',
+    alignSelf: 'center',
+    marginBottom: 20,
+    paddingVertical: 12,
+  },
+  buttonText: {
+    fontSize: 16,
+    fontFamily: 'Roboto',
+    fontWeight: '500',
+    color: 'black',
+    textAlign: 'center',
+  },
+  loginButtonText: {
+    fontSize: 18,
+    fontFamily: 'Roboto',
+    fontWeight: '500',
+    color: 'black',
+    textAlign: 'center',
+  },
+  signUpSection: {
+    marginTop: 14,
+    alignItems: 'center',
+  },
+  newHereText: {
+    fontSize: 18,
+    fontFamily: 'Roboto',
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  disabledButton: {
+    opacity: 0.7,
+    backgroundColor: '#cccccc',
   },
 });
 

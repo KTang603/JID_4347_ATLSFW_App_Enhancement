@@ -12,23 +12,16 @@ import {
 } from "react-native";
 import MasonryList from "@react-native-seoul/masonry-list";
 import Icon from "react-native-vector-icons/FontAwesome";
-import SignupScreen from "./SignUpScreen";
-import AuthorNameScreen from "./AuthorNameScreen"; // Import the AuthorNameScreen component
 import Article from "../components/Article";
 import axios from "axios";
 import MY_IP_ADDRESS from "../environment_variables.mjs";
-import ProfilePage from "./ProfilePage";
-import { NavigationContainer, useNavigation } from "@react-navigation/native";
 import { useSelector, useDispatch } from "react-redux";
 import { logout } from "../redux/actions/loginAction";
 
-
-// Main component
-const CommunityScreen = ({ navigation }) => {
-  const [isSavePressed, setSavePressed] = useState(false);
-  const [showFilterModal, setShowFilterModal] = useState(false); // For filter modal visibility
-  const [tags, setTags] = useState([]); // State for the tags
-  const [inputTag, setInputTag] = useState([]); // For input field
+const NewsFeedScreen = ({ navigation }) => {
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [tags, setTags] = useState([]);
+  const [inputTag, setInputTag] = useState([]);
 
   const liked_articles_state = useSelector(
     (store) => store.liked_articles.liked_articles
@@ -40,21 +33,14 @@ const CommunityScreen = ({ navigation }) => {
   const token = useSelector((store) => store.token?.token);
   const dispatch = useDispatch();
 
-  // Add debug logging
   useEffect(() => {
     console.log('Current token:', token);
   }, [token]);
-
-  const handleSavePress = () => {
-    // Toggle the state when the Save button is pressed
-    setSavePressed(!isSavePressed);
-  };
 
   const [articleData, setArticleData] = useState({ articles: [], pagination: { page: 1, pages: 1 } });
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
 
-  // function for fetching article data with selected tags and pagination
   const fetchData = async (page = 1, loadMore = false) => {
     try {
       if (!token) {
@@ -73,20 +59,17 @@ const CommunityScreen = ({ navigation }) => {
         }
       );
 
-      // Debug logging
       console.log('Fetched articles:', response.data.articles.map(a => ({
         id: a._id,
         title: a.article_title
       })));
 
-      // Ensure all article IDs are strings
       const articles = response.data.articles.map(article => ({
         ...article,
         _id: article._id?.toString() || '',
         author_id: article.author_id?.toString() || ''
       }));
 
-      // Debug logging
       console.log('Setting article data:', {
         loadMore,
         currentArticles: loadMore ? articleData.articles.length : 0,
@@ -95,7 +78,6 @@ const CommunityScreen = ({ navigation }) => {
       });
 
       if (loadMore) {
-        // Ensure all IDs in both arrays are strings
         const currentArticles = articleData.articles.map(article => ({
           ...article,
           _id: article._id?.toString() || '',
@@ -113,7 +95,6 @@ const CommunityScreen = ({ navigation }) => {
         });
       }
 
-      // Debug logging after update
       console.log('Article data updated:', {
         totalArticles: loadMore ? 
           articleData.articles.length + articles.length : 
@@ -125,18 +106,14 @@ const CommunityScreen = ({ navigation }) => {
     }
   };
 
-  // Load initial data when token changes
   useEffect(() => {
     const loadInitialData = async () => {
       if (token) {
         try {
-          // First load user's liked and saved articles
           await fetchUserLikedAndSavedArticles();
-          // Then load articles
           await fetchData();
         } catch (error) {
           console.error('Error loading initial data:', error);
-          // If token is invalid, redirect to login
           if (error.response?.status === 401) {
             dispatch(logout());
             navigation.navigate('Log In');
@@ -147,22 +124,18 @@ const CommunityScreen = ({ navigation }) => {
     loadInitialData();
   }, [token]);
 
-  // Reload data when liked/saved articles change
   useEffect(() => {
     if (token && (liked_articles_state || saved_articles_state)) {
-      // Debug logging
       console.log('Reloading data due to state change:', {
         liked_articles_state,
         saved_articles_state
       });
       
-      // Reset to first page when reloading
       setCurrentPage(1);
       fetchData(1, false);
     }
   }, [liked_articles_state, saved_articles_state]);
 
-  // Debug logging for article data changes
   useEffect(() => {
     console.log('Article data updated:', {
       totalArticles: articleData.articles.length,
@@ -171,9 +144,8 @@ const CommunityScreen = ({ navigation }) => {
     });
   }, [articleData]);
 
-  // Debug logging for saved articles state
   useEffect(() => {
-    console.log('CommunityScreen: saved_articles_state changed:', saved_articles_state);
+    console.log('NewsFeedScreen: saved_articles_state changed:', saved_articles_state);
   }, [saved_articles_state]);
 
   const fetchUserLikedAndSavedArticles = async () => {
@@ -183,7 +155,6 @@ const CommunityScreen = ({ navigation }) => {
         return;
       }
 
-      // Debug logging
       console.log('Fetching user articles...');
 
       const response = await axios.get(
@@ -196,11 +167,9 @@ const CommunityScreen = ({ navigation }) => {
         }
       );
       
-      // Debug logging
       console.log('User articles response:', response.data);
       
       if (response.data && response.data.success) {
-        // Ensure arrays and convert IDs to strings
         const likedArticles = Array.isArray(response.data.liked_articles)
           ? response.data.liked_articles.map(id => id?.toString()).filter(Boolean)
           : [];
@@ -208,7 +177,6 @@ const CommunityScreen = ({ navigation }) => {
           ? response.data.saved_articles.map(id => id?.toString()).filter(Boolean)
           : [];
 
-        // Debug logging
         console.log('Processed articles:', {
           liked: likedArticles,
           saved: savedArticles
@@ -231,12 +199,10 @@ const CommunityScreen = ({ navigation }) => {
   };
 
   const filterArticles = async () => {
-    // Fetch data when filtering is applied
     await fetchData();
   };
 
   useEffect(() => {
-    // Fetch tags from the new endpoint
     const fetchTags = async () => {
       try {
         if (!token) {
@@ -260,14 +226,12 @@ const CommunityScreen = ({ navigation }) => {
     if (token) {
       fetchTags();
     }
-  }, [token]); // Re-fetch when token changes
+  }, [token]);
 
   const handleTagPress = (tag) => {
     if (inputTag.includes(tag)) {
-      // Remove the tag if it's already selected
       setInputTag((prevTags) => prevTags.filter((t) => t !== tag));
     } else {
-      // Add the tag if it's not selected
       setInputTag((prevTags) => [...prevTags, tag]);
     }
   };
@@ -275,7 +239,6 @@ const CommunityScreen = ({ navigation }) => {
   return (
     <View style={{ flex: 1 }}>
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        {/* Filter Icon */}
         <TouchableOpacity
           onPress={() => setShowFilterModal(true)}
           style={{ position: "absolute", top: 10, right: 10, zIndex: 10 }}
@@ -294,8 +257,7 @@ const CommunityScreen = ({ navigation }) => {
             }
           }}
           onEndReachedThreshold={0.5}
-          renderItem={({ item, index }) => {
-            // Debug logging
+          renderItem={({ item }) => {
             console.log('Rendering article:', {
               id: item["_id"],
               title: item["article_title"]
@@ -320,7 +282,6 @@ const CommunityScreen = ({ navigation }) => {
         }
       </View>
 
-      {/* Filter Modal */}
       <Modal
         animationType="slide"
         transparent={true}
@@ -329,32 +290,25 @@ const CommunityScreen = ({ navigation }) => {
           setShowFilterModal(!showFilterModal);
         }}
       >
-        <View
-          style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
-        >
-          <View
-            style={{
-              height: 350,
-              width: 350,
-              padding: 30,
-              backgroundColor: "white",
-              borderRadius: 10,
-            }}
-          >
-            {/* Close Button */}
+        <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+          <View style={{
+            height: 350,
+            width: 350,
+            padding: 30,
+            backgroundColor: "white",
+            borderRadius: 10,
+          }}>
             <TouchableOpacity
               style={styles.closeModalButton}
               onPress={() => setShowFilterModal(false)}
             >
               <Icon name="times" size={20} color="black" />
             </TouchableOpacity>
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                marginBottom: 20,
-              }}
-            >
+            <View style={{
+              flexDirection: "row",
+              alignItems: "center",
+              marginBottom: 20,
+            }}>
               <TextInput
                 value={inputTag.join(", ")}
                 placeholder="Search filters..."
@@ -374,14 +328,11 @@ const CommunityScreen = ({ navigation }) => {
                 <Icon name="search" size={20} color="black" />
               </TouchableOpacity>
             </View>
-            {/* Container for filter buttons */}
-            <View
-              style={{
-                flexDirection: "row",
-                flexWrap: "wrap",
-                justifyContent: "space-between",
-              }}
-            >
+            <View style={{
+              flexDirection: "row",
+              flexWrap: "wrap",
+              justifyContent: "space-between",
+            }}>
               {tags.map((tag) => (
                 <TouchableOpacity
                   key={tag}
@@ -391,13 +342,11 @@ const CommunityScreen = ({ navigation }) => {
                     inputTag.includes(tag) && styles.tagButtonSelected,
                   ]}
                 >
-                  <Text
-                    style={
-                      inputTag.includes(tag)
-                        ? styles.tagTextSelected
-                        : styles.tagText
-                    }
-                  >
+                  <Text style={
+                    inputTag.includes(tag)
+                      ? styles.tagTextSelected
+                      : styles.tagText
+                  }>
                     {tag}
                   </Text>
                 </TouchableOpacity>
@@ -410,7 +359,6 @@ const CommunityScreen = ({ navigation }) => {
   );
 };
 
-// New StyleSheet for the tag buttons
 const styles = StyleSheet.create({
   tagButton: {
     padding: 5,
@@ -434,11 +382,20 @@ const styles = StyleSheet.create({
     color: "black",
   },
   closeModalButton: {
-    position: "absolute", // Absolute position
+    position: "absolute",
     top: 2,
     left: 1,
     padding: 10,
   },
+  apiQueryText: {
+    fontSize: 12,
+    color: '#757575',
+    textAlign: 'center',
+    marginTop: 5,
+    marginBottom: 10,
+    paddingHorizontal: 20,
+    fontFamily: 'monospace',
+  },
 });
 
-export default CommunityScreen;
+export default NewsFeedScreen;

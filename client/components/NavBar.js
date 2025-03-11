@@ -1,15 +1,12 @@
 
-import { NavigationContainer, useNavigation } from '@react-navigation/native';
+import { NavigationContainer, useNavigation, useRoute } from '@react-navigation/native';
 import { Button, View, StyleSheet, Text, Image, Pressable, TouchableOpacity} from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { useSelector, useDispatch } from 'react-redux';
 
 const NavBar = () => {
   const navigation = useNavigation();
-  // To add new navigation route:
-  // onPress={() => navigation.navigate('new_screen_name_here')}
-  // new screen name MUST match Stack.Screen name prop in App.js
-    const isLogged = useSelector((store) => store.isLogged.isLogged);
+  const isLogged = useSelector((store) => store.isLogged.isLogged);
     const handleProfileClick = () => {
       if (isLogged) {
         // navigation.navigate('Profile'); // Navigate to Profile if logged in
@@ -24,58 +21,60 @@ const NavBar = () => {
         {/* Nav Bar */}
         <View style={{ flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center', backgroundColor: '#02833D', padding: 10 }}>
           {/* Navigation Buttons */}
-          <TouchableOpacity style={{ alignItems: 'center' }} onPress={() => {
-                navigation.reset({
-                    index: 0,
-                    routes: [{ name: 'Community' }],
-                });
-          }}>
+          <TouchableOpacity style={{ alignItems: 'center' }}>
               <Icon name="home" size={20} color="white" alignItems="center"/>
               <Text style={styles.whiteText}>Home</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={{ alignItems: 'center' }} onPress={() => {
-                navigation.reset({
-                    index: 0,
-                    routes: [{ name: 'Community' }],
-                });
-          }}>              
+          <TouchableOpacity style={{ alignItems: 'center' }}>              
               <Icon name="calendar" size={20} color="white" alignItems="center"/>
               <Text style={styles.whiteText}>Events</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={{ alignItems: 'center' }} onPress={() => {
-                navigation.reset({
-                    index: 0,
-                    routes: [{ name: 'Community' }],
-                });
-          }}>              
-              <Icon name="search" size={20} color="white" alignItems="center"/>
-              <Text style={styles.whiteText}>Search</Text>
+            navigation.reset({
+              index: 0,
+              routes: [{ name: 'News Feed' }],
+            });
+          }}>
+              <Icon name="newspaper-o" size={20} color="white" alignItems="center"/>
+              <Text style={styles.whiteText}>News Feed</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={{ alignItems: 'center' }} onPress={() => {
-                navigation.reset({
-                    index: 0,
-                    routes: [{ name: 'Saved Articles' }],
-                });
+            navigation.reset({
+              index: 0,
+              routes: [{ name: 'Saved Articles' }],
+            });
           }}>
               <Icon name="bookmark" size={20} color="white" alignItems="center"/>
               <Text style={styles.whiteText}>Saved</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={{ alignItems: 'center' }} onPress={() => {
-                navigation.reset({
-                    index: 0,
-                    routes: [{ name: 'Sign Up' }],
-                });
+            navigation.reset({
+              index: 0,
+              routes: [{ name: 'Sign Up' }],
+            });
           }}>              
               <Icon name="shopping-cart" size={20} color="white" alignItems="center"/>
               <Text style={styles.whiteText}>Shop</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={{ alignItems: 'center' }} onPress={() => handleProfileClick()}>
-              <Icon name="home" size={20} color="white" alignItems="center"/>
+          <TouchableOpacity style={{ alignItems: 'center' }} onPress={() => {
+            if (isLogged) {
+              navigation.reset({
+                index: 0,
+                routes: [{ name: 'Profile' }],
+              });
+            } else {
+              navigation.reset({
+                index: 0,
+                routes: [{ name: 'Log In' }],
+              });
+            }
+          }}>
+              <Icon name="user" size={20} color="white" alignItems="center"/>
               <Text style={styles.whiteText}>Profile</Text>
           </TouchableOpacity>
         </View>

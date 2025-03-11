@@ -1,6 +1,6 @@
 # Enhanced ATLSFW Mobile Application 🌿
 
-The **Enhanced ATLSFW Mobile Application** expands on the original app's mission to engage users with sustainable fashion. This version introduces a foundation for future enhancements while retaining the core functionality of user education and engagement through articles and community features.
+The **Enhanced ATLSFW Mobile Application** builds upon the original app's mission of engaging users with sustainable fashion. This version establishes a foundation for future upgrades while preserving its core focus on user education and interaction through articles and community-driven features.
 
 # Installation Guide
 
@@ -23,7 +23,6 @@ The **Enhanced ATLSFW Mobile Application** expands on the original app's mission
 6. Within the `users` database, create three collections: `vendor_info`, `customer_info`, and `user_login`.
 
 The final structure of your database should look like this:
-
 
 <img src="./db.png" alt="DB Structure" width="200"/>
 
@@ -75,12 +74,101 @@ You can use the "New File" button in the VSCode File Explorer shown below to cre
 
 # Release Notes
 
+## Version v0.2.0
+
+### Features
+1. News Feed Integration
+   - Integrated NewsData.io API for fetching sustainable fashion articles
+   - Added API key and search query configuration in admin panel
+   - Implemented secure per-request API key handling
+   - Created article fetching script with customizable search parameters
+
+2. Navigation and UI Enhancements
+   - Renamed and redesigned Community tab to News Feed for better clarity
+   - Added placeholder tabs for Home and Events features
+   - Implemented News Feed as the central content hub
+   - Updated navigation bar with intuitive icons
+   - Added responsive grid layout for article display
+
+3. Admin Controls
+   - Added admin authorization system
+   - Implemented user management features
+   - Added vendor authorization controls
+   - Created vendor status verification system
+   - Added vendor deauthorization with status checks
+
+4. Article Management
+   - Implemented article filtering by tags
+   - Added infinite scroll pagination
+   - Created like/save functionality for articles
+   - Added article preview with image support
+   - Implemented article metrics tracking (likes, saves)
+
+### Bug Fixes
+1. Fixed vendor deauthorization issue
+   - Added status check before deauthorization
+   - Implemented proper error handling
+   - Added user feedback for authorization status
+
+2. Resolved navigation issues
+   - Fixed screen transition bugs
+   - Corrected navigation stack handling
+   - Improved error handling in navigation
+
+3. Improved API integration
+   - Removed stored API key vulnerability
+   - Fixed article duplication issues
+   - Improved error handling for API requests
+
+### Known Issues
+1. Navigation
+   - Home and Events tabs are currently placeholders
+   - Some navigation transitions could be smoother
+
+2. Article Management
+   - Article preview images sometimes fail to load
+   - Tag filtering could be more responsive
+   - Search functionality needs optimization
+
+3. Admin Features
+   - Bulk user management features not yet implemented
+   - No ability to see user email id
+   - No automated content moderation
+
+4. Performance
+   - Initial article load time could be improved
+   - API response handling could be more efficient
+
+### Previous Defects / Challenges
+1. Application Setup
+   - Had to configure and set up the React Native environment
+   - Required specific Node.js version compatibility
+   - Needed to install and configure various dependencies
+   - Had to set up development environment variables
+
+2. Database Configuration
+   - Had to set up and configure MongoDB database
+   - Required proper connection string setup
+
+
 ## Version 0.1.0
 
 ### Features
-- Moved login page navigation more logical navigation
-- Editing of Community page in anticipation for further news feature additions.
-- Preparations for API integration by importing packages and other small features.
+1. News Feed Integration
+   - Integrated the NewsData.io API to fetch sustainable fashion articles.
+   - Added API key and search query configuration in the admin panel.
+   - Implemented secure per-request API key handling to enhance security.
+   - Created a customizable article fetching script with support for search parameters.
+2. Navigation and UI Enhancements
+   - Renamed and redesigned the "Community" tab to "News Feed" for better clarity.
+   - Added placeholder tabs for upcoming "Home" and "Events" features.
+   - Updated the navigation bar with intuitive icons and improved responsiveness.
+   - Implemented a responsive grid layout for article display.
+3. Admin Controls
+   - Added an admin authorization system for user and vendor management.
+   - Implemented vendor status verification and deauthorization with proper error handling.
+
+
 
 ### Bug Fixes
 - None in this release.
