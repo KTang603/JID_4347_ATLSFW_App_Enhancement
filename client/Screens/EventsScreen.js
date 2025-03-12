@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Calendar } from "react-native-calendars";
 import {
   View,
@@ -6,106 +6,171 @@ import {
   StyleSheet,
   TouchableOpacity,
   Alert,
-  FlatList,
   ScrollView,
+  Linking,
 } from "react-native";
 import { useSelector } from "react-redux";
 import AppPrimaryButton from "../components/AppPrimaryButton";
 import { ACCOUNT_TYPE_ADMIN } from "../Screens/ProfilePage";
 import { useNavigation } from "@react-navigation/native";
+import axios from "axios";
+import MY_IP_ADDRESS from "../environment_variables.mjs";
 
 const EventsScreen = () => {
+  // State management
   const [selectedDate, setSelectedDate] = useState("");
-  const [events, setEvents] = useState({});
+  const [events, setEvents] = useState([]);
   const navigation = useNavigation();
 
+  // Get user info from Redux store to check if admin
   const userInfo = useSelector((state) => state.userInfo?.userInfo);
+  const token = useSelector((state) => state.token.token);
   const isAdmin = userInfo?.user_roles == ACCOUNT_TYPE_ADMIN;
 
-  // Separate marking for selected date (bold) and events (green dot)
-  const markedDates = {
-    ...events, // Dates with events get green dots
-    [selectedDate]: {
-      // Only make the selected date bold, no color change
-      selected: true,
-      selectedTextColor: "green",
-      selectedColor: "transparent",
-      textStyle: {
-        fontWeight: "bold",
-        color: "green",
-      },
-    },
+  // Fetch events when screen loads or returns to focus
+  useEffect(() => {
+    fetchEvents();
+    
+    // Set up listener for screen focus
+    const unsubscribe = navigation.addListener('focus', () => {
+      fetchEvents();
+    });
+
+    // Cleanup listener on component unmount
+    return unsubscribe;
+  }, []);
+
+  // Fetch events from API
+  const fetchEvents = async () => {
+    try {
+      const response = await axios.get(`http://${MY_IP_ADDRESS}:5050/events`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const eventsArray = Array.isArray(response.data) 
+        ? response.data 
+        : Object.values(response.data);
+      setEvents(eventsArray);
+    } catch (error) {
+      console.error('Error in fetchEvents:', error);
+      Alert.alert("Error", "Failed to load events");
+      setEvents([]);
+    }
   };
 
-  const EventCard = ({ user }) => {
+  // Filter events for selected date
+  const getEventsForSelectedDate = () => {
+    if (!selectedDate) return [];
+    return events.filter(event => {
+      const eventDate = event.event_date.split('T')[0];
+      return eventDate === selectedDate;
+    });
+  };
+
+  // Component to display individual event details
+  const EventCard = ({ event }) => {
     return (
-      <View
-        style={{
-          borderBottomColor: "gray",
-          borderBottomWidth: 1,
-          margin: 5,
-          padding: 5,
-        }}
-      >
-        <Text style={{ fontStyle: "normal", fontWeight: "bold", fontSize: 15 }}>
-          {"Event Name................"}
+      <View style={styles.eventCard}>
+        {/* Event Title */}
+        <Text style={styles.eventTitle}>
+          {event.event_title}
         </Text>
-        <Text>{"Noida, Uttar Pradesh"}</Text>
-        <Text>
-          {
-            "Forget your Kal ki Chinta and Join us in this super funny Show by Ravi Gupta. Kal Ki Chinta Nahi Karta is new stand up special by Ravi Gupta."
-          }
-        </Text>
-        <TouchableOpacity>
-          <Text style={{ textDecorationLine: "underline", color: "blue" }}>
-            {"Event Link"}
+        
+        {/* Event Location */}
+        <View style={styles.locationContainer}>
+          <Text style={styles.eventLocation}>
+            {event.event_location}
           </Text>
+        </View>
+        
+        {/* Event Description */}
+        <Text style={styles.eventDescription} numberOfLines={3}>
+          {event.event_desc}
+        </Text>
+        
+        {/* Event Link */}
+        <TouchableOpacity 
+          onPress={() => Linking.openURL(event.event_link)}
+          style={styles.linkContainer}
+        >
+          <Text style={styles.eventLink}>View Event Details</Text>
         </TouchableOpacity>
       </View>
     );
   };
 
-  const eventData = [{}, {}, {}, {}, {}];
+  // Get events for the selected date
+  const selectedDateEvents = getEventsForSelectedDate();
 
   return (
-    <ScrollView>
+    <ScrollView style={{ backgroundColor: 'white' }}>
       <View style={styles.container}>
-        <Calendar
-          style={{
-            width: "100%",
-            transform: [{ scale: 0.95 }], // This scales both width and height uniformly
-          }}
-          onDayPress={(day) => {
-            console.log("selected day", day);
-          }}
-          markedDates={{
-            "2025-03-09": { selected: true, selectedColor: "green" },
-            "2025-03-08": { selected: true, selectedColor: "green" },
-            "2025-03-07": { selected: true, selectedColor: "green" },
-            "2025-03-06": { selected: true, selectedColor: "green" },
-          }}
-          // onDayPress={day => {
-          //   setSelectedDate(day.dateString);
-          // }}
-          theme={{
-            textDayFontWeight: "normal", // Normal weight for unselected dates
-            textDayFontSize: 16,
-            dotColor: "green", // Color for event dots
-            todayTextColor: "#000000", // Keep today's date black
-          }}
-        />
+        {/* Calendar Component */}
+        <View style={styles.calendarContainer}>
+          <Calendar
+            style={{
+              width: '100%',
+              alignSelf: 'center',
+            }}
+            onDayPress={(day) => {
+              setSelectedDate(day.dateString);
+            }}
+            markedDates={{
+              ...events.reduce((acc, event) => {
+                const dateStr = event.event_date.split('T')[0];
+                acc[dateStr] = {
+                  marked: true,
+                  selectedColor: "green"
+                };
+                return acc;
+              }, {}),
+              [selectedDate]: {
+                selected: true,
+                selectedColor: "green"
+              }
+            }}
+            theme={{
+              textDayFontWeight: "normal",
+              textDayFontSize: 16,
+              dotColor: "green",
+              todayTextColor: "#000000",
+            }}
+          />
+        </View>
 
         {/* Add Event Button (Admin Only) */}
         {isAdmin && (
-          <View style={{ width: "100%", alignItems: "center" }}>
-            <View style={{ width: "90%", alignItems: "center" }}>
-              <AppPrimaryButton title={"Add Event"} handleSubmit={() => {navigation.navigate('CreateEvent')}} />
-              {eventData.map((item) => {
-                return <EventCard user={item} />;
-              })}
+          <View style={styles.addEventButtonContainer}>
+            <View style={{ width: '90%' }}>
+              <AppPrimaryButton
+                title={"Add Event"}
+                handleSubmit={() => {
+                  navigation.navigate("CreateEvent");
+                }}
+              />
             </View>
           </View>
         )}
+
+        {/* Selected Date Events Section */}
+        <View style={styles.eventsListContainer}>
+          {selectedDate ? (
+            selectedDateEvents.length > 0 ? (
+              selectedDateEvents.map((event, index) => (
+                <EventCard key={index} event={event} />
+              ))
+            ) : (
+              <Text style={styles.noEventsText}>
+                No events scheduled for {selectedDate}
+              </Text>
+            )
+          ) : (
+            <Text style={styles.selectDateText}>
+              Select a date to view events
+            </Text>
+          )}
+        </View>
       </View>
     </ScrollView>
   );
@@ -113,44 +178,88 @@ const EventsScreen = () => {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
     backgroundColor: "white",
+    paddingBottom: 20
   },
-  addEventButton: {
-    backgroundColor: "green",
-    padding: 8,
-    borderRadius: 5,
-    alignSelf: "center",
-    marginTop: 25,
-    marginBottom: 20,
-    minWidth: 75,
+  calendarContainer: {
+    width: '100%',
+    alignItems: 'center',
+    paddingVertical: 10,
+    backgroundColor: 'white'
   },
-  addEventButtonText: {
-    color: "white",
-    textAlign: "center",
-    fontSize: 12,
-    fontWeight: "bold",
+  addEventButtonContainer: {
+    width: "100%",
+    alignItems: "center",
+    marginVertical: 10,
+    backgroundColor: 'white'
   },
-  eventContainer: {
-    marginTop: 20,
-    padding: 15,
-    backgroundColor: "white",
+  eventsListContainer: {
+    alignItems: 'center',
+    paddingVertical: 10,
+    backgroundColor: 'white'
+  },
+  eventCard: {
+    backgroundColor: 'white',
     borderRadius: 10,
-    elevation: 3,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    padding: 15,
+    marginVertical: 8,
+    marginHorizontal: 16,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
+    elevation: 5,
+    width: '90%',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
   },
   eventTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginBottom: 8,
+    color: '#333',
+  },
+  locationContainer: {
+    marginBottom: 8,
   },
   eventLocation: {
-    fontSize: 16,
-    color: "gray",
-    marginTop: 5,
+    fontSize: 14,
+    color: '#666',
   },
+  eventDescription: {
+    fontSize: 14,
+    color: '#444',
+    marginBottom: 12,
+    lineHeight: 20,
+  },
+  linkContainer: {
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#e0e0e0',
+  },
+  eventLink: {
+    color: '#0066cc',
+    fontSize: 14,
+    textDecorationLine: 'underline',
+  },
+  noEventsText: {
+    fontSize: 14,
+    color: '#666',
+    fontStyle: 'italic',
+    textAlign: 'center',
+    padding: 20
+  },
+  selectDateText: {
+    fontSize: 14,
+    color: '#666',
+    fontStyle: 'italic',
+    textAlign: 'center',
+    padding: 20
+  }
 });
 
 export default EventsScreen;
