@@ -7,6 +7,7 @@ import {
   Modal,
   StyleSheet,
   ActivityIndicator,
+  ScrollView,
 } from "react-native";
 import MasonryList from "@react-native-seoul/masonry-list";
 import Icon from "react-native-vector-icons/FontAwesome";
@@ -15,6 +16,7 @@ import axios from "axios";
 import MY_IP_ADDRESS from "../environment_variables.mjs";
 import { useSelector, useDispatch } from "react-redux";
 import { fetchData } from "../redux/actions/NewsAction";
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 const NewsFeedScreen = ({ navigation }) => {
   const [showFilterModal, setShowFilterModal] = useState(false);
@@ -26,6 +28,12 @@ const NewsFeedScreen = ({ navigation }) => {
   const [articleData, setArticleData] = useState({ articles: [], pagination: { page: 1, pages: 1 } });
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
+
+  // New state variables
+  const [startDate, setStartDate] = useState(null);
+  const [endDate, setEndDate] = useState(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [datePickerMode, setDatePickerMode] = useState('start');
 
   // const liked_articles_state = useSelector(
   //   (store) => store.liked_articles.liked_articles
@@ -176,7 +184,11 @@ const NewsFeedScreen = ({ navigation }) => {
   };
 
   const filterArticles = async () => {
-    dispatch(fetchData(1,true,inputTag));
+    const dateParams = {
+      startDate: startDate?.toISOString(),
+      endDate: endDate?.toISOString()
+    };
+    dispatch(fetchData(1, true, inputTag, dateParams));
   };
   
 
@@ -242,112 +254,219 @@ const NewsFeedScreen = ({ navigation }) => {
           setShowFilterModal(!showFilterModal);
         }}
       >
-        <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-          <View style={{
-            height: 350,
-            width: 350,
-            padding: 30,
-            backgroundColor: "white",
-            borderRadius: 10,
-          }}>
-            <TouchableOpacity
-              style={styles.closeModalButton}
-              onPress={() => setShowFilterModal(false)}
-            >
-              <Icon name="times" size={20} color="black" />
-            </TouchableOpacity>
-            <View style={{
-              flexDirection: "row",
-              alignItems: "center",
-              marginBottom: 20,
-            }}>
-              <TextInput
-                value={inputTag.join(", ")}
-                placeholder="Search filters..."
-                style={{
-                  flex: 1,
-                  borderColor: "gray",
-                  borderWidth: 1,
-                  padding: 5,
-                  borderRadius: 5,
-                }}
-                editable={false}
-              />
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <ScrollView showsVerticalScrollIndicator={false}>
               <TouchableOpacity
-                onPress={() => filterArticles()}
-                style={{ marginLeft: 10 }}
+                style={styles.closeModalButton}
+                onPress={() => setShowFilterModal(false)}
               >
-                <Icon name="search" size={20} color="black" />
+                <Icon name="times" size={20} color="#666" />
               </TouchableOpacity>
-            </View>
-            <View style={{
-              flexDirection: "row",
-              flexWrap: "wrap",
-              justifyContent: "space-between",
-            }}>
-              {tags.map((tag) => (
+
+              <Text style={styles.modalTitle}>Filters</Text>
+
+              {/* Search Bar */}
+              <View style={styles.searchContainer}>
+                <TextInput
+                  value={inputTag.join(", ")}
+                  placeholder="Selected filters..."
+                  style={styles.searchInput}
+                  editable={false}
+                />
                 <TouchableOpacity
-                  key={tag}
-                  onPress={() => handleTagPress(tag)}
-                  style={[
-                    styles.tagButton,
-                    inputTag.includes(tag) && styles.tagButtonSelected,
-                  ]}
+                  onPress={() => filterArticles()}
+                  style={styles.searchButton}
                 >
-                  <Text style={
-                    inputTag.includes(tag)
-                      ? styles.tagTextSelected
-                      : styles.tagText
-                  }>
-                    {tag}
+                  <Icon name="search" size={20} color="#666" />
+                </TouchableOpacity>
+              </View>
+
+              {/* Categories Section */}
+              <Text style={styles.sectionTitle}>Categories</Text>
+              <View style={styles.tagsContainer}>
+                {tags.map((tag) => (
+                  <TouchableOpacity
+                    key={tag}
+                    onPress={() => handleTagPress(tag)}
+                    style={[
+                      styles.tagButton,
+                      inputTag.includes(tag) && styles.tagButtonSelected,
+                    ]}
+                  >
+                    <Text style={
+                      inputTag.includes(tag)
+                        ? styles.tagTextSelected
+                        : styles.tagText
+                    }>
+                      {tag}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {/* Date Range Section */}
+              <Text style={styles.sectionTitle}>Date Range</Text>
+              <View style={styles.dateFilterContainer}>
+                <TouchableOpacity 
+                  style={styles.dateButton}
+                  onPress={() => {
+                    setDatePickerMode('start');
+                    setShowDatePicker(true);
+                  }}
+                >
+                  <Icon name="calendar" size={16} color="#666" style={styles.dateIcon} />
+                  <Text style={styles.dateButtonText}>
+                    {startDate ? startDate.toLocaleDateString() : 'Start Date'}
                   </Text>
                 </TouchableOpacity>
-              ))}
-            </View>
+                
+                <TouchableOpacity 
+                  style={[styles.dateButton, { marginBottom: 20 }]}
+                  onPress={() => {
+                    setDatePickerMode('end');
+                    setShowDatePicker(true);
+                  }}
+                >
+                  <Icon name="calendar" size={16} color="#666" style={styles.dateIcon} />
+                  <Text style={styles.dateButtonText}>
+                    {endDate ? endDate.toLocaleDateString() : 'End Date'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
           </View>
         </View>
       </Modal>
       {isProgress && <ActivityIndicator color={'#02833D'} size={'large'} style={{position:'absolute',left:0,right:0,top:0,bottom:0}} />}
+      {showDatePicker && (
+        <DateTimePicker
+          value={datePickerMode === 'start' ? startDate || new Date() : endDate || new Date()}
+          mode="date"
+          onChange={(event, selectedDate) => {
+            setShowDatePicker(false);
+            if (selectedDate) {
+              if (datePickerMode === 'start') {
+                setStartDate(selectedDate);
+              } else {
+                setEndDate(selectedDate);
+              }
+            }
+          }}
+        />
+      )}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  tagButton: {
-    padding: 5,
-    width: "48%",
-    borderColor: "gray",
-    borderWidth: 1,
-    borderRadius: 5,
-    marginBottom: 5,
-    marginRight: 2,
-    alignItems: "center",
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: "center",
-    backgroundColor: "#FFF",
+    alignItems: "center",
   },
-  tagButtonSelected: {
-    backgroundColor: "#C1E1C1",
+  modalContent: {
+    width: '90%',
+    maxHeight: '80%',
+    backgroundColor: "white",
+    borderRadius: 15,
+    padding: 20,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+    marginVertical: 40,
   },
-  tagText: {
-    color: "black",
-  },
-  tagTextSelected: {
-    color: "black",
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: '600',
+    marginBottom: 20,
+    textAlign: 'center',
+    color: '#333',
   },
   closeModalButton: {
     position: "absolute",
-    top: 2,
-    left: 1,
+    top: 15,
+    right: 15,
+    padding: 10,
+    zIndex: 1,
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  searchInput: {
+    flex: 1,
+    borderColor: "#ddd",
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 10,
+    marginRight: 10,
+    backgroundColor: '#f8f8f8',
+  },
+  searchButton: {
     padding: 10,
   },
-  apiQueryText: {
-    fontSize: 12,
-    color: '#757575',
-    textAlign: 'center',
-    marginTop: 5,
-    marginBottom: 10,
-    paddingHorizontal: 20,
-    fontFamily: 'monospace',
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 12,
+    color: '#333',
+  },
+  tagsContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    marginBottom: 20,
+  },
+  tagButton: {
+    padding: 8,
+    width: "48%",
+    borderColor: "#ddd",
+    borderWidth: 1,
+    borderRadius: 8,
+    marginBottom: 8,
+    alignItems: "center",
+    backgroundColor: "#fff",
+  },
+  tagButtonSelected: {
+    backgroundColor: "#e8f4ea",
+    borderColor: "#02833D",
+  },
+  tagText: {
+    color: "#666",
+  },
+  tagTextSelected: {
+    color: "#02833D",
+    fontWeight: '500',
+  },
+  dateFilterContainer: {
+    width: '100%',
+    marginBottom: 20,
+  },
+  dateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    backgroundColor: '#f8f8f8',
+    borderRadius: 8,
+    marginVertical: 6,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    width: '100%',
+  },
+  dateIcon: {
+    marginRight: 10,
+  },
+  dateButtonText: {
+    fontSize: 14,
+    color: '#666',
   },
 });
 
