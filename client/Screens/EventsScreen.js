@@ -102,12 +102,13 @@ const EventsScreen = () => {
     oldEvent.map(event => {
       eventDate[event.event_date] = {
         marked: true,
+        dotColor: "#097969"
       };
     });
    if(selectedDate){
     eventDate[selectedDate] = {
       selected: true,
-      selectedColor: "#06402B"
+      selectedColor: "#097969"
     }
    } 
    return eventDate;
@@ -141,6 +142,8 @@ const EventsScreen = () => {
             }
             theme={{
               textDayFontSize: 16,
+              todayTextColor: "#097969", // Set today's date text color to green
+              arrowColor: "#097969", // Set month navigation arrows to green
             }}
           />
         </View>
@@ -162,7 +165,7 @@ const EventsScreen = () => {
         <View style={styles.eventsListContainer}>
          { 
         events.length == 0?
-          <Text> No event found</Text> :
+          <Text> No event for selected date</Text> :
          events.map((event, index) => (
                 <EventCard key={index} event={event} />
               ))
