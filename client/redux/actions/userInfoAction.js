@@ -10,6 +10,14 @@ export const setUserInfo = (userData) => {
 };
 
 
+export const updateUserToken = (token) => {
+  return {
+    type: 'UPDATE_USER_TOKEN',
+    payload: token,
+  };
+};
+
+
 export const getProfileData =  () => async (dispatch,getState) => {
   try {
     const token = await getUserToken();

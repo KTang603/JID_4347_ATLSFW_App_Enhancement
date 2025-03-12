@@ -12,6 +12,7 @@ const initialState = {
     birthday: "",
     user_id: "",
   },
+  token:null,
 };
 
 export default (state = initialState, action) => {
@@ -21,7 +22,11 @@ export default (state = initialState, action) => {
         ...state,
         userInfo: action.payload,
       };
-
+      case 'UPDATE_USER_TOKEN':
+        return {
+          ...state,
+          token: action.payload,
+        };
     default:
       return state;
   }
