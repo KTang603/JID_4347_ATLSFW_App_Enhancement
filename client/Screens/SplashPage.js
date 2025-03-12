@@ -4,7 +4,7 @@ import {getUserId, getUserToken} from '../utils/StorageUtils'
 import { useNavigation } from "@react-navigation/native";
 import { useDispatch } from 'react-redux';
 import {fetchTags} from '../redux/actions/NewsAction'
-import { getProfileData } from '../redux/actions/userInfoAction';
+import { getProfileData, updateUserToken } from '../redux/actions/userInfoAction';
 
 const SplashPage = () => {
    const navigation = useNavigation()
@@ -26,6 +26,7 @@ const SplashPage = () => {
    const networkCall = async ()=>{
       const token = await getUserToken();
       if(token){
+        dispatch(updateUserToken(token)) 
         dispatch(fetchTags(token)) 
         dispatch(getProfileData())       
       }

@@ -36,7 +36,7 @@ router.get("/events", verifyToken, async (req, res) => {
         const collection = events_db.collection('events');
         const result = await collection.find({}).toArray();
         res.status(200).json({
-            ...result
+           event: result
           });
     }catch(err){
         console.log('err----'+err);
