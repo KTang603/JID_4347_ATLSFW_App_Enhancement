@@ -9,7 +9,7 @@ import { setID } from '../redux/actions/idAction';
 import { get_like_list } from '../redux/actions/likeAction';
 import { get_save_list } from '../redux/actions/saveAction';
 import { set_acct_type } from '../redux/actions/accountAction';
-import { setUserInfo } from '../redux/actions/userInfoAction';
+import { setUserInfo, updateUserToken } from '../redux/actions/userInfoAction';
 import { getVend } from '../redux/actions/vendAction';
 import { setToken } from '../redux/actions/tokenAction';
 import {LOGIN_API} from '../utils/ApiUtils.js'
@@ -63,6 +63,7 @@ const LoginScreen = ({navigation}) => {
           // dispatch(getVend(data.user.vendor_account_initialized));
           // Set token in Redux and axios defaults
           const token = data.token;
+          dispatch(updateUserToken(token)) 
           dispatch(fetchTags(token))        
           storeUserId(""+data.user._id)
           storeAccountType(""+data.user.user_roles)

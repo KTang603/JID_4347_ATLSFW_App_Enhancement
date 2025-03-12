@@ -8,6 +8,7 @@ import {
   Alert,
   ScrollView,
   Linking,
+  Dimensions,
 } from "react-native";
 import { useSelector } from "react-redux";
 import AppPrimaryButton from "../components/AppPrimaryButton";
@@ -15,29 +16,26 @@ import { ACCOUNT_TYPE_ADMIN } from "../Screens/ProfilePage";
 import { useNavigation } from "@react-navigation/native";
 import axios from "axios";
 import MY_IP_ADDRESS from "../environment_variables.mjs";
+import { getUserToken, storeUserToken } from "../utils/StorageUtils";
 
 const EventsScreen = () => {
   // State management
   const [selectedDate, setSelectedDate] = useState("");
   const [events, setEvents] = useState([]);
+  const [oldEvent, setOldEvent] = useState([]);
+
   const navigation = useNavigation();
 
   // Get user info from Redux store to check if admin
   const userInfo = useSelector((state) => state.userInfo?.userInfo);
-  const token = useSelector((state) => state.token.token);
+  const token = useSelector((state) => state.userInfo?.token);
+
   const isAdmin = userInfo?.user_roles == ACCOUNT_TYPE_ADMIN;
+
 
   // Fetch events when screen loads or returns to focus
   useEffect(() => {
     fetchEvents();
-    
-    // Set up listener for screen focus
-    const unsubscribe = navigation.addListener('focus', () => {
-      fetchEvents();
-    });
-
-    // Cleanup listener on component unmount
-    return unsubscribe;
   }, []);
 
   // Fetch events from API
@@ -48,10 +46,9 @@ const EventsScreen = () => {
           'Authorization': `Bearer ${token}`
         }
       });
-      const eventsArray = Array.isArray(response.data) 
-        ? response.data 
-        : Object.values(response.data);
-      setEvents(eventsArray);
+      
+       setEvents(response.data.event);
+       setOldEvent(response.data.event);
     } catch (error) {
       console.error('Error in fetchEvents:', error);
       Alert.alert("Error", "Failed to load events");
@@ -59,14 +56,14 @@ const EventsScreen = () => {
     }
   };
 
-  // Filter events for selected date
-  const getEventsForSelectedDate = () => {
-    if (!selectedDate) return [];
-    return events.filter(event => {
-      const eventDate = event.event_date.split('T')[0];
-      return eventDate === selectedDate;
-    });
-  };
+  // // Filter events for selected date
+  // const getEventsForSelectedDate = () => {
+  //   if (!selectedDate) return [];
+  //   return events.filter(event => {
+  //     const eventDate = event.event_date.split('T')[0];
+  //     return eventDate === selectedDate;
+  //   });
+  // };
 
   // Component to display individual event details
   const EventCard = ({ event }) => {
@@ -94,15 +91,38 @@ const EventsScreen = () => {
           onPress={() => Linking.openURL(event.event_link)}
           style={styles.linkContainer}
         >
-          <Text style={styles.eventLink}>View Event Details</Text>
+          <Text style={styles.eventLink}>View Event</Text>
         </TouchableOpacity>
       </View>
     );
   };
 
-  // Get events for the selected date
-  const selectedDateEvents = getEventsForSelectedDate();
+  const _getEventDate = ()=>{
+    let eventDate = {};
+    oldEvent.map(event => {
+      eventDate[event.event_date] = {
+        marked: true,
+      };
+    });
+   if(selectedDate){
+    eventDate[selectedDate] = {
+      selected: true,
+      selectedColor: "#06402B"
+    }
+   } 
+   return eventDate;
+  }
 
+  const _filterEvent =(day)=>{
+    setSelectedDate(day.dateString);
+
+    const result = oldEvent.filter(event => {
+      return event.event_date == day.dateString;
+    });
+    setEvents(result)
+  }
+
+  
   return (
     <ScrollView style={{ backgroundColor: 'white' }}>
       <View style={styles.container}>
@@ -110,31 +130,17 @@ const EventsScreen = () => {
         <View style={styles.calendarContainer}>
           <Calendar
             style={{
-              width: '100%',
+              width: Dimensions.get('screen').width,
               alignSelf: 'center',
             }}
             onDayPress={(day) => {
-              setSelectedDate(day.dateString);
+              _filterEvent(day)
             }}
-            markedDates={{
-              ...events.reduce((acc, event) => {
-                const dateStr = event.event_date.split('T')[0];
-                acc[dateStr] = {
-                  marked: true,
-                  selectedColor: "green"
-                };
-                return acc;
-              }, {}),
-              [selectedDate]: {
-                selected: true,
-                selectedColor: "green"
-              }
-            }}
+            markedDates={
+              _getEventDate()
+            }
             theme={{
-              textDayFontWeight: "normal",
               textDayFontSize: 16,
-              dotColor: "green",
-              todayTextColor: "#000000",
             }}
           />
         </View>
@@ -153,23 +159,14 @@ const EventsScreen = () => {
           </View>
         )}
 
-        {/* Selected Date Events Section */}
         <View style={styles.eventsListContainer}>
-          {selectedDate ? (
-            selectedDateEvents.length > 0 ? (
-              selectedDateEvents.map((event, index) => (
+         { 
+        events.length == 0?
+          <Text> No event found</Text> :
+         events.map((event, index) => (
                 <EventCard key={index} event={event} />
               ))
-            ) : (
-              <Text style={styles.noEventsText}>
-                No events scheduled for {selectedDate}
-              </Text>
-            )
-          ) : (
-            <Text style={styles.selectDateText}>
-              Select a date to view events
-            </Text>
-          )}
+          }
         </View>
       </View>
     </ScrollView>
@@ -183,8 +180,6 @@ const styles = StyleSheet.create({
   },
   calendarContainer: {
     width: '100%',
-    alignItems: 'center',
-    paddingVertical: 10,
     backgroundColor: 'white'
   },
   addEventButtonContainer: {
