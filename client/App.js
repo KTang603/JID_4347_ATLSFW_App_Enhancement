@@ -31,6 +31,7 @@ import SplashPage from "./Screens/SplashPage";
 import SettingPage from './Screens/SettingPage';
 import AdminUserList from "./Screens/AdminUserList";
 import CreateEvent from "./Screens/CreateEvent";
+import ParticipantList from "./Screens/ParticipantList";
 
 const Stack = createNativeStackNavigator();
 
@@ -77,6 +78,8 @@ const App = () => {
           <Stack.Screen name="Forgot Password" component={ForgotPasswordScreen} />
           <Stack.Screen name="Events" component={EventsScreen} />
           <Stack.Screen name="CreateEvent" component={CreateEvent} />
+          <Stack.Screen name="ParticipantList" component={ParticipantList} />
+
 
           {/* add future screens */}
         </Stack.Navigator>
