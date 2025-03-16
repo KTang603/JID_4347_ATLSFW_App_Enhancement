@@ -1,12 +1,15 @@
 import express from "express";
-import {events_db } from "../db/conn.mjs";
+import {events_db,users_db } from "../db/conn.mjs";
+
+import { ObjectId } from "mongodb";
+
 import { verifyToken, requireAdmin, requirePermisssion } from "../middleware/auth.mjs";
 
 const router = express.Router();
 
 // Middleware to verify token for protected routes
 // For ADMIN
-router.use(['/events/create', '/events/delete', '/events/update'], verifyToken);
+router.use(['/events/create','/events/add_participant', '/events/delete', '/events/update','/events/participantlist'], verifyToken);
 
 // Admin only - Create Event
 router.post("/events/create",requirePermisssion, async (req, res) => {
@@ -31,6 +34,56 @@ router.post("/events/create",requirePermisssion, async (req, res) => {
 });
 
 
+router.post("/events/participantlist",requirePermisssion, async (req, res) => {
+  const { event_id, user_id} = req.body;
+  if (!event_id || !user_id ) {
+    return res.status(400).json({ success: false, message: 'Missing userId or eventId.' });
+}
+let eventCollection = events_db.collection('events');
+try{
+let eventDetails = await eventCollection.find({ _id: new ObjectId(event_id) }).toArray();
+let participants = eventDetails[0].participants??[];
+
+const users = users_db.collection('customer_info');
+let userList = await Promise.all(participants.map(async (participant) => {
+  return await users.findOne({ _id: new ObjectId(participant) });
+}))
+res.status(200).send({success: true,data:userList});
+
+}catch(e){
+  console.log(e);
+  res.status(500).send("Internal Server Error");
+}
+
+});
+
+
+router.post("/events/add_participant",requirePermisssion, async (req, res) => {
+  const { event_id, user_id} = req.body;
+  if (!event_id || !user_id ) {
+      return res.status(400).json({ success: false, message: 'Missing userid or eventid.' });
+  }
+
+  let eventCollection = events_db.collection('events');
+  let eventDetails = await eventCollection.find({ _id: new ObjectId(event_id) }).toArray();
+  if(eventDetails[0]['participants'] && !eventDetails[0]['participants'].includes(user_id)){
+    eventDetails[0]['participants'].push(user_id);
+  }else{
+    eventDetails[0]['participants'] = [user_id];
+  }
+  // Update user document
+  const result = await eventCollection.updateOne(
+    { _id: new ObjectId(event_id) },
+    { $set: eventDetails[0] }
+);
+
+if (result.matchedCount === 0) {
+  return res.status(404).send('Event not found');
+}
+res.status(200).send('Your request added successfully');
+});
+
+
 router.get("/events", verifyToken, async (req, res) => {
     try{
         const collection = events_db.collection('events');
@@ -46,7 +99,7 @@ router.get("/events", verifyToken, async (req, res) => {
 });
 
 // Add requestType for event creation
-// Admin only - Create Event
+// Admin only - Create 
 router.post("/events/create", verifyToken, async (req, res) => {
   try {
     // Log received data
