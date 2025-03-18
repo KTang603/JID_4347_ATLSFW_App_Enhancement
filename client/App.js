@@ -32,6 +32,7 @@ import SettingPage from './Screens/SettingPage';
 import AdminUserList from "./Screens/AdminUserList";
 import CreateEvent from "./Screens/CreateEvent";
 import ParticipantList from "./Screens/ParticipantList";
+import { HEADER_LOGO } from "./assets";
 
 const Stack = createNativeStackNavigator();
 
@@ -62,6 +63,7 @@ const App = () => {
               backgroundColor: "#02833D",
             },
             headerTintColor: "white",
+
           }}
         >
           <Stack.Screen options={{headerShown: false }} name="Splash" component={SplashPage} />

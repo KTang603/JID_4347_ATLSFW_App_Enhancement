@@ -5,11 +5,10 @@ import { CREATE_ARTICLE_API } from "../../utils/ApiUtils";
 
 export const fetchData =  (page = 1, loadMore = false,inputTag) => async (dispatch, getState) => {
     try {
-        const state = getState();
         const token = await getUserToken();
         dispatch(newsDataProgress())
     //   setIsLoading(true);
-      const response = await axios.get(
+        const response = await axios.get(
         `http://${MY_IP_ADDRESS}:5050/posts?tags=${inputTag.join(",")}&page=${page}&limit=80`,
         {
           headers: {

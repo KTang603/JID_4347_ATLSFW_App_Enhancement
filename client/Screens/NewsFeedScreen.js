@@ -15,6 +15,7 @@ import axios from "axios";
 import MY_IP_ADDRESS from "../environment_variables.mjs";
 import { useSelector, useDispatch } from "react-redux";
 import { fetchData } from "../redux/actions/NewsAction";
+import BaseIndicator from "../components/BaseIndicator";
 
 const NewsFeedScreen = ({ navigation }) => {
   const [showFilterModal, setShowFilterModal] = useState(false);
@@ -49,55 +50,51 @@ const NewsFeedScreen = ({ navigation }) => {
     });
   }, [navigation, inputTag]);
 
-  useEffect(() => {
-    dispatch(fetchData(1, true, inputTag));
-    fetchUserLikedAndSavedArticles();
-  }, []);
+  // const fetchUserLikedAndSavedArticles = async () => {
+  //   try {
+  //     if (!token) {
+  //       console.log('No token available for fetching user articles');
+  //       return;
+  //     }
 
-  const fetchUserLikedAndSavedArticles = async () => {
-    try {
-      if (!token) {
-        console.log('No token available for fetching user articles');
-        return;
-      }
+  //     console.log('Fetching user articles...');
 
-      console.log('Fetching user articles...');
-
-      const response = await axios.get(
-        `http://${MY_IP_ADDRESS}:5050/user/articles`,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
+  //     const response = await axios.get(
+  //       `http://${MY_IP_ADDRESS}:5050/user/articles`,
+  //       {
+  //         headers: {
+  //           'Authorization': `Bearer ${token}`,
+  //           'Content-Type': 'application/json'
+  //         }
+  //       }
+  //     );
       
-      if (response.data && response.data.success) {
-        const likedArticles = Array.isArray(response.data.liked_articles)
-          ? response.data.liked_articles.map(id => id?.toString()).filter(Boolean)
-          : [];
-        const savedArticles = Array.isArray(response.data.saved_articles)
-          ? response.data.saved_articles.map(id => id?.toString()).filter(Boolean)
-          : [];
+  //     if (response.data && response.data.success) {
+  //       const likedArticles = Array.isArray(response.data.liked_articles)
+  //         ? response.data.liked_articles.map(id => id?.toString()).filter(Boolean)
+  //         : [];
+  //       const savedArticles = Array.isArray(response.data.saved_articles)
+  //         ? response.data.saved_articles.map(id => id?.toString()).filter(Boolean)
+  //         : [];
 
-        dispatch({ type: 'GET_LIKE_LIST', payload: likedArticles });
-        dispatch({ type: 'GET_SAVE_LIST', payload: savedArticles });
-      } else {
-        console.error("Invalid response format:", response.data);
-      }
-    } catch (error) {
-      if (error.response?.status === 401) {
-        console.log('Token expired or invalid, redirecting to login');
-        navigation.navigate('Log In');
-      } else {
-        console.error("Error fetching user articles:", error.message);
-      }
-    }
-  };
+  //       dispatch({ type: 'GET_LIKE_LIST', payload: likedArticles });
+  //       dispatch({ type: 'GET_SAVE_LIST', payload: savedArticles });
+  //     } else {
+  //       console.error("Invalid response format:", response.data);
+  //     }
+  //   } catch (error) {
+  //     if (error.response?.status === 401) {
+  //       console.log('Token expired or invalid, redirecting to login');
+  //       navigation.navigate('Log In');
+  //     } else {
+  //       console.error("Error fetching user articles:", error.message);
+  //     }
+  //   }
+  // };
 
   const filterArticles = async () => {
     dispatch(fetchData(1, true, inputTag));
+    setShowFilterModal(false);
   };
 
   const handleTagPress = (tag) => {
@@ -294,7 +291,6 @@ const NewsFeedScreen = ({ navigation }) => {
 
   // Render empty state when no articles are found
   const renderEmptyState = () => {
-    if (isProgress) return null;
     
     return (
       <View style={styles.emptyContainer}>
@@ -314,11 +310,16 @@ const NewsFeedScreen = ({ navigation }) => {
     );
   };
 
+  const onRefresh =() => {
+    dispatch(fetchData(1, true, [],token));
+}
+
   return (
     <View style={styles.container}>
-      {articles && articles.length > 0 ? (
         <FlatList
           data={articles}
+          refreshing={false}
+          onRefresh={onRefresh}
           renderItem={renderArticleItem}
           keyExtractor={(item) => item._id?.toString() || item.article_link}
           contentContainerStyle={styles.listContainer}
@@ -331,10 +332,6 @@ const NewsFeedScreen = ({ navigation }) => {
           onEndReachedThreshold={0.5}
           ListEmptyComponent={renderEmptyState}
         />
-      ) : (
-        renderEmptyState()
-      )}
-
       <Modal
         animationType="slide"
         transparent={true}
@@ -359,30 +356,31 @@ const NewsFeedScreen = ({ navigation }) => {
               </Text>
             </View>
             <View style={styles.tagsGrid}>
-              {tags.map((tag) => (
-                <TouchableOpacity
+              {tags.map((tag) => {
+                 const isExist = inputTag.includes(tag);
+                 return <TouchableOpacity
                   key={tag}
                   onPress={() => handleTagPress(tag)}
                   style={[
                     styles.tagButton,
-                    inputTag.includes(tag) && styles.tagButtonSelected,
+                    isExist && styles.tagButtonSelected,
                   ]}
                 >
                   <Text style={
-                    inputTag.includes(tag)
+                     isExist
                       ? styles.tagTextSelected
                       : styles.tagText
                   }>
                     {tag}
                   </Text>
                 </TouchableOpacity>
-              ))}
+                  }
+              )}
             </View>
             <TouchableOpacity
               style={styles.applyButton}
               onPress={() => {
                 filterArticles();
-                setShowFilterModal(false);
               }}
             >
               <Text style={styles.applyButtonText}>Apply Filters</Text>
@@ -391,11 +389,7 @@ const NewsFeedScreen = ({ navigation }) => {
         </View>
       </Modal>
       
-      {isProgress && (
-        <View style={styles.loadingOverlay}>
-          <ActivityIndicator color={'#02833D'} size={'large'} />
-        </View>
-      )}
+      {isProgress && <BaseIndicator/>}
     </View>
   );
 };
@@ -580,16 +574,6 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 16,
     fontWeight: "bold",
-  },
-  loadingOverlay: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    top: 0,
-    bottom: 0,
-    backgroundColor: "rgba(255,255,255,0.7)",
-    justifyContent: "center",
-    alignItems: "center",
   },
 });
 

@@ -95,14 +95,6 @@ const NavBar = () => {
           </TouchableOpacity>
           
         </View>
-
-      {/* LOGO */}
-      <View style={{ alignItems: "center", paddingBottom: 20 }}>
-        <Image
-          source={require("./ATLSFWlogo.jpg")}
-          style={{ width: 150, height: 50, resizeMode: "contain" }}
-        />
-      </View>
     </View>
   );
 };
