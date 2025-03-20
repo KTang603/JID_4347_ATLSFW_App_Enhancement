@@ -1,5 +1,5 @@
 import express from "express";
-import { posts_db, users_db } from "../db/conn.mjs";
+import { posts_db, users_db,saved_articles_db } from "../db/conn.mjs";
 import { ObjectId } from "mongodb";
 import tagsList from "../utils/tagsList.mjs";
 import { verifyToken, requireAdmin } from "../middleware/auth.mjs";
@@ -132,20 +132,27 @@ router.get("/posts/top_liked", async (req, res) => {
   }
 });
 
-router.get("/posts/top_saved", async (req, res) => {
+
+
+router.post("/posts/top_saved", async (req, res) => {
   try {
-    const collection = posts_db.collection('articles');
-    const top_saved = await collection.find({})
-      .sort({ save_count: -1 })
-      .limit(3)
-      .toArray();
-
-    // Ensure no negative counts
-    for (let article of top_saved) {
-      if (article.save_count < 0) article.save_count = 0;
+    const {article_id,user_id} =req.body;
+    const exist_article = await posts_db.collection('saved_articles').find({
+      article_id,user_id,
+    }).toArray();
+    if(exist_article.length>0){
+      const result = await posts_db.collection('saved_articles').deleteOne({
+        article_id,user_id,
+      })
+      if(result){
+        return res.status(200).json({status:true, message: 'You unsaved this article'});
+      }
+    }else{
+      await posts_db.collection('saved_articles').insertOne({
+        article_id,user_id,
+      });
+      res.status(200).json({status:true,message:'You saved this article'});
     }
-
-    res.status(200).json(top_saved);
   } catch (err) {
     console.error(err);
     res.status(500).send("Internal Server Error");
