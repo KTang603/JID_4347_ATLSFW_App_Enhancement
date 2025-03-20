@@ -7,39 +7,60 @@ import {
   Modal,
   StyleSheet,
   ActivityIndicator,
+  FlatList,
+  Image,
 } from "react-native";
-import MasonryList from "@react-native-seoul/masonry-list";
 import Icon from "react-native-vector-icons/FontAwesome";
-import Article from "../components/Article";
 import axios from "axios";
 import MY_IP_ADDRESS from "../environment_variables.mjs";
 import { useSelector, useDispatch } from "react-redux";
 import { fetchData } from "../redux/actions/NewsAction";
+import BaseIndicator from "../components/BaseIndicator";
 
 const NewsFeedScreen = ({ navigation }) => {
   const [showFilterModal, setShowFilterModal] = useState(false);
-  const newsData = useSelector(state => state.news)
-  const {articles,isProgress,tags} = newsData
+  const newsData = useSelector(state => state.news);
+  const { articles, isProgress, tags } = newsData;
   const [inputTag, setInputTag] = useState([]);
   const dispatch = useDispatch();
+  const token = useSelector((store) => store.token?.token);
+  const liked_articles = useSelector((store) => store.liked_articles?.liked_articles || []);
+  const saved_articles = useSelector((store) => store.saved_articles?.saved_articles || []);
 
   const [articleData, setArticleData] = useState({ articles: [], pagination: { page: 1, pages: 1 } });
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
 
-  // const liked_articles_state = useSelector(
-  //   (store) => store.liked_articles.liked_articles
-  // );
-  // const saved_articles_state = useSelector(
-  //   (store) => store.saved_articles.saved_articles
-  // );
+  // Set the header right button when component mounts
+  useEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <TouchableOpacity
+          onPress={() => setShowFilterModal(true)}
+          style={{ marginRight: 10 }}
+        >
+          <Icon name="filter" size={24} color="white" />
+          {inputTag.length > 0 && (
+            <View style={styles.filterBadge}>
+              <Text style={styles.filterBadgeText}>{inputTag.length}</Text>
+            </View>
+          )}
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation, inputTag]);
 
-
-  // const fetchData = async (page = 1, loadMore = false) => {
+  // const fetchUserLikedAndSavedArticles = async () => {
   //   try {
-  //     setIsLoading(true);
+  //     if (!token) {
+  //       console.log('No token available for fetching user articles');
+  //       return;
+  //     }
+
+  //     console.log('Fetching user articles...');
+
   //     const response = await axios.get(
-  //       `http://${MY_IP_ADDRESS}:5050/posts?tags=${inputTag.join(",")}&page=${page}&limit=20`,
+  //       `http://${MY_IP_ADDRESS}:5050/user/articles`,
   //       {
   //         headers: {
   //           'Authorization': `Bearer ${token}`,
@@ -47,138 +68,34 @@ const NewsFeedScreen = ({ navigation }) => {
   //         }
   //       }
   //     );
-  //     console.log('Fetched articles:', response.data.articles.map(a => ({
-  //       id: a._id,
-  //       title: a.article_title
-  //     })));
+      
+  //     if (response.data && response.data.success) {
+  //       const likedArticles = Array.isArray(response.data.liked_articles)
+  //         ? response.data.liked_articles.map(id => id?.toString()).filter(Boolean)
+  //         : [];
+  //       const savedArticles = Array.isArray(response.data.saved_articles)
+  //         ? response.data.saved_articles.map(id => id?.toString()).filter(Boolean)
+  //         : [];
 
-  //     const articles = response.data.articles.map(article => ({
-  //       ...article,
-  //       _id: article._id?.toString() || '',
-  //       author_id: article.author_id?.toString() || ''
-  //     }));
-
-  //     console.log('Setting article data:', {
-  //       loadMore,
-  //       currentArticles: loadMore ? articleData.articles.length : 0,
-  //       newArticles: articles.length,
-  //       pagination: response.data.pagination
-  //     });
-
-  //     if (loadMore) {
-  //       const currentArticles = articleData.articles.map(article => ({
-  //         ...article,
-  //         _id: article._id?.toString() || '',
-  //         author_id: article.author_id?.toString() || ''
-  //       }));
-
-  //       setArticleData(prev => ({
-  //         articles: [...currentArticles, ...articles],
-  //         pagination: response.data.pagination
-  //       }));
+  //       dispatch({ type: 'GET_LIKE_LIST', payload: likedArticles });
+  //       dispatch({ type: 'GET_SAVE_LIST', payload: savedArticles });
   //     } else {
-  //       setArticleData({
-  //         articles,
-  //         pagination: response.data.pagination
-  //       });
+  //       console.error("Invalid response format:", response.data);
   //     }
-
-  //     console.log('Article data updated:', {
-  //       totalArticles: loadMore ? 
-  //         articleData.articles.length + articles.length : 
-  //         articles.length
-  //     });
-  //     setIsLoading(false);
   //   } catch (error) {
-  //     console.error("Error during data fetch:", error.message);
+  //     if (error.response?.status === 401) {
+  //       console.log('Token expired or invalid, redirecting to login');
+  //       navigation.navigate('Log In');
+  //     } else {
+  //       console.error("Error fetching user articles:", error.message);
+  //     }
   //   }
   // };
 
-  useEffect(() => {
-     dispatch(fetchData(1,true,inputTag));
-     fetchUserLikedAndSavedArticles();
-  }, []);
-
-  // useEffect(() => {
-  //   if (token && (liked_articles_state || saved_articles_state)) {
-  //     console.log('Reloading data due to state change:', {
-  //       liked_articles_state,
-  //       saved_articles_state
-  //     });
-      
-  //     setCurrentPage(1);
-  //     fetchData(1, false);
-  //   }
-  // }, [liked_articles_state, saved_articles_state]);
-
-  // useEffect(() => {
-  //   console.log('Article data updated:', {
-  //     totalArticles: articleData.articles.length,
-  //     currentPage,
-  //     totalPages: articleData.pagination.pages
-  //   });
-  // }, [articleData]);
-
-
-
-  const fetchUserLikedAndSavedArticles = async () => {
-    try {
-      if (!token) {
-        console.log('No token available for fetching user articles');
-        return;
-      }
-      console.log('token---'+token);
-      console.log('http://${MY_IP_ADDRESS}:5050/user/articles=----'+`http://${MY_IP_ADDRESS}:5050/user/articles`);
-
-      console.log('Fetching user articles...');
-
-      const response = await axios.get(
-        `http://${MY_IP_ADDRESS}:5050/user/articles`,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-      
-      console.log('User articles response:', response.data);
-      
-      if (response.data && response.data.success) {
-        const likedArticles = Array.isArray(response.data.liked_articles)
-          ? response.data.liked_articles.map(id => id?.toString()).filter(Boolean)
-          : [];
-        const savedArticles = Array.isArray(response.data.saved_articles)
-          ? response.data.saved_articles.map(id => id?.toString()).filter(Boolean)
-          : [];
-
-        console.log('Processed articles:', {
-          liked: likedArticles,
-          saved: savedArticles
-        });
-
-        dispatch({ type: 'GET_LIKE_LIST', payload: likedArticles });
-        dispatch({ type: 'GET_SAVE_LIST', payload: savedArticles });
-      } else {
-        console.error("Invalid response format:", response.data);
-      }
-     
-    
-    } catch (error) {
-      if (error.response?.status === 401) {
-        console.log('Token expired or invalid, redirecting to login');
-        // dispatch(logout());
-        navigation.navigate('Log In');
-      } else {
-        console.error("Error fetching user articles:", error.message);
-      }
-    }
-  };
-
   const filterArticles = async () => {
-    dispatch(fetchData(1,true,inputTag));
+    dispatch(fetchData(1, true, inputTag));
+    setShowFilterModal(false);
   };
-  
 
   const handleTagPress = (tag) => {
     if (inputTag.includes(tag)) {
@@ -188,166 +105,475 @@ const NewsFeedScreen = ({ navigation }) => {
     }
   };
 
-  return (
-    <View style={{ flex: 1 }}>
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <TouchableOpacity
-          onPress={() => setShowFilterModal(true)}
-          style={{ position: "absolute", top: 10, right: 10, zIndex: 10 }}
+  const navigateToContent = (link) => {
+    navigation.navigate("Article Webview", { link });
+  };
+
+  const navigateToAuthor = (id) => {
+    navigation.navigate("Author", { id });
+  };
+
+  const handleLike = async (article) => {
+    if (!token) {
+      navigation.navigate('Log In');
+      return;
+    }
+
+    const articleId = article._id?.toString();
+    // Ensure we're working with strings
+    const currentLikedArticles = Array.isArray(liked_articles) 
+      ? liked_articles.map(id => id?.toString()).filter(Boolean)
+      : [];
+    
+    const isCurrentlyLiked = currentLikedArticles.includes(articleId);
+    const newLikedArticles = isCurrentlyLiked
+      ? currentLikedArticles.filter(id => id !== articleId)
+      : [...currentLikedArticles, articleId];
+
+    try {
+      // Check if current like_count is NaN and set it to 0
+      if (isNaN(parseInt(article.like_count))) {
+        article.like_count = 0;
+      }
+
+      const response = await axios.post(
+        `http://${MY_IP_ADDRESS}:5050/posts/${articleId}/?like=${isCurrentlyLiked ? -1 : 1}`,
+        { liked_articles: newLikedArticles },
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (response.data.success) {
+        dispatch({ type: 'GET_LIKE_LIST', payload: newLikedArticles });
+        // Refresh the articles to get updated counts
+        dispatch(fetchData(currentPage, false, inputTag));
+      }
+    } catch (error) {
+      console.error('Error updating like status:', error);
+      if (error.response) {
+        console.error('Response data:', error.response.data);
+        console.error('Response status:', error.response.status);
+      }
+    }
+  };
+
+  const handleSave = async (article) => {
+    if (!token) {
+      navigation.navigate('Log In');
+      return;
+    }
+
+    const articleId = article._id?.toString();
+    // Ensure we're working with strings
+    const currentSavedArticles = Array.isArray(saved_articles) 
+      ? saved_articles.map(id => id?.toString()).filter(Boolean)
+      : [];
+    
+    const isCurrentlySaved = currentSavedArticles.includes(articleId);
+    const newSavedArticles = isCurrentlySaved
+      ? currentSavedArticles.filter(id => id !== articleId)
+      : [...currentSavedArticles, articleId];
+
+    try {
+      // Check if current save_count is NaN and set it to 0
+      if (isNaN(parseInt(article.save_count))) {
+        article.save_count = 0;
+      }
+
+      const response = await axios.post(
+        `http://${MY_IP_ADDRESS}:5050/posts/${articleId}/?save=${isCurrentlySaved ? -1 : 1}`,
+        { saved_articles: newSavedArticles },
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (response.data.success) {
+        dispatch({ type: 'GET_SAVE_LIST', payload: newSavedArticles });
+        // Refresh the articles to get updated counts
+        dispatch(fetchData(currentPage, false, inputTag));
+      }
+    } catch (error) {
+      console.error('Error updating save status:', error);
+      if (error.response) {
+        console.error('Response data:', error.response.data);
+        console.error('Response status:', error.response.status);
+      }
+    }
+  };
+
+  const renderArticleItem = ({ item }) => {
+    // Ensure we're working with strings for comparison
+    const itemId = item._id?.toString();
+    const isLiked = Array.isArray(liked_articles) 
+      ? liked_articles.map(id => id?.toString()).includes(itemId)
+      : false;
+    const isSaved = Array.isArray(saved_articles)
+      ? saved_articles.map(id => id?.toString()).includes(itemId)
+      : false;
+
+    return (
+      <View style={styles.card}>
+        <TouchableOpacity 
+          onPress={() => navigateToContent(item.article_link)}
+          activeOpacity={0.8}
         >
-          <Icon name="filter" size={30} color="black" />
+          {item.article_preview_image && (
+            <Image 
+              source={{ uri: item.article_preview_image }} 
+              style={styles.articleImage}
+              resizeMode="cover"
+            />
+          )}
+          <View style={styles.articleContent}>
+            <Text style={styles.cardTitle}>{item.article_title || "Untitled Article"}</Text>
+            <TouchableOpacity onPress={() => navigateToAuthor(item.author_id)}>
+              <Text style={styles.cardSubtitle}>By {item.author_name || "Unknown Author"}</Text>
+            </TouchableOpacity>
+            <View style={styles.statsContainer}>
+              <TouchableOpacity 
+                style={styles.statItem}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  handleLike(item);
+                }}
+                activeOpacity={0.6}
+              >
+                <Icon 
+                  name={isLiked ? "heart" : "heart-o"} 
+                  size={16} 
+                  color={isLiked ? "#e74c3c" : "#666"} 
+                />
+                <Text style={styles.statsText}>
+                  {isNaN(parseInt(item.like_count)) ? 0 : (item.like_count || 0)}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.statItem}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  handleSave(item);
+                }}
+                activeOpacity={0.6}
+              >
+                <Icon 
+                  name={isSaved ? "bookmark" : "bookmark-o"} 
+                  size={16} 
+                  color={isSaved ? "#f39c12" : "#666"} 
+                />
+                <Text style={styles.statsText}>
+                  {isNaN(parseInt(item.save_count)) ? 0 : (item.save_count || 0)}
+                </Text>
+              </TouchableOpacity>
+            </View>
+            {item.tags && item.tags.length > 0 && (
+              <View style={styles.tagsRow}>
+                {item.tags.slice(0, 3).map((tag, index) => (
+                  <Text key={index} style={styles.tag}>{tag}</Text>
+                ))}
+                {item.tags.length > 3 && (
+                  <Text style={styles.tag}>+{item.tags.length - 3}</Text>
+                )}
+              </View>
+            )}
+          </View>
         </TouchableOpacity>
-        {articleData &&
-        <MasonryList
-          numColumns={2}
+      </View>
+    );
+  };
+
+  // Render empty state when no articles are found
+  const renderEmptyState = () => {
+    
+    return (
+      <View style={styles.emptyContainer}>
+        <Text style={styles.emptyText}>No articles found</Text>
+        {inputTag.length > 0 && (
+          <TouchableOpacity 
+            style={styles.clearFiltersButton}
+            onPress={() => {
+              setInputTag([]);
+              dispatch(fetchData(1, true, []));
+            }}
+          >
+            <Text style={styles.clearFiltersText}>Clear filters</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    );
+  };
+
+  const onRefresh =() => {
+    dispatch(fetchData(1, true, [],token));
+}
+
+  return (
+    <View style={styles.container}>
+        <FlatList
           data={articles}
-          keyExtractor={(item) => item["_id"]?.toString() || item["article_link"]}
+          refreshing={false}
+          onRefresh={onRefresh}
+          renderItem={renderArticleItem}
+          keyExtractor={(item) => item._id?.toString() || item.article_link}
+          contentContainerStyle={styles.listContainer}
           onEndReached={() => {
             if (!isLoading && currentPage < articleData.pagination.pages) {
               setCurrentPage(prev => prev + 1);
-              fetchData(currentPage + 1, true);
+              dispatch(fetchData(currentPage + 1, false, inputTag));
             }
           }}
           onEndReachedThreshold={0.5}
-          renderItem={({ item }) => {
-            console.log('Rendering article:', {
-              id: item["_id"],
-              title: item["article_title"]
-            });
-
-            return (
-              <Article
-                article={{
-                  title: item["article_title"],
-                  image: item["article_preview_image"],
-                  author: item["author_name"],
-                  likes: item["like_count"],
-                  saves: item["save_count"],
-                  article_id: item["_id"]?.toString() || '',
-                  article_link: item["article_link"],
-                  author_id: item["author_id"]?.toString() || '',
-                }}
-              />
-            );
-          }}
+          ListEmptyComponent={renderEmptyState}
         />
-        }
-      </View>
-
       <Modal
         animationType="slide"
         transparent={true}
         visible={showFilterModal}
-        onRequestClose={() => {
-          setShowFilterModal(!showFilterModal);
-        }}
+        onRequestClose={() => setShowFilterModal(false)}
       >
-        <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-          <View style={{
-            height: 350,
-            width: 350,
-            padding: 30,
-            backgroundColor: "white",
-            borderRadius: 10,
-          }}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
             <TouchableOpacity
               style={styles.closeModalButton}
               onPress={() => setShowFilterModal(false)}
             >
               <Icon name="times" size={20} color="black" />
             </TouchableOpacity>
-            <View style={{
-              flexDirection: "row",
-              alignItems: "center",
-              marginBottom: 20,
-            }}>
-              <TextInput
-                value={inputTag.join(", ")}
-                placeholder="Search filters..."
-                style={{
-                  flex: 1,
-                  borderColor: "gray",
-                  borderWidth: 1,
-                  padding: 5,
-                  borderRadius: 5,
-                }}
-                editable={false}
-              />
-              <TouchableOpacity
-                onPress={() => filterArticles()}
-                style={{ marginLeft: 10 }}
-              >
-                <Icon name="search" size={20} color="black" />
-              </TouchableOpacity>
+            <Text style={styles.modalTitle}>Filter Articles</Text>
+            <View style={styles.selectedTagsContainer}>
+              <Text style={styles.selectedTagsLabel}>
+                {inputTag.length > 0 ? "Selected tags:" : "No tags selected"}
+              </Text>
+              <Text style={styles.selectedTags}>
+                {inputTag.join(", ")}
+              </Text>
             </View>
-            <View style={{
-              flexDirection: "row",
-              flexWrap: "wrap",
-              justifyContent: "space-between",
-            }}>
-              {tags.map((tag) => (
-                <TouchableOpacity
+            <View style={styles.tagsGrid}>
+              {tags.map((tag) => {
+                 const isExist = inputTag.includes(tag);
+                 return <TouchableOpacity
                   key={tag}
                   onPress={() => handleTagPress(tag)}
                   style={[
                     styles.tagButton,
-                    inputTag.includes(tag) && styles.tagButtonSelected,
+                    isExist && styles.tagButtonSelected,
                   ]}
                 >
                   <Text style={
-                    inputTag.includes(tag)
+                     isExist
                       ? styles.tagTextSelected
                       : styles.tagText
                   }>
                     {tag}
                   </Text>
                 </TouchableOpacity>
-              ))}
+                  }
+              )}
             </View>
+            <TouchableOpacity
+              style={styles.applyButton}
+              onPress={() => {
+                filterArticles();
+              }}
+            >
+              <Text style={styles.applyButtonText}>Apply Filters</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
-      {isProgress && <ActivityIndicator color={'#02833D'} size={'large'} style={{position:'absolute',left:0,right:0,top:0,bottom:0}} />}
+      
+      {isProgress && <BaseIndicator/>}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "white",
+  },
+  filterBadge: {
+    position: "absolute",
+    top: -5,
+    right: -5,
+    backgroundColor: "white",
+    borderRadius: 10,
+    width: 20,
+    height: 20,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  filterBadgeText: {
+    color: "#02833D",
+    fontSize: 12,
+    fontWeight: "bold",
+  },
+  listContainer: {
+    padding: 10,
+  },
+  card: {
+    backgroundColor: "white",
+    borderRadius: 8,
+    marginBottom: 15,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 1,
+    elevation: 2,
+    overflow: "hidden",
+  },
+  articleImage: {
+    width: "100%",
+    height: 180,
+  },
+  articleContent: {
+    padding: 15,
+  },
+  cardTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    marginBottom: 5,
+    color: "#333",
+  },
+  cardSubtitle: {
+    fontSize: 14,
+    color: "#666",
+    marginBottom: 10,
+    textDecorationLine: "underline",
+  },
+  statsContainer: {
+    flexDirection: "row",
+    marginTop: 5,
+    marginBottom: 10,
+  },
+  statItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginRight: 15,
+  },
+  statsText: {
+    fontSize: 14,
+    color: "#666",
+    marginLeft: 5,
+  },
+  tagsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    marginTop: 5,
+  },
+  tag: {
+    backgroundColor: "#e0f2f1",
+    color: "#00796b",
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+    fontSize: 12,
+    marginRight: 5,
+    marginTop: 5,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: "#666",
+    marginBottom: 20,
+  },
+  clearFiltersButton: {
+    backgroundColor: "#02833D",
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 5,
+  },
+  clearFiltersText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "500",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContent: {
+    width: "85%",
+    backgroundColor: "white",
+    borderRadius: 10,
+    padding: 20,
+    maxHeight: "80%",
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 15,
+    textAlign: "center",
+  },
+  selectedTagsContainer: {
+    marginBottom: 15,
+    padding: 10,
+    backgroundColor: "#f5f5f5",
+    borderRadius: 5,
+  },
+  selectedTagsLabel: {
+    fontWeight: "500",
+    marginBottom: 5,
+  },
+  selectedTags: {
+    color: "#02833D",
+  },
+  tagsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    marginBottom: 20,
+  },
   tagButton: {
-    padding: 5,
+    padding: 8,
     width: "48%",
-    borderColor: "gray",
+    borderColor: "#ccc",
     borderWidth: 1,
     borderRadius: 5,
-    marginBottom: 5,
-    marginRight: 2,
+    marginBottom: 8,
     alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#FFF",
   },
   tagButtonSelected: {
-    backgroundColor: "#C1E1C1",
+    backgroundColor: "#e0f2f1",
+    borderColor: "#02833D",
   },
   tagText: {
-    color: "black",
+    color: "#333",
   },
   tagTextSelected: {
-    color: "black",
+    color: "#02833D",
+    fontWeight: "500",
   },
   closeModalButton: {
     position: "absolute",
-    top: 2,
-    left: 1,
-    padding: 10,
+    top: 10,
+    right: 10,
+    padding: 5,
   },
-  apiQueryText: {
-    fontSize: 12,
-    color: '#757575',
-    textAlign: 'center',
-    marginTop: 5,
-    marginBottom: 10,
-    paddingHorizontal: 20,
-    fontFamily: 'monospace',
+  applyButton: {
+    backgroundColor: "#02833D",
+    paddingVertical: 12,
+    borderRadius: 5,
+    alignItems: "center",
+  },
+  applyButtonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "bold",
   },
 });
 

@@ -15,6 +15,7 @@ import { setToken } from '../redux/actions/tokenAction';
 import {LOGIN_API} from '../utils/ApiUtils.js'
 import {fetchTags} from '../redux/actions/NewsAction'
 import { storeAccountType, storeUserId, storeUserToken } from '../utils/StorageUtils';
+import { HEADER_LOGO, LOGIN_LOGO } from '../assets';
 
 const LoginScreen = ({navigation}) => {
   const [email, setEmail] = useState('');
@@ -104,14 +105,15 @@ const LoginScreen = ({navigation}) => {
 
       <View style={styles.container}>
         <Image
-          source={require("../components/ATLSFWlogo.jpg")}
+          resizeMode='contain'
+          source={LOGIN_LOGO}
           style={styles.logo}
         />
         <TextInput
           placeholder="Email"
           value={email}
           onChangeText={setEmail}
-          style={[styles.input, { marginTop: 25 }]}
+          style={styles.input}
           keyboardType="email-address"
         />
 
@@ -162,8 +164,8 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   logo: {
-    width: 150,
-    height: 50,
+    width: 280,
+    height: 200,
     marginTop: 25,
     resizeMode: 'contain',
   },

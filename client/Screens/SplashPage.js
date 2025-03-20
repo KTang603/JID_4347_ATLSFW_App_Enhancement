@@ -1,10 +1,11 @@
 import React, { useEffect } from 'react'
-import {View,Text} from 'react-native'
+import {View,Text,Image} from 'react-native'
 import {getUserId, getUserToken} from '../utils/StorageUtils'
 import { useNavigation } from "@react-navigation/native";
 import { useDispatch } from 'react-redux';
-import {fetchTags} from '../redux/actions/NewsAction'
+import {fetchData, fetchTags} from '../redux/actions/NewsAction'
 import { getProfileData, updateUserToken } from '../redux/actions/userInfoAction';
+import {SPLASH_LOGO} from '../assets/index'
 
 const SplashPage = () => {
    const navigation = useNavigation()
@@ -28,7 +29,9 @@ const SplashPage = () => {
       if(token){
         dispatch(updateUserToken(token)) 
         dispatch(fetchTags(token)) 
-        dispatch(getProfileData())       
+        dispatch(getProfileData()) 
+        dispatch(fetchData(1, true, [],token));
+      
       }
    }
 
@@ -42,7 +45,7 @@ const SplashPage = () => {
 
   return (
     <View style={{backgroundColor:'#02833D',flex:1,alignItems:'center',justifyContent:'center'}} >
-        <Text style={{fontSize:30,color:'#fff'}}>Splash Page</Text>
+        <Image resizeMode='contain' style={{width:200,height:200}} source={SPLASH_LOGO} />
     </View>
   )
 }
