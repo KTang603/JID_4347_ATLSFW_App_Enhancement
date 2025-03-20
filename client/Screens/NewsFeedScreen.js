@@ -20,10 +20,10 @@ import BaseIndicator from "../components/BaseIndicator";
 const NewsFeedScreen = ({ navigation }) => {
   const [showFilterModal, setShowFilterModal] = useState(false);
   const newsData = useSelector(state => state.news);
-  const { articles, isProgress, tags } = newsData;
+  const { articles, isProgress, tags, pagination } = newsData;
   const [inputTag, setInputTag] = useState([]);
   const dispatch = useDispatch();
-  const token = useSelector((store) => store.token?.token);
+  const token = useSelector((state) => state.userInfo?.token);
   const liked_articles = useSelector((store) => store.liked_articles?.liked_articles || []);
   const saved_articles = useSelector((store) => store.saved_articles?.saved_articles || []);
 
@@ -93,7 +93,7 @@ const NewsFeedScreen = ({ navigation }) => {
   // };
 
   const filterArticles = async () => {
-    dispatch(fetchData(1, true, inputTag));
+    dispatch(fetchData(1, inputTag,token));
     setShowFilterModal(false);
   };
 
@@ -150,7 +150,7 @@ const NewsFeedScreen = ({ navigation }) => {
       if (response.data.success) {
         dispatch({ type: 'GET_LIKE_LIST', payload: newLikedArticles });
         // Refresh the articles to get updated counts
-        dispatch(fetchData(currentPage, false, inputTag));
+        // dispatch(fetchData(currentPage, false, inputTag));
       }
     } catch (error) {
       console.error('Error updating like status:', error);
@@ -198,7 +198,7 @@ const NewsFeedScreen = ({ navigation }) => {
       if (response.data.success) {
         dispatch({ type: 'GET_SAVE_LIST', payload: newSavedArticles });
         // Refresh the articles to get updated counts
-        dispatch(fetchData(currentPage, false, inputTag));
+        // dispatch(fetchData(currentPage, false, inputTag));
       }
     } catch (error) {
       console.error('Error updating save status:', error);
@@ -300,7 +300,7 @@ const NewsFeedScreen = ({ navigation }) => {
             style={styles.clearFiltersButton}
             onPress={() => {
               setInputTag([]);
-              dispatch(fetchData(1, true, []));
+              dispatch(fetchData(1, [],token));
             }}
           >
             <Text style={styles.clearFiltersText}>Clear filters</Text>
@@ -311,8 +311,18 @@ const NewsFeedScreen = ({ navigation }) => {
   };
 
   const onRefresh =() => {
-    dispatch(fetchData(1, true, [],token));
+    dispatch(fetchData(1, [],token));
 }
+
+
+const loadNextPage = async() => {
+     const {page,pages} = pagination;
+    if (page < pages) {
+      await dispatch(fetchData(page+1, inputTag,token));
+      setCurrentPage(page+1);
+    }  
+};
+
 
   return (
     <View style={styles.container}>
@@ -324,10 +334,7 @@ const NewsFeedScreen = ({ navigation }) => {
           keyExtractor={(item) => item._id?.toString() || item.article_link}
           contentContainerStyle={styles.listContainer}
           onEndReached={() => {
-            if (!isLoading && currentPage < articleData.pagination.pages) {
-              setCurrentPage(prev => prev + 1);
-              dispatch(fetchData(currentPage + 1, false, inputTag));
-            }
+            loadNextPage();
           }}
           onEndReachedThreshold={0.5}
           ListEmptyComponent={renderEmptyState}
