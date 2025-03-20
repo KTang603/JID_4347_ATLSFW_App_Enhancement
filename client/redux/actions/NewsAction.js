@@ -3,13 +3,11 @@ import MY_IP_ADDRESS from "../../environment_variables.mjs";
 import { getUserToken } from "../../utils/StorageUtils";
 import { CREATE_ARTICLE_API } from "../../utils/ApiUtils";
 
-export const fetchData =  (page = 1, loadMore = false,inputTag) => async (dispatch, getState) => {
+export const fetchData =  (page = 1,inputTag,token) => async (dispatch, getState) => {
     try {
-        const token = await getUserToken();
-        dispatch(newsDataProgress())
-    //   setIsLoading(true);
+        dispatch(newsDataProgress())        
         const response = await axios.get(
-        `http://${MY_IP_ADDRESS}:5050/posts?tags=${inputTag.join(",")}&page=${page}&limit=80`,
+        `http://${MY_IP_ADDRESS}:5050/posts?tags=${inputTag.join(",")}&page=${page}&limit=10`,
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -17,21 +15,8 @@ export const fetchData =  (page = 1, loadMore = false,inputTag) => async (dispat
           }
         }
       );
-      //response.data.articles
-      const {articles} = response.data
-      dispatch(newsDataFullFilled(articles))
-
-
-
-    // console.log('response-----'+JSON.stringify(response.data));
-     
-
-    //   const articles = response.data.articles.map(article => ({
-    //     ...article,
-    //     _id: article._id?.toString() || '',
-    //     author_id: article.author_id?.toString() || ''
-    //   }));
-
+      const {articles,pagination} = response.data
+      dispatch(newsDataFullFilled({articles,pagination}))
     } catch (error) {
         dispatch(newsDataFailure())
 

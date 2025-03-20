@@ -1,15 +1,27 @@
 const initialState = {
   isProgress: false,
   articles: [],
-  tags:[],
+  pagination: {},
+  tags: [],
 };
 
 export default (state = initialState, action) => {
   switch (action.type) {
     case "NEWS_DATA_FULFILLED":
+      let oldArticles = state.articles;
+      const { pagination, articles } = action.payload;
+      const { page } = pagination;
+
+      if (page > 1) {
+        oldArticles = [...oldArticles, ...articles];
+      } else {
+        oldArticles = [...articles];
+      }
+
       return {
         ...state,
-        articles: action.payload,
+        pagination: pagination,
+        articles: oldArticles,
         isProgress: false,
       };
     case "NEWS_DATA_PROGRESS":
@@ -23,11 +35,11 @@ export default (state = initialState, action) => {
         isProgress: false,
       };
 
-      case "TAGS_FULFILLED":
-        return {
-          ...state,
-          tags: action.payload,
-        };
+    case "TAGS_FULFILLED":
+      return {
+        ...state,
+        tags: action.payload,
+      };
     default:
       return state;
   }
