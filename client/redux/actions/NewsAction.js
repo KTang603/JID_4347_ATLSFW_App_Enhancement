@@ -1,7 +1,8 @@
 import axios from "axios";
 import MY_IP_ADDRESS from "../../environment_variables.mjs";
 import { getUserToken } from "../../utils/StorageUtils";
-import { CREATE_ARTICLE_API } from "../../utils/ApiUtils";
+import { ARTICLE_LIKE_API, ARTICLE_SAVE_API, CREATE_ARTICLE_API } from "../../utils/ApiUtils";
+import { updatSaveNewsSave, updateSaveNewsLike } from "./saveAction";
 
 export const fetchData =  (page = 1,inputTag,token) => async (dispatch, getState) => {
     try {
@@ -63,6 +64,75 @@ export const fetchData =  (page = 1,inputTag,token) => async (dispatch, getState
       type: 'NEWS_DATA_FAILURE',
     };
   };
+
+  export const updateNewsLike = (articleId) => {
+    return {
+      type: 'UPDATE_NEWS_LIKE',
+      payload:articleId,
+    };
+  };
+
+  export const updatNewsSave = (articleId) => {
+    return {
+      type: 'UPDATE_NEWS_SAVE',
+      payload:articleId,
+    };
+  };
+
+  export const handleLike = (request) => async (dispatch,getState) => {
+    try {
+      const response = await axios.post(
+        ARTICLE_LIKE_API,
+        { user_id: request.user_id, article_id: request.articles_id },
+        {
+          headers: {
+            Authorization: `Bearer ${request.token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      if (response.data.status) {
+        await dispatch(updateSaveNewsLike(request.articles_id))
+        await dispatch(updateNewsLike(request.articles_id))
+      }
+    } catch (error) {
+      console.error("Error updating like status:", error);
+      if (error.response) {
+        console.error("Response data:", error.response.data);
+        console.error("Response status:", error.response.status);
+      }
+    }
+  };
+
+
+  export const handleSave = (request) => async (dispatch,getState) => {    
+    try {
+      const response = await axios.post(
+        ARTICLE_SAVE_API,
+        { user_id: request.user_id, article_id: request.articles_id },
+        {
+          headers: {
+            Authorization: `Bearer ${request.token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      if (response.data.status) {
+        console.log("response----" + JSON.stringify(request.articles_id));
+         await dispatch(updatNewsSave(request.articles_id))
+         await dispatch(updatSaveNewsSave(request.articles_id))
+
+      }
+    } catch (error) {
+      console.error("Error updating like status:", error);
+      if (error.response) {
+        console.error("Response data:", error.response.data);
+        console.error("Response status:", error.response.status);
+      }
+    }
+  };
+
+
 
   export const fetchTags =  (token) => async (dispatch,getState) => {
     try {
