@@ -3,33 +3,26 @@ import {
   View,
   Text,
   TouchableOpacity,
-  TextInput,
   Modal,
   StyleSheet,
-  ActivityIndicator,
   FlatList,
   Image,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome";
-import axios from "axios";
-import MY_IP_ADDRESS from "../environment_variables.mjs";
 import { useSelector, useDispatch } from "react-redux";
-import { fetchData } from "../redux/actions/NewsAction";
+import { fetchData, handleLike, handleSave } from "../redux/actions/NewsAction";
 import BaseIndicator from "../components/BaseIndicator";
+import ListRowItem from "../components/ListRowItem";
 
 const NewsFeedScreen = ({ navigation }) => {
   const [showFilterModal, setShowFilterModal] = useState(false);
-  const newsData = useSelector(state => state.news);
+  const newsData = useSelector((state) => state.news);
   const { articles, isProgress, tags, pagination } = newsData;
   const [inputTag, setInputTag] = useState([]);
   const dispatch = useDispatch();
   const token = useSelector((state) => state.userInfo?.token);
-  const liked_articles = useSelector((store) => store.liked_articles?.liked_articles || []);
-  const saved_articles = useSelector((store) => store.saved_articles?.saved_articles || []);
-
-  const [articleData, setArticleData] = useState({ articles: [], pagination: { page: 1, pages: 1 } });
-  const [currentPage, setCurrentPage] = useState(1);
-  const [isLoading, setIsLoading] = useState(false);
+  const userInfo = useSelector((state) => state.userInfo?.userInfo);
+  const { _id } = userInfo;
 
   // Set the header right button when component mounts
   useEffect(() => {
@@ -68,7 +61,7 @@ const NewsFeedScreen = ({ navigation }) => {
   //         }
   //       }
   //     );
-      
+
   //     if (response.data && response.data.success) {
   //       const likedArticles = Array.isArray(response.data.liked_articles)
   //         ? response.data.liked_articles.map(id => id?.toString()).filter(Boolean)
@@ -93,7 +86,7 @@ const NewsFeedScreen = ({ navigation }) => {
   // };
 
   const filterArticles = async () => {
-    dispatch(fetchData(1, inputTag,token));
+    dispatch(fetchData(1, inputTag, token));
     setShowFilterModal(false);
   };
 
@@ -113,170 +106,131 @@ const NewsFeedScreen = ({ navigation }) => {
     navigation.navigate("Author", { id });
   };
 
-  const handleLike = async (article) => {
-    if (!token) {
-      navigation.navigate('Log In');
-      return;
-    }
+  // const handleLike = async (article) => {
+  //   try {
+  //     const response = await axios.post(
+  //       ARTICLE_LIKE_API,
+  //       { user_id: _id, article_id: article._id },
+  //       {
+  //         headers: {
+  //           Authorization: `Bearer ${token}`,
+  //           "Content-Type": "application/json",
+  //         },
+  //       }
+  //     );
+  //     if (response.data.status) {
+  //        dispatch(updateNewsLike(article._id))
+  //     }
+  //   } catch (error) {
+  //     console.error("Error updating like status:", error);
+  //     if (error.response) {
+  //       console.error("Response data:", error.response.data);
+  //       console.error("Response status:", error.response.status);
+  //     }
+  //   }
+  // };
 
-    const articleId = article._id?.toString();
-    // Ensure we're working with strings
-    const currentLikedArticles = Array.isArray(liked_articles) 
-      ? liked_articles.map(id => id?.toString()).filter(Boolean)
-      : [];
-    
-    const isCurrentlyLiked = currentLikedArticles.includes(articleId);
-    const newLikedArticles = isCurrentlyLiked
-      ? currentLikedArticles.filter(id => id !== articleId)
-      : [...currentLikedArticles, articleId];
 
-    try {
-      // Check if current like_count is NaN and set it to 0
-      if (isNaN(parseInt(article.like_count))) {
-        article.like_count = 0;
-      }
 
-      const response = await axios.post(
-        `http://${MY_IP_ADDRESS}:5050/posts/${articleId}/?like=${isCurrentlyLiked ? -1 : 1}`,
-        { liked_articles: newLikedArticles },
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-
-      if (response.data.success) {
-        dispatch({ type: 'GET_LIKE_LIST', payload: newLikedArticles });
-        // Refresh the articles to get updated counts
-        // dispatch(fetchData(currentPage, false, inputTag));
-      }
-    } catch (error) {
-      console.error('Error updating like status:', error);
-      if (error.response) {
-        console.error('Response data:', error.response.data);
-        console.error('Response status:', error.response.status);
-      }
-    }
+  const _likeCallback = (id) => {
+    dispatch(handleLike({ token, articles_id: id, user_id: _id }));
   };
 
-  const handleSave = async (article) => {
-    if (!token) {
-      navigation.navigate('Log In');
-      return;
-    }
-
-    const articleId = article._id?.toString();
-    // Ensure we're working with strings
-    const currentSavedArticles = Array.isArray(saved_articles) 
-      ? saved_articles.map(id => id?.toString()).filter(Boolean)
-      : [];
-    
-    const isCurrentlySaved = currentSavedArticles.includes(articleId);
-    const newSavedArticles = isCurrentlySaved
-      ? currentSavedArticles.filter(id => id !== articleId)
-      : [...currentSavedArticles, articleId];
-
-    try {
-      // Check if current save_count is NaN and set it to 0
-      if (isNaN(parseInt(article.save_count))) {
-        article.save_count = 0;
-      }
-
-      const response = await axios.post(
-        `http://${MY_IP_ADDRESS}:5050/posts/${articleId}/?save=${isCurrentlySaved ? -1 : 1}`,
-        { saved_articles: newSavedArticles },
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-
-      if (response.data.success) {
-        dispatch({ type: 'GET_SAVE_LIST', payload: newSavedArticles });
-        // Refresh the articles to get updated counts
-        // dispatch(fetchData(currentPage, false, inputTag));
-      }
-    } catch (error) {
-      console.error('Error updating save status:', error);
-      if (error.response) {
-        console.error('Response data:', error.response.data);
-        console.error('Response status:', error.response.status);
-      }
-    }
+  const _saveCallback = (id) => {
+    dispatch(handleSave({ token, articles_id: id, user_id: _id }));
   };
+
+
+
+
+  // const handleSave = async (article) => {    
+  //   try {
+  //     const response = await axios.post(
+  //       ARTICLE_SAVE_API,
+  //       { user_id: _id, article_id: article._id },
+  //       {
+  //         headers: {
+  //           Authorization: `Bearer ${token}`,
+  //           "Content-Type": "application/json",
+  //         },
+  //       }
+  //     );
+  //     if (response.data.status) {
+  //        dispatch(updatNewsSave(article._id))
+  //     }
+  //   } catch (error) {
+  //     console.error("Error updating like status:", error);
+  //     if (error.response) {
+  //       console.error("Response data:", error.response.data);
+  //       console.error("Response status:", error.response.status);
+  //     }
+  //   }
+  // };
 
   const renderArticleItem = ({ item }) => {
-    // Ensure we're working with strings for comparison
-    const itemId = item._id?.toString();
-    const isLiked = Array.isArray(liked_articles) 
-      ? liked_articles.map(id => id?.toString()).includes(itemId)
-      : false;
-    const isSaved = Array.isArray(saved_articles)
-      ? saved_articles.map(id => id?.toString()).includes(itemId)
-      : false;
+    const { like_count, save_count, is_liked, is_saved } = item;
 
     return (
       <View style={styles.card}>
-        <TouchableOpacity 
+        <TouchableOpacity
           onPress={() => navigateToContent(item.article_link)}
           activeOpacity={0.8}
         >
           {item.article_preview_image && (
-            <Image 
-              source={{ uri: item.article_preview_image }} 
+            <Image
+              source={{ uri: item.article_preview_image }}
               style={styles.articleImage}
               resizeMode="cover"
             />
           )}
           <View style={styles.articleContent}>
-            <Text style={styles.cardTitle}>{item.article_title || "Untitled Article"}</Text>
-            <TouchableOpacity onPress={() => navigateToAuthor(item.author_id)}>
-              <Text style={styles.cardSubtitle}>By {item.author_name || "Unknown Author"}</Text>
+            <Text style={styles.cardTitle}>
+              {item.article_title || "Untitled Article"}
+            </Text>
+            <TouchableOpacity 
+            // onPress={() => navigateToAuthor(item.author_id)}
+            >
+              <Text style={styles.cardSubtitle}>
+                By {item.author_name || "Unknown Author"}
+              </Text>
             </TouchableOpacity>
             <View style={styles.statsContainer}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.statItem}
                 onPress={(e) => {
-                  e.stopPropagation();
+                  // e.stopPropagation();
                   handleLike(item);
                 }}
                 activeOpacity={0.6}
               >
-                <Icon 
-                  name={isLiked ? "heart" : "heart-o"} 
-                  size={16} 
-                  color={isLiked ? "#e74c3c" : "#666"} 
+                <Icon
+                  name={is_liked ? "heart" : "heart-o"}
+                  size={16}
+                  color={is_liked ? "#e74c3c" : "#666"}
                 />
-                <Text style={styles.statsText}>
-                  {isNaN(parseInt(item.like_count)) ? 0 : (item.like_count || 0)}
-                </Text>
+                <Text style={styles.statsText}>{like_count}</Text>
               </TouchableOpacity>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.statItem}
                 onPress={(e) => {
-                  e.stopPropagation();
                   handleSave(item);
                 }}
                 activeOpacity={0.6}
               >
-                <Icon 
-                  name={isSaved ? "bookmark" : "bookmark-o"} 
-                  size={16} 
-                  color={isSaved ? "#f39c12" : "#666"} 
+                <Icon
+                  name={is_saved ? "bookmark" : "bookmark-o"}
+                  size={16}
+                  color={is_saved ? "#f39c12" : "#666"}
                 />
-                <Text style={styles.statsText}>
-                  {isNaN(parseInt(item.save_count)) ? 0 : (item.save_count || 0)}
-                </Text>
+                <Text style={styles.statsText}>{save_count}</Text>
               </TouchableOpacity>
             </View>
             {item.tags && item.tags.length > 0 && (
               <View style={styles.tagsRow}>
                 {item.tags.slice(0, 3).map((tag, index) => (
-                  <Text key={index} style={styles.tag}>{tag}</Text>
+                  <Text key={index} style={styles.tag}>
+                    {tag}
+                  </Text>
                 ))}
                 {item.tags.length > 3 && (
                   <Text style={styles.tag}>+{item.tags.length - 3}</Text>
@@ -291,16 +245,15 @@ const NewsFeedScreen = ({ navigation }) => {
 
   // Render empty state when no articles are found
   const renderEmptyState = () => {
-    
     return (
       <View style={styles.emptyContainer}>
         <Text style={styles.emptyText}>No articles found</Text>
         {inputTag.length > 0 && (
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.clearFiltersButton}
             onPress={() => {
               setInputTag([]);
-              dispatch(fetchData(1, [],token));
+              dispatch(fetchData(1, [], token));
             }}
           >
             <Text style={styles.clearFiltersText}>Clear filters</Text>
@@ -310,35 +263,39 @@ const NewsFeedScreen = ({ navigation }) => {
     );
   };
 
-  const onRefresh =() => {
-    dispatch(fetchData(1, [],token));
-}
+  const onRefresh = () => {
+    dispatch(fetchData(1, [], token));
+  };
 
-
-const loadNextPage = async() => {
-     const {page,pages} = pagination;
+  const loadNextPage = async () => {
+    const { page, pages } = pagination;
     if (page < pages) {
-      await dispatch(fetchData(page+1, inputTag,token));
-      setCurrentPage(page+1);
-    }  
-};
-
+      await dispatch(fetchData(page + 1, inputTag, token));
+    }
+  };
 
   return (
     <View style={styles.container}>
-        <FlatList
-          data={articles}
-          refreshing={false}
-          onRefresh={onRefresh}
-          renderItem={renderArticleItem}
-          keyExtractor={(item) => item._id?.toString() || item.article_link}
-          contentContainerStyle={styles.listContainer}
-          onEndReached={() => {
-            loadNextPage();
-          }}
-          onEndReachedThreshold={0.5}
-          ListEmptyComponent={renderEmptyState}
-        />
+      <FlatList
+        data={articles}
+        refreshing={false}
+        onRefresh={onRefresh}
+        renderItem={({ item }) => (
+          <ListRowItem
+            item={item}
+            handleLike={_likeCallback}
+            handleSave={_saveCallback}
+          />
+        )}
+        // renderItem={ListRowItem()}
+        keyExtractor={(item) => item._id?.toString() || item.article_link}
+        contentContainerStyle={styles.listContainer}
+        onEndReached={() => {
+          loadNextPage();
+        }}
+        onEndReachedThreshold={0.5}
+        ListEmptyComponent={renderEmptyState}
+      />
       <Modal
         animationType="slide"
         transparent={true}
@@ -358,31 +315,28 @@ const loadNextPage = async() => {
               <Text style={styles.selectedTagsLabel}>
                 {inputTag.length > 0 ? "Selected tags:" : "No tags selected"}
               </Text>
-              <Text style={styles.selectedTags}>
-                {inputTag.join(", ")}
-              </Text>
+              <Text style={styles.selectedTags}>{inputTag.join(", ")}</Text>
             </View>
             <View style={styles.tagsGrid}>
               {tags.map((tag) => {
-                 const isExist = inputTag.includes(tag);
-                 return <TouchableOpacity
-                  key={tag}
-                  onPress={() => handleTagPress(tag)}
-                  style={[
-                    styles.tagButton,
-                    isExist && styles.tagButtonSelected,
-                  ]}
-                >
-                  <Text style={
-                     isExist
-                      ? styles.tagTextSelected
-                      : styles.tagText
-                  }>
-                    {tag}
-                  </Text>
-                </TouchableOpacity>
-                  }
-              )}
+                const isExist = inputTag.includes(tag);
+                return (
+                  <TouchableOpacity
+                    key={tag}
+                    onPress={() => handleTagPress(tag)}
+                    style={[
+                      styles.tagButton,
+                      isExist && styles.tagButtonSelected,
+                    ]}
+                  >
+                    <Text
+                      style={isExist ? styles.tagTextSelected : styles.tagText}
+                    >
+                      {tag}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
             <TouchableOpacity
               style={styles.applyButton}
@@ -395,8 +349,8 @@ const loadNextPage = async() => {
           </View>
         </View>
       </Modal>
-      
-      {isProgress && <BaseIndicator/>}
+
+      {isProgress && <BaseIndicator />}
     </View>
   );
 };
