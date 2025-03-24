@@ -86,6 +86,7 @@ const NewsFeedScreen = ({ navigation }) => {
   // };
 
   const filterArticles = async () => {
+    console.log('inputTag----'+inputTag);
     dispatch(fetchData(1, inputTag, token));
     setShowFilterModal(false);
   };

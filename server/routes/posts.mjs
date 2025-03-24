@@ -48,35 +48,26 @@ router.get("/posts", verifyToken, async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit; 
-
     // Extracting query parameters
-    const tagsQuery = req.query.tags;
+    let tagsQuery = req.query.tags;
     // const searchQuery = req.query.search;
     // const sourceQuery = req.query.source;
     // const sortBy = req.query.sortBy || 'publishDate';
-    // const order = req.query.order === 'asc' ? 1 : -1;
 
     // Build query
     let query = {};
+    let order = 1;
 
-    // Source filter
-    // if (sourceQuery) {
-    //   query.source = sourceQuery;
-    // }
-    
+     if(tagsQuery){
+    order = tagsQuery.includes('Latest') ? -1 : 1
+    tagsQuery = tagsQuery.includes('Latest') && tagsQuery.replace('Latest',"");
+     }
     // Tags filter
     if (tagsQuery) {
-      const tags = tagsQuery.split(",");
+      let tags = tagsQuery.split(",");
+      tags = tags.filter(tag => tag.length > 0);
       query.tags = { $in: tags };
     }
-
-    // Search filter
-    // if (searchQuery) {
-    //   query.$or = [
-    //     { article_title: { $regex: searchQuery, $options: 'i' } },
-    //     { author_name: { $regex: searchQuery, $options: 'i' } }
-    //   ];
-    // }
 
     const collection = posts_db.collection('articles');
     // Get total count for pagination
@@ -85,14 +76,13 @@ router.get("/posts", verifyToken, async (req, res) => {
     // Get paginated results
     const articles = await collection
       .find(query)
-      // .sort({ [sortBy]: order })
+      .sort({ ['createdAt']: order })
       .skip(skip)
       .limit(limit)
       .toArray();
 
 
       let updated_articles = [];
-
       for(let article of articles){
 
         const saved_articles = await posts_db.collection('saved_articles').find({

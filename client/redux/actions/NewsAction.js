@@ -143,6 +143,7 @@ export const fetchData =  (page = 1,inputTag,token) => async (dispatch, getState
           'Content-Type': 'application/json'
         }
       });
+      console.log('fetchTags-----'+JSON.stringify(response.data));
       if (response.data && Array.isArray(response.data)) {
         dispatch(tagsFullFilled(response.data))
       }
