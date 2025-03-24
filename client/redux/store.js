@@ -35,7 +35,7 @@ import newsReducer from './reducers/NewsReducer';
 
 const rootReducer = combineReducers({
     isLogged: loginReducer,
-    liked_articles: likeReducer,
+    // liked_articles: likeReducer,
     user_id: idReducer,
     acct_type: accountReducer,
     saved_articles: saveReducer,

@@ -1,36 +1,59 @@
 const initialState = {
-    saved_articles: [],
-  };
+  articles: [],
+  progress: false,
+};
 
 export default (state = initialState, action) => {
-    switch (action.type) {
-        case 'SAVE':
-            // Convert all IDs to strings
-            const currentSaved = state.saved_articles.map(id => id.toString());
-            const newArticleId = action.payload.toString();
-            return {
-                ...state,
-                saved_articles: [...new Set([...currentSaved, newArticleId])],
-            };
-        case 'UNSAVE':
-            // Convert all IDs to strings for comparison
-            const filtered = state.saved_articles
-                .map(id => id.toString())
-                .filter(id => id !== action.payload.toString());
-            return { 
-                ...state, 
-                saved_articles: filtered,
-            };
-        case 'GET_SAVE_LIST':
-            // Ensure all IDs are strings
-            const savedList = Array.isArray(action.payload) 
-                ? action.payload.map(id => id.toString())
-                : [];
-            return {
-                ...state,
-                saved_articles: savedList,
-            };
-        default:
-            return state;
-    }
+  switch (action.type) {
+    case "UPDATE_SAVE_ARTCILES_LIKE":
+      const articleId = action.payload;
+      const updatedArticles = state.articles.map((item) => {
+        if (item._id === articleId) {
+          return {
+            ...item,
+            is_liked: !item.is_liked,
+            like_count: !item.is_liked
+              ? item.like_count + 1
+              : item.like_count - 1,
+          };
+        }
+        return item;
+      });
+
+      return {
+        ...state,
+        articles: updatedArticles,
+        isProgress: false,
+      };
+    case "UPDATE_SAVE_ARTCILES_SAVE":
+      const selectedId = action.payload;
+      const updatedSavedArticles = state.articles.filter((item) => {
+        return item._id != selectedId;
+      });
+
+      return {
+        ...state,
+        articles: updatedSavedArticles,
+        isProgress: false,
+      };
+    case "GET_SAVE_LIST":
+      return {
+        ...state,
+        articles: action.payload,
+        progress: false,
+      };
+
+    case "GET_SAVE_LIST_PROGRESS":
+      return {
+        ...state,
+        progress: true,
+      };
+    case "GET_SAVE_LIST_FAILURE":
+      return {
+        ...state,
+        progress: false,
+      };
+    default:
+      return state;
+  }
 };

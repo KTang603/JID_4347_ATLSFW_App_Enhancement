@@ -13,7 +13,7 @@ import { setUserInfo, updateUserToken } from '../redux/actions/userInfoAction';
 import { getVend } from '../redux/actions/vendAction';
 import { setToken } from '../redux/actions/tokenAction';
 import {LOGIN_API} from '../utils/ApiUtils.js'
-import {fetchTags} from '../redux/actions/NewsAction'
+import {fetchData, fetchTags} from '../redux/actions/NewsAction'
 import { storeAccountType, storeUserId, storeUserToken } from '../utils/StorageUtils';
 import { HEADER_LOGO, LOGIN_LOGO } from '../assets';
 
@@ -69,7 +69,7 @@ const LoginScreen = ({navigation}) => {
           storeUserId(""+data.user._id)
           storeAccountType(""+data.user.user_roles)
           storeUserToken(token)
-          
+          await dispatch(fetchData(1, [],token));
           dispatch(setToken(token));
           dispatch(set_acct_type(data.user.user_roles));
 

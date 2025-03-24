@@ -1,15 +1,14 @@
 import axios from "axios";
 import MY_IP_ADDRESS from "../../environment_variables.mjs";
 import { getUserToken } from "../../utils/StorageUtils";
-import { CREATE_ARTICLE_API } from "../../utils/ApiUtils";
+import { ARTICLE_LIKE_API, ARTICLE_SAVE_API, CREATE_ARTICLE_API } from "../../utils/ApiUtils";
+import { updatSaveNewsSave, updateSaveNewsLike } from "./saveAction";
 
-export const fetchData =  (page = 1, loadMore = false,inputTag) => async (dispatch, getState) => {
+export const fetchData =  (page = 1,inputTag,token) => async (dispatch, getState) => {
     try {
-        const token = await getUserToken();
-        dispatch(newsDataProgress())
-    //   setIsLoading(true);
+        dispatch(newsDataProgress())        
         const response = await axios.get(
-        `http://${MY_IP_ADDRESS}:5050/posts?tags=${inputTag.join(",")}&page=${page}&limit=80`,
+        `http://${MY_IP_ADDRESS}:5050/posts?tags=${inputTag.join(",")}&page=${page}&limit=10`,
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -17,21 +16,8 @@ export const fetchData =  (page = 1, loadMore = false,inputTag) => async (dispat
           }
         }
       );
-      //response.data.articles
-      const {articles} = response.data
-      dispatch(newsDataFullFilled(articles))
-
-
-
-    // console.log('response-----'+JSON.stringify(response.data));
-     
-
-    //   const articles = response.data.articles.map(article => ({
-    //     ...article,
-    //     _id: article._id?.toString() || '',
-    //     author_id: article.author_id?.toString() || ''
-    //   }));
-
+      const {articles,pagination} = response.data
+      dispatch(newsDataFullFilled({articles,pagination}))
     } catch (error) {
         dispatch(newsDataFailure())
 
@@ -79,6 +65,75 @@ export const fetchData =  (page = 1, loadMore = false,inputTag) => async (dispat
     };
   };
 
+  export const updateNewsLike = (articleId) => {
+    return {
+      type: 'UPDATE_NEWS_LIKE',
+      payload:articleId,
+    };
+  };
+
+  export const updatNewsSave = (articleId) => {
+    return {
+      type: 'UPDATE_NEWS_SAVE',
+      payload:articleId,
+    };
+  };
+
+  export const handleLike = (request) => async (dispatch,getState) => {
+    try {
+      const response = await axios.post(
+        ARTICLE_LIKE_API,
+        { user_id: request.user_id, article_id: request.articles_id },
+        {
+          headers: {
+            Authorization: `Bearer ${request.token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      if (response.data.status) {
+        await dispatch(updateSaveNewsLike(request.articles_id))
+        await dispatch(updateNewsLike(request.articles_id))
+      }
+    } catch (error) {
+      console.error("Error updating like status:", error);
+      if (error.response) {
+        console.error("Response data:", error.response.data);
+        console.error("Response status:", error.response.status);
+      }
+    }
+  };
+
+
+  export const handleSave = (request) => async (dispatch,getState) => {    
+    try {
+      const response = await axios.post(
+        ARTICLE_SAVE_API,
+        { user_id: request.user_id, article_id: request.articles_id },
+        {
+          headers: {
+            Authorization: `Bearer ${request.token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      if (response.data.status) {
+        console.log("response----" + JSON.stringify(request.articles_id));
+         await dispatch(updatNewsSave(request.articles_id))
+         await dispatch(updatSaveNewsSave(request.articles_id))
+
+      }
+    } catch (error) {
+      console.error("Error updating like status:", error);
+      if (error.response) {
+        console.error("Response data:", error.response.data);
+        console.error("Response status:", error.response.status);
+      }
+    }
+  };
+
+
+
   export const fetchTags =  (token) => async (dispatch,getState) => {
     try {
       const url = `http://${MY_IP_ADDRESS}:5050/tags`;
@@ -88,6 +143,7 @@ export const fetchData =  (page = 1, loadMore = false,inputTag) => async (dispat
           'Content-Type': 'application/json'
         }
       });
+      console.log('fetchTags-----'+JSON.stringify(response.data));
       if (response.data && Array.isArray(response.data)) {
         dispatch(tagsFullFilled(response.data))
       }
