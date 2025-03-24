@@ -27,12 +27,11 @@ const SettingPage = () => {
     <View>
       {isAdmin && (
         <>
-          <AppPrimaryButton title="Users List" handleSubmit={() => {navigation.navigate("UserList")}} />
-          <AppPrimaryButton title="Vendor List" handleSubmit={() => {}} />
-          <AppPrimaryButton title="Article List" handleSubmit={() => {}} />
-          <AppPrimaryButton title="Most Liked" handleSubmit={() => {}} />
-          <AppPrimaryButton title="Most Saved" handleSubmit={() => {}} />
-          <AppPrimaryButton title="News Api Details" handleSubmit={() => {}} />
+          <AppPrimaryButton title="Users List" handleSubmit={() => {navigation.navigate("AdminDataList", { listType: "users" })}} />
+          <AppPrimaryButton title="Article List" handleSubmit={() => {navigation.navigate("AdminDataList", { listType: "articles" })}} />
+          <AppPrimaryButton title="Most Liked" handleSubmit={() => {navigation.navigate("AdminDataList", { listType: "mostLiked" })}} />
+          <AppPrimaryButton title="Most Saved" handleSubmit={() => {navigation.navigate("AdminDataList", { listType: "mostSaved" })}} />
+          <AppPrimaryButton title="News Api Details" handleSubmit={() => {navigation.navigate("NewsApiDetails")}} />
         </>
       )}
       <AppPrimaryButton
@@ -49,7 +48,7 @@ const styles = StyleSheet.create({
   updateButtonStyle: {
     backgroundColor: "lightgray",
     borderRadius: 3,
-    width: "100%",
+    width: "50%",
     alignItems: "center",
     justifyContent: "center",
     alignSelf: "center",

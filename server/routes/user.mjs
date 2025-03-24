@@ -2,6 +2,7 @@ import express from "express";
 import { users_db } from "../db/conn.mjs";
 import { ObjectId } from "mongodb";
 import { verifyToken } from "../middleware/auth.mjs";
+import { ADMIN_ROLES } from "../utils/constant.mjs";
 
 const router = express.Router();
 
@@ -86,7 +87,45 @@ router.get('/get_profile', verifyToken, async (req, res) => {
             success: true,
             ...users
         });
-})
+});
+
+// Get all users (admin only)
+router.get('/all', verifyToken, async (req, res) => {
+    try {
+        console.log("User object in request:", req.user);
+        console.log("ADMIN_ROLES value:", ADMIN_ROLES);
+        
+        // Check if user is admin
+        if (req.user.accountType != ADMIN_ROLES) {
+            console.log("Access denied. User is not admin. Account type:", req.user.accountType);
+            return res.status(403).json({ 
+                success: false,
+                message: 'Access denied. Admin only.',
+                user: req.user,
+                adminRole: ADMIN_ROLES
+            });
+        }
+
+        console.log("Admin access granted, fetching users");
+        const users = await users_db.collection('customer_info').find({}).toArray();
+        console.log(`Found ${users.length} users`);
+        
+        // Remove sensitive information
+        const sanitizedUsers = users.map(user => {
+            const { hashed_password, ...userWithoutPassword } = user;
+            return userWithoutPassword;
+        });
+        
+        res.status(200).json(sanitizedUsers);
+    } catch (error) {
+        console.error("Error fetching users:", error);
+        res.status(500).json({ 
+            success: false,
+            message: 'Internal server error',
+            error: error.message
+        });
+    }
+});
 
 
 router.patch('/edit', async (req, res) => {

@@ -3,10 +3,10 @@ import {TouchableOpacity,StyleSheet,Text} from 'react-native'
 
 const AppPrimaryButton = (props) => {
 
- const {title,handleSubmit} =props;
+ const {title, handleSubmit, style} = props;
 
   return <TouchableOpacity
-    style={styles.buttonWrapper}
+    style={[styles.buttonWrapper, style]}
     onPress={(view) => {
       handleSubmit();
     }}
@@ -19,7 +19,7 @@ const styles = StyleSheet.create({
     buttonWrapper: {
         backgroundColor: "lightgray",
         borderRadius: 3,
-        width: "100%",
+        width: "80%", // Changed from 100% to 80% for better appearance
         alignItems: "center",
         justifyContent: "center",
         alignSelf: "center",

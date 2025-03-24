@@ -2,6 +2,7 @@ import express from "express";
 import { users_db } from "../db/conn.mjs";
 import { ObjectId } from "mongodb";
 import { verifyToken, requireAdmin } from "../middleware/auth.mjs";
+import { ADMIN_ROLES, VENDOR_ROLES } from "../utils/constant.mjs";
 
 /*
 enum AccountType {
@@ -159,6 +160,61 @@ router.get("/discover/:vendor_id", async (req, res) => {
     } catch (err) {
         console.error(err);
         res.status(500).send("Internal Server Error");
+    }
+});
+
+// Get all vendors (admin only)
+router.get('/all', verifyToken, async (req, res) => {
+    try {
+        console.log("User object in request:", req.user);
+        console.log("ADMIN_ROLES value:", ADMIN_ROLES);
+        
+        // Check if user is admin
+        if (req.user.accountType != ADMIN_ROLES) {
+            console.log("Access denied. User is not admin. Account type:", req.user.accountType);
+            return res.status(403).json({ 
+                success: false,
+                message: 'Access denied. Admin only.',
+                user: req.user,
+                adminRole: ADMIN_ROLES
+            });
+        }
+
+        console.log("Admin access granted, fetching vendors");
+        
+        // Get all users with account_type = 2 (vendor)
+        const vendorUsers = await users_db.collection('user_login')
+            .find({ account_type: VENDOR_ROLES })
+            .toArray();
+        
+        // Get the vendor_ids to fetch vendor details
+        const vendorIds = vendorUsers.map(user => user._id);
+        
+        // Get the customer_info for these vendors
+        const vendorDetails = await users_db.collection('customer_info')
+            .find({ 
+                hashed_email: { 
+                    $in: vendorUsers.map(user => user.hashed_email) 
+                } 
+            })
+            .toArray();
+        
+        console.log(`Found ${vendorDetails.length} vendors`);
+        
+        // Remove sensitive information
+        const sanitizedVendors = vendorDetails.map(vendor => {
+            const { hashed_password, ...vendorWithoutPassword } = vendor;
+            return vendorWithoutPassword;
+        });
+        
+        res.status(200).json(sanitizedVendors);
+    } catch (error) {
+        console.error("Error fetching vendors:", error);
+        res.status(500).json({ 
+            success: false,
+            message: 'Internal server error',
+            error: error.message
+        });
     }
 });
 

@@ -31,8 +31,8 @@ import SplashPage from "./Screens/SplashPage";
 import SettingPage from './Screens/SettingPage';
 import AdminUserList from "./Screens/AdminUserList";
 import CreateEvent from "./Screens/CreateEvent";
-import ParticipantList from "./Screens/ParticipantList";
-import { HEADER_LOGO } from "./assets";
+import NewsApiDetailsScreen from "./Screens/NewsApiDetailsScreen";
+import AdminDataListScreen from "./Screens/AdminDataListScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -63,7 +63,6 @@ const App = () => {
               backgroundColor: "#02833D",
             },
             headerTintColor: "white",
-
           }}
         >
           <Stack.Screen options={{headerShown: false }} name="Splash" component={SplashPage} />
@@ -76,12 +75,12 @@ const App = () => {
           <Stack.Screen name="Article Webview" component={ArticleContent} />
           <Stack.Screen name="Shop Now Webview" component={ShopNowWebview} /> 
           <Stack.Screen name="Setting" component={SettingPage} /> 
-          <Stack.Screen name="UserList" component={AdminUserList} /> 
+          <Stack.Screen name="UserList" component={AdminUserList} />
           <Stack.Screen name="Forgot Password" component={ForgotPasswordScreen} />
           <Stack.Screen name="Events" component={EventsScreen} />
           <Stack.Screen name="CreateEvent" component={CreateEvent} />
-          <Stack.Screen name="ParticipantList" component={ParticipantList} />
-
+          <Stack.Screen name="NewsApiDetails" component={NewsApiDetailsScreen} />
+          <Stack.Screen name="AdminDataList" component={AdminDataListScreen} />
 
           {/* add future screens */}
         </Stack.Navigator>
