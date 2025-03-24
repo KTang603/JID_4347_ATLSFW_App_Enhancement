@@ -48,7 +48,7 @@ const styles = StyleSheet.create({
   updateButtonStyle: {
     backgroundColor: "lightgray",
     borderRadius: 3,
-    width: "100%",
+    width: "50%",
     alignItems: "center",
     justifyContent: "center",
     alignSelf: "center",
