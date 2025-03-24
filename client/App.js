@@ -30,6 +30,8 @@ import ForgotPasswordScreen from "./Screens/ForgotPasswordScreen";
 import SplashPage from "./Screens/SplashPage";
 import SettingPage from './Screens/SettingPage';
 import AdminUserList from "./Screens/AdminUserList";
+import AdminDataListScreen from "./Screens/AdminDataListScreen";
+import NewsApiDetailsScreen from "./Screens/NewsApiDetailsScreen";
 import CreateEvent from "./Screens/CreateEvent";
 import ParticipantList from "./Screens/ParticipantList";
 import { HEADER_LOGO } from "./assets";
@@ -76,7 +78,9 @@ const App = () => {
           <Stack.Screen name="Article Webview" component={ArticleContent} />
           <Stack.Screen name="Shop Now Webview" component={ShopNowWebview} /> 
           <Stack.Screen name="Setting" component={SettingPage} /> 
-          <Stack.Screen name="UserList" component={AdminUserList} /> 
+          <Stack.Screen name="UserList" component={AdminUserList} />
+          <Stack.Screen name="AdminDataList" component={AdminDataListScreen} />
+          <Stack.Screen name="NewsApiDetails" component={NewsApiDetailsScreen} />
           <Stack.Screen name="Forgot Password" component={ForgotPasswordScreen} />
           <Stack.Screen name="Events" component={EventsScreen} />
           <Stack.Screen name="CreateEvent" component={CreateEvent} />
