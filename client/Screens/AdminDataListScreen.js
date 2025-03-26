@@ -89,6 +89,7 @@ const AdminDataListScreen = () => {
       }
       
       try {
+       
         const response = await axios.get(`http://${MY_IP_ADDRESS}:5050${endpoint}`);
         
         console.log("API response:", response.status, typeof response.data);
@@ -167,9 +168,12 @@ const AdminDataListScreen = () => {
             <Text style={styles.cardTitle}>
               {item.first_name || ""} {item.last_name || ""}
             </Text>
-            <Text style={styles.cardSubtitle}>
-              Username: {item.username || "No username"}
-            </Text>
+            {item.username &&  <Text style={styles.cardSubtitle}>
+              Username: {item.username}
+            </Text> }
+             {item.user_email &&  <Text style={styles.cardSubtitle}>
+              Email: {item.user_email}
+            </Text> }
             <View style={styles.tagContainer}>
               <Text style={styles.tag}>
                 {getUserType(item.user_roles)}

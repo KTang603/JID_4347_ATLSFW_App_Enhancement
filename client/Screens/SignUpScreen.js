@@ -66,6 +66,7 @@ const SignUpScreen = ({ navigation }) => {
           gender: gender,
           phone_number: phoneNum,
           birthday: birthday,
+          user_email:email,
         };
 
         const response = await makeSignup(userData)
