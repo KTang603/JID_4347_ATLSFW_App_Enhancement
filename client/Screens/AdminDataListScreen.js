@@ -62,11 +62,11 @@ const AdminDataListScreen = () => {
       console.log("Fetching data for list type:", listType);
       
       const endpoints = {
-        users: "/user/all",
-        vendors: "/vendor/all",
-        articles: "/posts/all",
-        mostLiked: "/posts/top_liked",
-        mostSaved: "/posts/top_saved"
+        users: "/admin/users",
+        vendors: "/admin/vendors",
+        articles: "/admin/articles",
+        mostLiked: "/admin/most-liked",
+        mostSaved: "/admin/most-saved"
       };
 
       const endpoint = endpoints[listType];
@@ -82,22 +82,14 @@ const AdminDataListScreen = () => {
       // For debugging, let's try a simple test request first
       try {
         // Test if the server is reachable
-        const testResponse = await axios.get(`http://${MY_IP_ADDRESS}:5050/user/articles`, {
-          headers: {
-            Authorization: `Bearer ${storedToken}`
-          }
-        });
+        const testResponse = await axios.get(`http://${MY_IP_ADDRESS}:5050/user/articles`);
         console.log("Test request successful:", testResponse.status);
       } catch (testError) {
         console.error("Test request failed:", testError.message);
       }
       
       try {
-        const response = await axios.get(`http://${MY_IP_ADDRESS}:5050${endpoint}`, {
-          headers: {
-            Authorization: `Bearer ${storedToken}`
-          }
-        });
+        const response = await axios.get(`http://${MY_IP_ADDRESS}:5050${endpoint}`);
         
         console.log("API response:", response.status, typeof response.data);
         
