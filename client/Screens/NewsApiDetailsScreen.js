@@ -13,13 +13,12 @@ import axios from "axios";
 import MY_IP_ADDRESS from "../environment_variables.mjs";
 import AppPrimaryButton from "../components/AppPrimaryButton";
 
-const makeRequest = async (method, url, data = null, requiresAuth = true, token) => {
+const makeRequest = async (method, url, data = null) => {
   const config = {
     method,
     url: 'http://' + MY_IP_ADDRESS + ':5050' + url,
     headers: {
-      'Content-Type': 'application/json',
-      ...(requiresAuth && token ? { 'Authorization': `Bearer ${token}` } : {})
+      'Content-Type': 'application/json'
     },
     validateStatus: function (status) {
       return status >= 200 && status < 500;
@@ -60,7 +59,7 @@ const NewsApiDetailsScreen = () => {
   useEffect(() => {
     const fetchDomains = async () => {
       try {
-        const response = await makeRequest('get', '/news/domains', null, true, token);
+        const response = await makeRequest('get', '/news/domains');
         if (Array.isArray(response.data)) {
           setDomains(response.data);
         }
@@ -90,7 +89,7 @@ const NewsApiDetailsScreen = () => {
         source: 'Manual'
       };
       console.log('Sending article data:', articleData);
-      const response = await makeRequest('post', '/posts/create', articleData, true, token);
+      const response = await makeRequest('post', '/posts/create', articleData);
 
       if (response.data.success) {
         setNewArticleTitle('');
@@ -111,7 +110,7 @@ const NewsApiDetailsScreen = () => {
       const response = await makeRequest('post', '/news/fetch', { 
         searchQuery: newDomain,
         apiKey: newsApiKey
-      }, true, token);
+      });
       if (response.data.success) {
         Alert.alert('Success', response.data.message);
       }
