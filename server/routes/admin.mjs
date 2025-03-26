@@ -3,16 +3,8 @@ import { MongoClient, ObjectId } from "mongodb";
 import { users_db, posts_db, checkConnection, news_db } from "../db/conn.mjs";
 import { verifyToken, requireAdmin } from "../middleware/auth.mjs";
 import jwt from 'jsonwebtoken';
-import getMongoPasscode from "../password.mjs";
 import { fetchNewsArticles } from "../scripts/fetch-news.mjs";
-
-const uri = "mongodb+srv://" + getMongoPasscode() + "@cluster0.buqut.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
-const client = new MongoClient(uri, {
-    maxPoolSize: 10,
-    minPoolSize: 5,
-    retryWrites: true,
-    w: 'majority'
-});
+import { VENDOR_ROLES } from "../utils/constant.mjs";
 
 const router = express.Router();
 
@@ -21,6 +13,47 @@ router.get("/users", async (req, res) => {
   try {
     const users = await users_db.collection("customer_info").find({}).toArray();
     res.status(200).json(users);
+  } catch (error) {
+    console.error("Error fetching users:", error);
+    res.status(500).json({ error: "Failed to fetch users" });
+  }
+});
+
+router.get("/vendors", async (req, res) => {
+  try {
+    const users = await users_db.collection("customer_info").find({user_roles:VENDOR_ROLES}).toArray();
+    res.status(200).json(users);
+  } catch (error) {
+    console.error("Error fetching users:", error);
+    res.status(500).json({ error: "Failed to fetch users" });
+  }
+});
+
+// activate:1 (user_status)
+// deactivate:0 (user_status)
+
+// user_status
+// user_id
+// token
+
+// user_status: 0,
+
+router.post("/users/change_status", async (req, res) => {
+  try {
+     const { user_id, user_status } = req.body;
+     const users = await users_db.collection('customer_info');
+    const currentUser = await users.find({_id: new ObjectId(user_id)}).toArray();
+      var updated_user = {};
+     if(currentUser[0].user_status){
+       updated_user =  {...currentUser[0],user_status: !currentUser[0].user_status}
+     }
+
+    // Update user document
+    const result = await users.updateOne(
+        { _id: new ObjectId(user_id) },
+        { $set: updated_user }
+    );
+    res.status(200).json({status:true,message:`This user is ${user_status=='1'?"Activated":"Deactivated"}`});
   } catch (error) {
     console.error("Error fetching users:", error);
     res.status(500).json({ error: "Failed to fetch users" });

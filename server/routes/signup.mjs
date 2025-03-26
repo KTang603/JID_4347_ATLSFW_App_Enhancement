@@ -22,6 +22,7 @@ router.post("/signup", async (req, res) => {
     birthday,
     gender,
     phone_number,
+    user_email,
   } = req.body;
   if (!hashed_email || !hashed_password) {
     return res
@@ -43,7 +44,8 @@ router.post("/signup", async (req, res) => {
     username == null ||
     birthday == null ||
     gender == null ||
-    phone_number == null
+    phone_number == null ||
+    user_email == null
   ) {
     return res
       .status(400)
@@ -63,6 +65,7 @@ router.post("/signup", async (req, res) => {
     gender: gender,
     phone_number: phone_number,
     birthday: birthday,
+    user_email:user_email,
     user_roles: USER_ROLES, // 1 for user, 2 for admin
     // encrypted_email: encrypted_email,
     // liked_articles: [],
