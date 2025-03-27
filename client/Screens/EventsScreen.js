@@ -14,6 +14,7 @@ import { useSelector } from "react-redux";
 import AppPrimaryButton from "../components/AppPrimaryButton";
 import { ACCOUNT_TYPE_ADMIN } from "../Screens/ProfilePage";
 import { useNavigation } from "@react-navigation/native";
+import { Ionicons } from "@expo/vector-icons";
 import axios from "axios";
 import {
   addParticipantRequest,
@@ -85,31 +86,30 @@ const EventsScreen = () => {
 
     return (
       <View style={styles.eventCard}>
-        {/* Event Title and Type Tag */}
-        <View style={styles.eventHeaderRow}>
-          <Text style={styles.eventTitle}>{event.event_title}</Text>
-          <View style={[
-            styles.eventTypeTag, 
-            {backgroundColor: eventType === "workshop" ? "#e0f2f1" : "#f0f7ff"}
-          ]}>
-            <Text style={[
-              styles.eventTypeText,
-              {color: eventType === "workshop" ? "#00796b" : "#1976d2"}
-            ]}>
-              {eventType === "workshop" ? "Workshop" : "Event"}
-            </Text>
-          </View>
-        </View>
+        {/* Event Title */}
+        <Text style={styles.eventTitle}>{event.event_title}</Text>
 
-        {/* Event Location */}
+        {/* Event Location and Time */}
         <View style={styles.locationContainer}>
           <Text style={styles.eventLocation}>{event.event_location}</Text>
+          {event.event_time && (
+            <Text style={styles.eventTime}>
+              <Ionicons name="time-outline" size={14} color="#02833D" /> {event.event_time}
+            </Text>
+          )}
         </View>
 
         {/* Event Description */}
         <Text style={styles.eventDescription} numberOfLines={3}>
           {event.event_desc}
         </Text>
+        
+        {/* Event Type Tag */}
+        <View style={styles.tagsRow}>
+          <Text style={styles.tag}>
+            {eventType === "workshop" ? "Workshop" : "Event"}
+          </Text>
+        </View>
 
         {/* Event Link */}
         <View
@@ -132,25 +132,22 @@ const EventsScreen = () => {
           <TouchableOpacity
             disabled={isParticipated}
             onPress={() => {
-              isAdmin ? navigation.navigate("ParticipantList", { event }) :addParticipant(event._id);
+              isAdmin ? navigation.navigate("InterestedList", { event }) :addParticipant(event._id);
             }}
-            style={[
-              styles.linkContainer,
-              { backgroundColor: isParticipated ? "#e0e0e0" : "#fff" },
-            ]} // Use the appropriate background color based on isParticipated styles.linkContainer}
+            style={styles.linkContainer} // Remove the conditional background color
           >
             <Text
               style={[
                 styles.eventLink,
-                { color: isParticipated ? "#000" : "#0066cc" },
+                { color: isParticipated ? "#000" : "#0066cc" }, // Use black color when interested
               ]}
             >
               {" "}
               {isAdmin
-                ? "Participant list"
+                ? "Interested list"
                 : isParticipated
-                ? "Requested"
-                : "Add Participate"}
+                ? "Interested"
+                : "Interested?"}
             </Text>
           </TouchableOpacity>
         </View>
@@ -160,18 +157,53 @@ const EventsScreen = () => {
 
   const _getEventDate = () => {
     let eventDate = {};
-    oldEvent.map((event) => {
-      eventDate[event.event_date] = {
-        marked: true,
-        dotColor: "#097969",
-      };
+    
+    // Process each event
+    oldEvent.forEach((event) => {
+      const date = event.event_date;
+      const isInterested = event.participants && event.participants.includes(_id);
+      
+      if (!eventDate[date]) {
+        // Initialize with dots array for multi-dot support
+        eventDate[date] = {
+          marked: true,
+          dots: [
+            { key: 'event', color: '#097969' } // Green dot for all events
+          ]
+        };
+      }
+      
+      // If user is interested in this event, add a red dot
+      if (isInterested) {
+        // Check if we already have dots for this date
+        if (eventDate[date].dots) {
+          // Add red dot if not already added
+          const hasRedDot = eventDate[date].dots.some(dot => dot.key === 'interested');
+          if (!hasRedDot) {
+            eventDate[date].dots.push({ key: 'interested', color: '#e74c3c' }); // Red dot
+          }
+        }
+      }
     });
+    
+    // Handle selected date
     if (selectedDate) {
-      eventDate[selectedDate] = {
-        selected: true,
-        selectedColor: "#097969",
-      };
+      if (eventDate[selectedDate]) {
+        // If the selected date already has dots, keep them and add selected property
+        eventDate[selectedDate] = {
+          ...eventDate[selectedDate],
+          selected: true,
+          selectedColor: '#097969',
+        };
+      } else {
+        // If the selected date has no dots, just mark it as selected
+        eventDate[selectedDate] = {
+          selected: true,
+          selectedColor: '#097969',
+        };
+      }
     }
+    
     return eventDate;
   };
 
@@ -197,6 +229,7 @@ const EventsScreen = () => {
             onDayPress={(day) => {
               _filterEvent(day);
             }}
+            markingType="multi-dot" // Enable multi-dot support
             markedDates={_getEventDate()}
             theme={{
               textDayFontSize: 16,
@@ -272,27 +305,27 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#e0e0e0",
   },
-  eventHeaderRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 8,
-  },
   eventTitle: {
     fontSize: 14,
     fontWeight: "bold",
     color: "#333",
-    flex: 1,
-    marginRight: 8,
+    marginBottom: 8,
   },
-  eventTypeTag: {
+  tagsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    marginTop: 5,
+    marginBottom: 5,
+  },
+  tag: {
+    backgroundColor: "#e0f2f1",
+    color: "#00796b",
     paddingHorizontal: 8,
     paddingVertical: 2,
-    borderRadius: 12,
-  },
-  eventTypeText: {
+    borderRadius: 4,
     fontSize: 12,
-    fontWeight: "500",
+    marginRight: 5,
+    marginTop: 5,
   },
   locationContainer: {
     marginBottom: 8,
@@ -300,6 +333,11 @@ const styles = StyleSheet.create({
   eventLocation: {
     fontSize: 14,
     color: "#666",
+  },
+  eventTime: {
+    fontSize: 14,
+    color: "#02833D",
+    marginTop: 4,
   },
   eventDescription: {
     fontSize: 14,

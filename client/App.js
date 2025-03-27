@@ -14,6 +14,7 @@ import Icon from "react-native-vector-icons/FontAwesome";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import EventsScreen from "./Screens/EventsScreen";
 import NewsFeedScreen from "./Screens/NewsFeedScreen";
+import HomeScreen from "./Screens/HomeScreen";
 import LoginScreen from "./Screens/LoginScreen";
 import SignUpScreen from "./Screens/SignUpScreen";
 import MY_IP_ADDRESS from "./environment_variables.mjs";
@@ -33,7 +34,7 @@ import AdminUserList from "./Screens/AdminUserList";
 import AdminDataListScreen from "./Screens/AdminDataListScreen";
 import NewsApiDetailsScreen from "./Screens/NewsApiDetailsScreen";
 import CreateEvent from "./Screens/CreateEvent";
-import ParticipantList from "./Screens/ParticipantList";
+import InterestedList from "./Screens/InterestedList";
 import { HEADER_LOGO } from "./assets";
 
 const Stack = createNativeStackNavigator();
@@ -71,6 +72,7 @@ const App = () => {
           <Stack.Screen options={{headerShown: false }} name="Splash" component={SplashPage} />
           <Stack.Screen name="Log In" component={LoginScreen} />
           <Stack.Screen name="Sign Up" component={SignUpScreen} />
+          <Stack.Screen name="Home" component={HomeScreen} />
           <Stack.Screen name="News Feed" component={NewsFeedScreen} />
           <Stack.Screen name="Author" component={AuthorNameScreen} />
           <Stack.Screen name="Profile" component={ProfilePage} />
@@ -84,7 +86,7 @@ const App = () => {
           <Stack.Screen name="Forgot Password" component={ForgotPasswordScreen} />
           <Stack.Screen name="Events" component={EventsScreen} />
           <Stack.Screen name="CreateEvent" component={CreateEvent} />
-          <Stack.Screen name="ParticipantList" component={ParticipantList} />
+          <Stack.Screen name="InterestedList" component={InterestedList} />
 
 
           {/* add future screens */}

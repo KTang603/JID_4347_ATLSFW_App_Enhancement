@@ -4,7 +4,7 @@ import { ActivityIndicator, FlatList, Text, View } from "react-native";
 import { getAllParticipants } from "../redux/actions/eventAction";
 import { useSelector } from "react-redux";
 
-const ParticipantList = (props) => {
+const InterestedList = (props) => {
   const userInfo = useSelector((state) => state.userInfo?.userInfo);
   const token = useSelector((state) => state.userInfo?.token);
   const { _id: userId } = userInfo;
@@ -42,7 +42,7 @@ const ParticipantList = (props) => {
     getParticipants();
   }, []);
 
-  const ParticipantCard = ({ user }) => {
+  const InterestedUserCard = ({ user }) => {
     const { first_name, last_name, gender, phone_number, birthday } = user;
     return (
       <View
@@ -74,7 +74,7 @@ const ParticipantList = (props) => {
       ) : (
         <FlatList
           data={participant}
-          renderItem={({ item }) => <ParticipantCard user={item} />}
+          renderItem={({ item }) => <InterestedUserCard user={item} />}
         />
       )}
       {isLoading && <ActivityIndicator size={'large'} color={'#02833D'} style={{position:'absolute',left:0,right:0,top:0,bottom:0}}/> }
@@ -82,4 +82,4 @@ const ParticipantList = (props) => {
   );
 };
 
-export default ParticipantList;
+export default InterestedList;
