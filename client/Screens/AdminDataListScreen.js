@@ -1,10 +1,11 @@
 import { useNavigation, useRoute } from "@react-navigation/native";
 import React, { useEffect, useState } from "react";
-import { FlatList, Text, View, StyleSheet, ActivityIndicator, TouchableOpacity, Image } from "react-native";
+import { FlatList, Text, View, StyleSheet, ActivityIndicator, TouchableOpacity, Image, Alert } from "react-native";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import MY_IP_ADDRESS from "../environment_variables.mjs";
 import { useSelector } from "react-redux";
+import AppPrimaryButton from "../components/AppPrimaryButton";
 
 const AdminDataListScreen = () => {
   const navigation = useNavigation();
@@ -14,7 +15,7 @@ const AdminDataListScreen = () => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const token = useSelector((store) => store.token?.token);
+  const token = useSelector((store) => store.userInfo?.token);
 
   useEffect(() => {
     // Set the screen title based on the list type
@@ -33,34 +34,55 @@ const AdminDataListScreen = () => {
     fetchData();
   }, [listType]);
 
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      
-      // Try to get token from Redux first
-      let storedToken = token;
-      
-      // If not in Redux, try AsyncStorage
-      if (!storedToken) {
-        console.log("Token not found in Redux, trying AsyncStorage...");
-        try {
-          storedToken = await AsyncStorage.getItem('token');
-          console.log("Token from AsyncStorage:", storedToken ? "Found" : "Not found");
-        } catch (storageError) {
-          console.error("Error accessing AsyncStorage:", storageError);
+  /**
+   * Send a GET request to the specified endpoint to make a vendor request
+   * @param {string} endpoint The endpoint to send the request to
+   * @returns {Promise<Object>} The response object
+   */
+  const sendRequestForVendor = async (user_id)=>{
+      setLoading(true)
+    const response = await axios(
+      {
+        method:'POST',
+        url: `http://${MY_IP_ADDRESS}:5050/admin/users/create_vendor`,
+        data:{
+          user_id
         }
       }
+    );
+    if(response.status){
+      fetchData();//To refresh the status 
+      Alert.alert('Success', response.data.message);
       
-      if (!storedToken) {
-        console.log("No token found in Redux or AsyncStorage");
-        setError("Authentication token not found. Please log in again.");
-        setLoading(false);
-        return;
-      }
+    }
+    setLoading(false)
+  }
 
-      // Define endpoints based on list type
-      console.log("Fetching data for list type:", listType);
-      
+
+  const sendRequestForActivateAndDeactivate = async (user_id,user_status)=>{
+    setLoading(true)
+  const response = await axios(
+    {
+      method:'POST',
+      url: `http://${MY_IP_ADDRESS}:5050/admin/users/change_status`,
+      data:{
+        user_id,
+        user_status
+      }
+    }
+  );
+  if(response.status){
+    fetchData();//To refresh the status 
+    Alert.alert('Success', response.data.message);
+    
+  }
+  setLoading(false)
+}
+
+
+
+  const fetchData = async () => {
+      setLoading(true);      
       const endpoints = {
         users: "/admin/users",
         vendors: "/admin/vendors",
@@ -68,82 +90,53 @@ const AdminDataListScreen = () => {
         mostLiked: "/admin/most-liked",
         mostSaved: "/admin/most-saved"
       };
-
       const endpoint = endpoints[listType];
-      if (!endpoint) {
-        setError(`Invalid list type: ${listType}`);
-        setLoading(false);
-        return;
-      }
-
-      console.log(`Making API request to: http://${MY_IP_ADDRESS}:5050${endpoint}`);
-      console.log(`Using token: ${storedToken ? storedToken.substring(0, 10) + '...' : 'No token'}`);
-      
-      // For debugging, let's try a simple test request first
-      try {
-        // Test if the server is reachable
-        const testResponse = await axios.get(`http://${MY_IP_ADDRESS}:5050/user/articles`);
-        console.log("Test request successful:", testResponse.status);
-      } catch (testError) {
-        console.error("Test request failed:", testError.message);
-      }
-      
+      console.log('endpoint----'+endpoint);
       try {
        
         const response = await axios.get(`http://${MY_IP_ADDRESS}:5050${endpoint}`);
         
-        console.log("API response:", response.status, typeof response.data);
-        
-        if (response.data) {
-          // Handle different response formats
-          let responseData = [];
-          
-          if (Array.isArray(response.data)) {
-            responseData = response.data;
-          } else if (response.data.data && Array.isArray(response.data.data)) {
-            responseData = response.data.data;
-          } else if (response.data.success && response.data.results && Array.isArray(response.data.results)) {
-            responseData = response.data.results;
-          } else {
-            // Try to extract any array in the response
-            const possibleArrays = Object.values(response.data).filter(val => Array.isArray(val));
-            if (possibleArrays.length > 0) {
-              responseData = possibleArrays[0];
-            }
-          }
+        setLoading(false);
+        if (response.status == 200) {
+          responseData = response.data; 
+          setData(response.data); //USERS 
+
+          // let responseData = [];
+          // if (Array.isArray(response.data)) {
+          //   responseData = response.data; //NEWS 
+          // } else if (response.data.data && Array.isArray(response.data.data)) {
+          //   responseData = response.data.data;
+          // } else if (response.data.success && response.data.results && Array.isArray(response.data.results)) {
+          //   responseData = response.data.results;
+          // } else {
+          //   // Try to extract any array in the response
+          //   const possibleArrays = Object.values(response.data).filter(val => Array.isArray(val));
+          //   if (possibleArrays.length > 0) {
+          //     responseData = possibleArrays[0];
+          //   }
+        //  }
           
           // If this is the users list, sort by user type: users first, then vendors, then admins
-          if (listType === "users" && responseData.length > 0) {
-            responseData.sort((a, b) => {
-              // Sort order: User (1) -> Vendor (2) -> Admin (3)
-              const roleA = a.user_roles || 0;
-              const roleB = b.user_roles || 0;
-              return roleA - roleB;
-            });
-          }
+          // if (listType === "users" && responseData.length > 0) {
+          //   responseData.sort((a, b) => {
+          //     // Sort order: User (1) -> Vendor (2) -> Admin (3)
+          //     const roleA = a.user_roles || 0;
+          //     const roleB = b.user_roles || 0;
+          //     return roleA - roleB;
+          //   });
+          // }
           
-          console.log(`Loaded ${responseData.length} items for ${listType}`);
-          setData(responseData);
         } else {
-          console.log("No data in response");
           setData([]);
         }
-      } catch (apiError) {
-        console.error("API request error:", apiError);
-        
-        // If we get a 404, the endpoint might not exist yet
+      } catch (apiError) {   
+        setLoading(false);     
         if (apiError.response && apiError.response.status === 404) {
           setError(`API endpoint not found: ${endpoint}. The server may not support this feature yet.`);
         } else {
           setError(apiError.message || `Failed to fetch ${listType}`);
         }
       }
-    } catch (error) {
-      console.error(`Error fetching ${listType}:`, error);
-      setError(error.message || `Failed to fetch ${listType}`);
-    } finally {
-      setLoading(false);
-    }
   };
 
   const getUserType = (userRoles) => {
@@ -162,8 +155,10 @@ const AdminDataListScreen = () => {
   // Render different item types based on the list type
   const renderItem = ({ item }) => {
     switch (listType) {
+
       case "users":
         return (
+          <View>
           <View style={styles.card}>
             <Text style={styles.cardTitle}>
               {item.first_name || ""} {item.last_name || ""}
@@ -178,8 +173,14 @@ const AdminDataListScreen = () => {
               <Text style={styles.tag}>
                 {getUserType(item.user_roles)}
               </Text>
+            </View> 
+          </View>
+          <View style={{position:'absolute',bottom:0,right:5,top:25}}>
+          <AppPrimaryButton disabled={item.user_roles == 2?true:false} containerStyle ={{width:120,backgroundColor: item.user_roles == 2?'#808080':'#17A398',marginBottom:5}} title= {item.user_roles == 2 ? "Vendor" : "Make Vendor"} handleSubmit={() => {sendRequestForVendor(item._id)}} />
+            <AppPrimaryButton containerStyle ={{width:120,backgroundColor:'#EE6C4D',marginBottom:5}} title="Deactivate" handleSubmit={() => {sendRequestForActivateAndDeactivate(item._id,0)}} />
             </View>
           </View>
+
         );
       
       case "vendors":
@@ -332,6 +333,7 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
     borderRadius: 8,
     padding: 15,
+    width:'100%',
     marginBottom: 10,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },

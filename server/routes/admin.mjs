@@ -60,6 +60,30 @@ router.post("/users/change_status", async (req, res) => {
   }
 });
 
+
+router.post("/users/create_vendor", async (req, res) => {
+  try {
+     const { user_id } = req.body;
+     if(!user_id){
+      res.status(200).json({status:false,message:"User_id is missing."});
+      return;
+     }
+     const users = await users_db.collection('customer_info');
+     const currentUser = await users.find({_id: new ObjectId(user_id)}).toArray();
+     var updated_user = {...currentUser[0],user_roles:VENDOR_ROLES};
+     // Update user roles.
+      await users.updateOne(
+        { _id: new ObjectId(user_id)},
+        { $set: updated_user }
+    );
+    res.status(200).json({status:true,message:"This user is now a vendor."});
+  } catch (error) {
+    console.error("Error fetching users:", error);
+    res.status(500).json({ error: "Failed to fetch users" });
+  }
+});
+
+
 // Get user by ID
 router.get("/user/:id", async (req, res) => {
   try {
