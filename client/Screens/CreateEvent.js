@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, StyleSheet, Alert, Modal, TouchableOpacity } from "react-native";
+import { View, Text, TextInput, StyleSheet, Alert, Modal, TouchableOpacity, ScrollView } from "react-native";
 import AppPrimaryButton from "../components/AppPrimaryButton";
 import axios from "axios";
 import MY_IP_ADDRESS from "../environment_variables.mjs";
@@ -27,8 +27,12 @@ const CreateEvent = () => {
     event_date: "",
     event_desc: "",
     event_link: "",
+    event_type: "regular", // Default to regular event
     user_id: user_id  // Include user_id who created the event
   });
+  
+  // State to control event type dropdown
+  const [showEventTypeDropdown, setShowEventTypeDropdown] = useState(false);
 
   const handleSubmit = async () => {
     try {
@@ -50,6 +54,7 @@ const CreateEvent = () => {
           event_location: eventData.event_location,
           event_date: eventData.event_date,
           user_id: eventData.user_id,
+          event_type: eventData.event_type, // Include event type
           requestType: "EVENT"
         },
         {
@@ -75,7 +80,7 @@ const CreateEvent = () => {
   };
 
   return (
-    <View style={{ flex: 1, paddingHorizontal: 20 }}>
+    <ScrollView style={{ flex: 1, paddingHorizontal: 20 }}>
       {/* Event Name Input */}
       <Text style={styles.label}>Event Name:</Text>
       <TextInput
@@ -124,6 +129,47 @@ const CreateEvent = () => {
         placeholder="Enter event link"
       />
 
+      {/* Event Type Dropdown */}
+      <Text style={styles.label}>Event Type:</Text>
+      <TouchableOpacity 
+        onPress={() => setShowEventTypeDropdown(!showEventTypeDropdown)}
+        style={styles.dropdownButton}
+      >
+        <Text style={styles.dropdownButtonText}>
+          {eventData.event_type === "regular" ? "Regular Event" : "Workshop & Repair Cafe"}
+        </Text>
+      </TouchableOpacity>
+      
+      {showEventTypeDropdown && (
+        <View style={styles.dropdownContainer}>
+          <TouchableOpacity 
+            style={[
+              styles.dropdownItem, 
+              eventData.event_type === "regular" && styles.selectedItem
+            ]}
+            onPress={() => {
+              setEventData({...eventData, event_type: "regular"});
+              setShowEventTypeDropdown(false);
+            }}
+          >
+            <Text style={styles.dropdownItemText}>Regular Event</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={[
+              styles.dropdownItem, 
+              eventData.event_type === "workshop" && styles.selectedItem
+            ]}
+            onPress={() => {
+              setEventData({...eventData, event_type: "workshop"});
+              setShowEventTypeDropdown(false);
+            }}
+          >
+            <Text style={styles.dropdownItemText}>Workshop & Repair Cafe</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       {/* Submit Button - Uses custom AppPrimaryButton component */}
       <AppPrimaryButton title={"Add Event"} handleSubmit={handleSubmit} />
 
@@ -161,12 +207,45 @@ const CreateEvent = () => {
           </View>
         </View>
       </Modal>
-    </View>
+    </ScrollView>
   );
 };
 
 // Styles for form elements
 const styles = StyleSheet.create({
+  // Dropdown styles
+  dropdownButton: {
+    height: 40,
+    borderColor: "gray",
+    borderWidth: 1,
+    marginBottom: 5,
+    paddingHorizontal: 10,
+    borderRadius: 5,
+    justifyContent: 'center'
+  },
+  dropdownButtonText: {
+    fontSize: 14,
+    color: '#000'
+  },
+  dropdownContainer: {
+    borderColor: "gray",
+    borderWidth: 1,
+    borderRadius: 5,
+    marginBottom: 15,
+    backgroundColor: 'white',
+    zIndex: 1000,
+  },
+  dropdownItem: {
+    padding: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  selectedItem: {
+    backgroundColor: '#f0f7ff',
+  },
+  dropdownItemText: {
+    fontSize: 14,
+  },
   // Basic input field styling
   input: {
     height: 40,

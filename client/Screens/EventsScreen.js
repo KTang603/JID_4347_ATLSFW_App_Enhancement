@@ -79,11 +79,27 @@ const EventsScreen = () => {
     const isParticipated = event.participants
       ? event.participants.includes(_id)
       : false;
+    
+    // Determine event type - default to "regular" if not specified
+    const eventType = event.event_type || "regular";
 
     return (
       <View style={styles.eventCard}>
-        {/* Event Title */}
-        <Text style={styles.eventTitle}>{event.event_title}</Text>
+        {/* Event Title and Type Tag */}
+        <View style={styles.eventHeaderRow}>
+          <Text style={styles.eventTitle}>{event.event_title}</Text>
+          <View style={[
+            styles.eventTypeTag, 
+            {backgroundColor: eventType === "workshop" ? "#e0f2f1" : "#f0f7ff"}
+          ]}>
+            <Text style={[
+              styles.eventTypeText,
+              {color: eventType === "workshop" ? "#00796b" : "#1976d2"}
+            ]}>
+              {eventType === "workshop" ? "Workshop" : "Event"}
+            </Text>
+          </View>
+        </View>
 
         {/* Event Location */}
         <View style={styles.locationContainer}>
@@ -256,11 +272,27 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#e0e0e0",
   },
+  eventHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
+  },
   eventTitle: {
     fontSize: 14,
     fontWeight: "bold",
-    marginBottom: 8,
     color: "#333",
+    flex: 1,
+    marginRight: 8,
+  },
+  eventTypeTag: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 12,
+  },
+  eventTypeText: {
+    fontSize: 12,
+    fontWeight: "500",
   },
   locationContainer: {
     marginBottom: 8,
