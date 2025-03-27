@@ -3,10 +3,11 @@ import {TouchableOpacity,StyleSheet,Text} from 'react-native'
 
 const AppPrimaryButton = (props) => {
 
- const {title,handleSubmit} =props;
+ const {containerStyle = styles.buttonWrapper, title,handleSubmit,disabled=false} =props;
 
   return <TouchableOpacity
-    style={styles.buttonWrapper}
+    style={containerStyle}
+    disabled={disabled}
     onPress={(view) => {
       handleSubmit();
     }}
