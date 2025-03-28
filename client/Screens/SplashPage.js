@@ -21,7 +21,7 @@ const SplashPage = () => {
     } else {
       navigation.reset({
         index: 0,
-        routes: [{ name: "News Feed" }],
+        routes: [{ name: "Home" }]
       });
     }
   };
