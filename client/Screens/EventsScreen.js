@@ -47,6 +47,9 @@ const EventsScreen = () => {
     setSelectedDate(today);
   }, []);
   
+  // State for event type filter
+  const [eventTypeFilter, setEventTypeFilter] = useState("");
+  
   // Add a listener for when the screen comes into focus
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
@@ -59,17 +62,27 @@ const EventsScreen = () => {
       const params = currentRoute?.params || {};
       
       // Handle different navigation scenarios
-      if (params.showAll) {
+      if (params.filterType) {
+        // If filterType is provided, apply it and clear date filter
+        setEventTypeFilter(params.filterType);
+        setSelectedDate(""); // Clear selected date to show all events of this type
+      } else if (params.showAll) {
         // Coming from navbar Events tab click - show all events
         setSelectedDate(""); // Clear selected date to show all events
+        setEventTypeFilter(""); // Clear event type filter
       } else if (params.preserveDate && params.selectedDate) {
         // Coming back from InterestedList with a specific date
         setSelectedDate(params.selectedDate);
       }
       
       // Clear the params after handling them to avoid reapplying on future focus events
-      if (params.showAll || params.preserveDate) {
-        navigation.setParams({ showAll: undefined, preserveDate: undefined, selectedDate: undefined });
+      if (params.showAll || params.preserveDate || params.filterType || params.selectedDate) {
+        navigation.setParams({ 
+          showAll: undefined, 
+          preserveDate: undefined, 
+          selectedDate: undefined,
+          filterType: undefined
+        });
       }
     });
     
@@ -77,21 +90,29 @@ const EventsScreen = () => {
     return unsubscribe;
   }, [navigation]);
   
-  // Filter events when selectedDate changes or after fetching events
+  // Filter events when selectedDate or eventTypeFilter changes or after fetching events
   useEffect(() => {
     if (oldEvent.length > 0) {
+      let filteredEvents = [...oldEvent];
+      
+      // Apply date filter if a date is selected
       if (selectedDate) {
-        // If a date is selected, filter events for that date
-        const filteredEvents = oldEvent.filter(event => 
+        filteredEvents = filteredEvents.filter(event => 
           event.event_date === selectedDate
         );
-        setEvents(filteredEvents);
-      } else {
-        // If no date is selected, show all events
-        setEvents(oldEvent);
       }
+      
+      // Apply event type filter if specified
+      if (eventTypeFilter) {
+        filteredEvents = filteredEvents.filter(event => {
+          const eventType = event.event_type || "regular"; // Default to "regular" if not specified
+          return eventType === eventTypeFilter;
+        });
+      }
+      
+      setEvents(filteredEvents);
     }
-  }, [oldEvent, selectedDate]);
+  }, [oldEvent, selectedDate, eventTypeFilter]);
 
   // Fetch events from API
   const fetchEvents = async () => {
@@ -108,12 +129,13 @@ const EventsScreen = () => {
     }
   };
   
-  // Handle pull-to-refresh - show all events
+  // Handle pull-to-refresh - show all events (clear filters)
   const onRefresh = React.useCallback(() => {
     setRefreshing(true);
     fetchEvents();
-    // Clear selected date to show all events
+    // Clear filters
     setSelectedDate("");
+    setEventTypeFilter("");
   }, []);
   
   // Function to show all events (used when Events tab is clicked)
