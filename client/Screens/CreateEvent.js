@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, StyleSheet, Alert, Modal, TouchableOpacity, ScrollView } from "react-native";
+import { View, Text, TextInput, StyleSheet, Alert, Modal, TouchableOpacity, ScrollView, Platform } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import AppPrimaryButton from "../components/AppPrimaryButton";
 import axios from "axios";
 import MY_IP_ADDRESS from "../environment_variables.mjs";
@@ -17,14 +18,16 @@ const CreateEvent = () => {
   // Get token from Redux
   const token = useSelector((store) => store.token.token); 
   
-  // State to control date picker modal visibility
+  // State to control picker modal visibility
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
   
   // State to manage form data - matches the API endpoint requirements
   const [eventData, setEventData] = useState({
     event_title: "",
     event_location: "",
     event_date: "",
+    event_time: "",
     event_desc: "",
     event_link: "",
     event_type: "regular", // Default to regular event
@@ -40,7 +43,7 @@ const CreateEvent = () => {
       console.log('Sending event data:', eventData);
   
       if (!eventData.event_title || !eventData.event_location || 
-          !eventData.event_date || !eventData.event_desc || !eventData.event_link) {
+          !eventData.event_date || !eventData.event_time || !eventData.event_desc || !eventData.event_link) {
         Alert.alert("Error", "Please fill all fields");
         return;
       }
@@ -53,6 +56,7 @@ const CreateEvent = () => {
           event_link: eventData.event_link,
           event_location: eventData.event_location,
           event_date: eventData.event_date,
+          event_time: eventData.event_time,
           user_id: eventData.user_id,
           event_type: eventData.event_type, // Include event type
           requestType: "EVENT"
@@ -105,9 +109,26 @@ const CreateEvent = () => {
         onPress={() => setShowDatePicker(true)}
         style={styles.dateInput}
       >
-        <Text style={eventData.event_date ? styles.dateText : styles.placeholderText}>
-          {eventData.event_date || "Select Date"}
-        </Text>
+        <View style={styles.dropdownButtonContent}>
+          <Text style={eventData.event_date ? styles.dateText : styles.placeholderText}>
+            {eventData.event_date || "Select Date"}
+          </Text>
+          <Ionicons name="calendar-outline" size={16} color="#666" />
+        </View>
+      </TouchableOpacity>
+
+      {/* Time Input - Clickable field to show time picker */}
+      <Text style={styles.label}>Event Time:</Text>
+      <TouchableOpacity 
+        onPress={() => setShowTimePicker(true)}
+        style={styles.dateInput}
+      >
+        <View style={styles.dropdownButtonContent}>
+          <Text style={eventData.event_time ? styles.dateText : styles.placeholderText}>
+            {eventData.event_time || "Select Time"}
+          </Text>
+          <Ionicons name="time-outline" size={16} color="#666" />
+        </View>
       </TouchableOpacity>
 
       {/* Event Description Input - Multiline for longer text */}
@@ -135,9 +156,12 @@ const CreateEvent = () => {
         onPress={() => setShowEventTypeDropdown(!showEventTypeDropdown)}
         style={styles.dropdownButton}
       >
-        <Text style={styles.dropdownButtonText}>
-          {eventData.event_type === "regular" ? "Regular Event" : "Workshop & Repair Cafe"}
-        </Text>
+        <View style={styles.dropdownButtonContent}>
+          <Text style={styles.dropdownButtonText}>
+            {eventData.event_type === "regular" ? "Regular Event" : "Workshop & Repair Cafe"}
+          </Text>
+          <Ionicons name="chevron-down" size={16} color="#666" />
+        </View>
       </TouchableOpacity>
       
       {showEventTypeDropdown && (
@@ -207,12 +231,149 @@ const CreateEvent = () => {
           </View>
         </View>
       </Modal>
+
+      {/* Time Picker Modal */}
+      <Modal
+        visible={showTimePicker}
+        transparent={true}
+        animationType="slide"
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.timePickerTitle}>Select Time</Text>
+            
+            {/* Simple Time Picker */}
+            <View style={styles.timePickerContainer}>
+              {/* Hours */}
+              <View style={styles.timeColumn}>
+                <Text style={styles.timeColumnLabel}>Hour</Text>
+                <ScrollView style={styles.timeScrollView}>
+                  {Array.from({ length: 24 }, (_, i) => i).map((hour) => (
+                    <TouchableOpacity
+                      key={`hour-${hour}`}
+                      style={[
+                        styles.timeOption,
+                        eventData.event_time.startsWith(hour.toString().padStart(2, '0')) && styles.selectedTimeOption
+                      ]}
+                      onPress={() => {
+                        const currentTime = eventData.event_time || '00:00';
+                        const minutes = currentTime.split(':')[1] || '00';
+                        const newTime = `${hour.toString().padStart(2, '0')}:${minutes}`;
+                        setEventData({...eventData, event_time: newTime});
+                      }}
+                    >
+                      <Text style={styles.timeOptionText}>{hour.toString().padStart(2, '0')}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+              
+              <Text style={styles.timeSeparator}>:</Text>
+              
+              {/* Minutes */}
+              <View style={styles.timeColumn}>
+                <Text style={styles.timeColumnLabel}>Minute</Text>
+                <ScrollView style={styles.timeScrollView}>
+                  {Array.from({ length: 60 }, (_, i) => i).map((minute) => (
+                    <TouchableOpacity
+                      key={`minute-${minute}`}
+                      style={[
+                        styles.timeOption,
+                        eventData.event_time.endsWith(minute.toString().padStart(2, '0')) && styles.selectedTimeOption
+                      ]}
+                      onPress={() => {
+                        const currentTime = eventData.event_time || '00:00';
+                        const hours = currentTime.split(':')[0] || '00';
+                        const newTime = `${hours}:${minute.toString().padStart(2, '0')}`;
+                        setEventData({...eventData, event_time: newTime});
+                      }}
+                    >
+                      <Text style={styles.timeOptionText}>{minute.toString().padStart(2, '0')}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            </View>
+            
+            {/* Done Button */}
+            <TouchableOpacity 
+              style={styles.doneButton}
+              onPress={() => setShowTimePicker(false)}
+            >
+              <Text style={styles.doneButtonText}>Done</Text>
+            </TouchableOpacity>
+            
+            {/* Cancel Button */}
+            <TouchableOpacity 
+              style={styles.closeButton}
+              onPress={() => setShowTimePicker(false)}
+            >
+              <Text style={styles.closeButtonText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 };
 
 // Styles for form elements
 const styles = StyleSheet.create({
+  // Time picker styles
+  timePickerTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 15,
+  },
+  timePickerContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  timeColumn: {
+    width: 80,
+    height: 150,
+  },
+  timeColumnLabel: {
+    textAlign: 'center',
+    fontSize: 14,
+    marginBottom: 5,
+    color: '#666',
+  },
+  timeScrollView: {
+    height: 120,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 5,
+  },
+  timeOption: {
+    padding: 10,
+    alignItems: 'center',
+  },
+  selectedTimeOption: {
+    backgroundColor: '#e0f2f1',
+  },
+  timeOptionText: {
+    fontSize: 16,
+  },
+  timeSeparator: {
+    fontSize: 24,
+    marginHorizontal: 10,
+  },
+  doneButton: {
+    backgroundColor: '#02833D',
+    padding: 12,
+    borderRadius: 5,
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  doneButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
   // Dropdown styles
   dropdownButton: {
     height: 40,
@@ -223,9 +384,15 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     justifyContent: 'center'
   },
+  dropdownButtonContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   dropdownButtonText: {
     fontSize: 14,
-    color: '#000'
+    color: '#000',
+    flex: 1
   },
   dropdownContainer: {
     borderColor: "gray",

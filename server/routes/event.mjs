@@ -11,7 +11,8 @@ const router = express.Router();
 // For ADMIN
 router.use(['/events/create','/events/add_participant', '/events/delete', '/events/update','/events/participantlist'], verifyToken);
 
-// Admin only - Create Event
+// Admin only - Create Event (COMMENTED OUT - Using the version below that includes event_type)
+/*
 router.post("/events/create",requirePermisssion, async (req, res) => {
   const { event_title, event_desc, event_link, event_location, event_date, user_id} = req.body;
   if (!event_title || !event_desc || !event_link || !event_location || !event_date) {
@@ -32,6 +33,7 @@ router.post("/events/create",requirePermisssion, async (req, res) => {
     res.status(500).send("Internal Server Error");
   }
 });
+*/
 
 
 router.post("/events/participantlist",requirePermisssion, async (req, res) => {
@@ -105,7 +107,7 @@ router.post("/events/create", verifyToken, async (req, res) => {
     // Log received data
     console.log('Received event data:', req.body);
 
-    const { event_title, event_desc, event_link, event_location, event_date, user_id, event_type } = req.body;
+    const { event_title, event_desc, event_link, event_location, event_date, event_time, user_id, event_type } = req.body;
     
     // Check each field individually and provide specific error
     const missingFields = [];
@@ -114,6 +116,7 @@ router.post("/events/create", verifyToken, async (req, res) => {
     if (!event_link) missingFields.push('link');
     if (!event_location) missingFields.push('location');
     if (!event_date) missingFields.push('date');
+    if (!event_time) missingFields.push('time');
 
     if (missingFields.length > 0) {
       return res.status(400).json({ 
@@ -129,6 +132,7 @@ router.post("/events/create", verifyToken, async (req, res) => {
       event_link,
       event_location,
       event_date,
+      event_time,
       user_id,
       event_type: event_type || "regular", // Default to regular if not specified
       created_at: new Date()
