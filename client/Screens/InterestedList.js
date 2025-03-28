@@ -29,7 +29,6 @@ const InterestedList = (props) => {
         setIsError(false);
       }
       setIsLoading(false);
-
     }
   };
 
@@ -43,42 +42,104 @@ const InterestedList = (props) => {
   }, []);
 
   const InterestedUserCard = ({ user }) => {
-    const { first_name, last_name, gender, phone_number, birthday } = user;
+    const { first_name, last_name, username, user_email, phone_number } = user;
     return (
       <View
         style={{
-          borderBottomColor: "gray",
-          borderBottomWidth: 1,
-          margin: 5,
-          padding: 5,
+          backgroundColor: "white",
+          borderRadius: 10,
+          margin: 8,
+          padding: 15,
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 4,
+          elevation: 3,
         }}
       >
-        <Text style={{ fontStyle: "normal", fontWeight: "bold", fontSize: 15 }}>
+        <Text style={{ 
+          fontWeight: "bold", 
+          fontSize: 18, 
+          marginBottom: 10,
+          color: "#333"
+        }}>
           {first_name + " " + last_name}
         </Text>
-        <Text>{phone_number}</Text>
-        <Text>{"Gender : " + gender}</Text>
-        <Text>{"Birthday : " + birthday + ""}</Text>
+        
+        <View style={{ flexDirection: "row", marginBottom: 6, alignItems: "center" }}>
+          <Text style={{ 
+            fontSize: 14, 
+            fontWeight: "500", 
+            color: "#666",
+            width: 80
+          }}>
+            Username:
+          </Text>
+          <Text style={{ 
+            fontSize: 14, 
+            color: "#333",
+            flex: 1
+          }}>
+            {username || "N/A"}
+          </Text>
+        </View>
+        
+        <View style={{ flexDirection: "row", marginBottom: 6, alignItems: "center" }}>
+          <Text style={{ 
+            fontSize: 14, 
+            fontWeight: "500", 
+            color: "#666",
+            width: 80
+          }}>
+            Email:
+          </Text>
+          <Text style={{ 
+            fontSize: 14, 
+            color: "#333",
+            flex: 1
+          }}>
+            {user_email || "N/A"}
+          </Text>
+        </View>
+        
+        <View style={{ flexDirection: "row", alignItems: "center" }}>
+          <Text style={{ 
+            fontSize: 14, 
+            fontWeight: "500", 
+            color: "#666",
+            width: 80
+          }}>
+            Phone:
+          </Text>
+          <Text style={{ 
+            fontSize: 14, 
+            color: "#333",
+            flex: 1
+          }}>
+            {phone_number || "N/A"}
+          </Text>
+        </View>
       </View>
     );
   };
 
   return (
-    <>
+    <View style={{ flex: 1, backgroundColor: "#f5f5f5" }}>
       {isError ? (
         <View
           style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
         >
-          <Text style={{ fontSize: 20 }}>No Interested Users</Text>
+          <Text style={{ fontSize: 20, color: "#666" }}>No Interested Users</Text>
         </View>
       ) : (
         <FlatList
           data={participant}
           renderItem={({ item }) => <InterestedUserCard user={item} />}
+          contentContainerStyle={{ padding: 8 }}
         />
       )}
       {isLoading && <ActivityIndicator size={'large'} color={'#02833D'} style={{position:'absolute',left:0,right:0,top:0,bottom:0}}/> }
-    </>
+    </View>
   );
 };
 

@@ -9,6 +9,7 @@ import {
   ScrollView,
   Linking,
   Dimensions,
+  RefreshControl,
 } from "react-native";
 import { useSelector } from "react-redux";
 import AppPrimaryButton from "../components/AppPrimaryButton";
@@ -26,6 +27,7 @@ const EventsScreen = () => {
   const [selectedDate, setSelectedDate] = useState("");
   const [events, setEvents] = useState([]);
   const [oldEvent, setOldEvent] = useState([]);
+  const [refreshing, setRefreshing] = useState(false);
 
   const navigation = useNavigation();
 
@@ -39,7 +41,57 @@ const EventsScreen = () => {
   // Fetch events when screen loads or returns to focus
   useEffect(() => {
     fetchEvents();
+    
+    // Set today's date as the default selected date
+    const today = new Date().toISOString().split('T')[0];
+    setSelectedDate(today);
   }, []);
+  
+  // Add a listener for when the screen comes into focus
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      // Refresh events when the screen is focused
+      fetchEvents();
+      
+      // Get current route and its params
+      const routes = navigation.getState()?.routes;
+      const currentRoute = routes[routes.length - 1];
+      const params = currentRoute?.params || {};
+      
+      // Handle different navigation scenarios
+      if (params.showAll) {
+        // Coming from navbar Events tab click - show all events
+        setSelectedDate(""); // Clear selected date to show all events
+      } else if (params.preserveDate && params.selectedDate) {
+        // Coming back from InterestedList with a specific date
+        setSelectedDate(params.selectedDate);
+      }
+      
+      // Clear the params after handling them to avoid reapplying on future focus events
+      if (params.showAll || params.preserveDate) {
+        navigation.setParams({ showAll: undefined, preserveDate: undefined, selectedDate: undefined });
+      }
+    });
+    
+    // Cleanup the listener when the component is unmounted
+    return unsubscribe;
+  }, [navigation]);
+  
+  // Filter events when selectedDate changes or after fetching events
+  useEffect(() => {
+    if (oldEvent.length > 0) {
+      if (selectedDate) {
+        // If a date is selected, filter events for that date
+        const filteredEvents = oldEvent.filter(event => 
+          event.event_date === selectedDate
+        );
+        setEvents(filteredEvents);
+      } else {
+        // If no date is selected, show all events
+        setEvents(oldEvent);
+      }
+    }
+  }, [oldEvent, selectedDate]);
 
   // Fetch events from API
   const fetchEvents = async () => {
@@ -51,7 +103,23 @@ const EventsScreen = () => {
       console.error("Error in fetchEvents:", error);
       Alert.alert("Error", "Failed to load events");
       setEvents([]);
+    } finally {
+      setRefreshing(false);
     }
+  };
+  
+  // Handle pull-to-refresh - show all events
+  const onRefresh = React.useCallback(() => {
+    setRefreshing(true);
+    fetchEvents();
+    // Clear selected date to show all events
+    setSelectedDate("");
+  }, []);
+  
+  // Function to show all events (used when Events tab is clicked)
+  const showAllEvents = () => {
+    setEvents(oldEvent);
+    setSelectedDate("");
   };
 
   const addParticipant = async (eventId) => {
@@ -217,7 +285,17 @@ const EventsScreen = () => {
   };
 
   return (
-    <ScrollView style={{ backgroundColor: "white" }}>
+    <ScrollView 
+      style={{ backgroundColor: "white" }}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          colors={["#097969"]}
+          tintColor={"#097969"}
+        />
+      }
+    >
       <View style={styles.container}>
         {/* Calendar Component */}
         <View style={styles.calendarContainer}>
