@@ -83,6 +83,7 @@ const EventsScreen = () => {
   const [oldEvent, setOldEvent] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
   const [eventDetailsVisible, setEventDetailsVisible] = useState(false);
+  const [sortOption, setSortOption] = useState("date"); // "date" or "interested"
 
   const navigation = useNavigation();
 
@@ -145,7 +146,58 @@ const EventsScreen = () => {
     return unsubscribe;
   }, [navigation]);
   
-  // Filter events when selectedDate or eventTypeFilter changes or after fetching events
+  // Sort events based on the selected sort option
+  const sortEvents = (eventsToSort) => {
+    if (sortOption === "date") {
+      // Sort by date (and time if available)
+      return [...eventsToSort].sort((a, b) => {
+        // First compare dates
+        const dateA = new Date(a.event_date).getTime();
+        const dateB = new Date(b.event_date).getTime();
+        
+        if (dateA !== dateB) {
+          return dateA - dateB; // Sort by date if dates are different
+        }
+        
+        // If dates are the same, sort by time if available
+        if (a.event_time && b.event_time) {
+          return a.event_time.localeCompare(b.event_time);
+        }
+        
+        return 0; // Keep original order if no time available
+      });
+    } else if (sortOption === "interested") {
+      // Sort by interested status first, then by date
+      return [...eventsToSort].sort((a, b) => {
+        const isInterestedA = a.participants && a.participants.includes(_id);
+        const isInterestedB = b.participants && b.participants.includes(_id);
+        
+        // First prioritize events the user is interested in
+        if (isInterestedA && !isInterestedB) return -1;
+        if (!isInterestedA && isInterestedB) return 1;
+        
+        // If both have same interested status, sort by date
+        const dateA = new Date(a.event_date).getTime();
+        const dateB = new Date(b.event_date).getTime();
+        
+        if (dateA !== dateB) {
+          return dateA - dateB;
+        }
+        
+        // If dates are the same, sort by time if available
+        if (a.event_time && b.event_time) {
+          return a.event_time.localeCompare(b.event_time);
+        }
+        
+        return 0;
+      });
+    }
+    
+    // Default to date sorting
+    return eventsToSort;
+  };
+
+  // Filter events when selectedDate, eventTypeFilter, or sortOption changes
   useEffect(() => {
     if (oldEvent.length > 0) {
       let filteredEvents = [...oldEvent];
@@ -155,14 +207,6 @@ const EventsScreen = () => {
         filteredEvents = filteredEvents.filter(event => 
           event.event_date === selectedDate
         );
-        
-        // For same-day events, sort by time
-        filteredEvents = filteredEvents.sort((a, b) => {
-          if (a.event_time && b.event_time) {
-            return a.event_time.localeCompare(b.event_time);
-          }
-          return 0;
-        });
       }
       
       // Apply event type filter if specified
@@ -173,9 +217,12 @@ const EventsScreen = () => {
         });
       }
       
+      // Apply sorting based on selected option
+      filteredEvents = sortEvents(filteredEvents);
+      
       setEvents(filteredEvents);
     }
-  }, [oldEvent, selectedDate, eventTypeFilter]);
+  }, [oldEvent, selectedDate, eventTypeFilter, sortOption]);
 
   // Fetch events from API and sort by date
   const fetchEvents = async () => {
@@ -298,6 +345,24 @@ const EventsScreen = () => {
     });
     if (response.status == 200) {
       Alert.alert("Action !!", response.data);
+      
+      // Update the selectedEvent to show the "Thank you" message immediately
+      if (selectedEvent && selectedEvent._id === eventId) {
+        // Create a copy of the selected event
+        const updatedEvent = { ...selectedEvent };
+        
+        // Add the user to participants if not already there
+        if (!updatedEvent.participants) {
+          updatedEvent.participants = [_id];
+        } else if (!updatedEvent.participants.includes(_id)) {
+          updatedEvent.participants = [...updatedEvent.participants, _id];
+        }
+        
+        // Update the selected event state
+        setSelectedEvent(updatedEvent);
+      }
+      
+      // Refresh all events
       fetchEvents();
     }
   };
@@ -415,14 +480,8 @@ const EventsScreen = () => {
       return event.event_date == day.dateString;
     });
     
-    // Sort filtered events by time if available, otherwise just use the sorted order
-    const sortedResult = [...result].sort((a, b) => {
-      // If both events have time, sort by time
-      if (a.event_time && b.event_time) {
-        return a.event_time.localeCompare(b.event_time);
-      }
-      return 0; // Keep original order if no time available
-    });
+    // Apply the current sort option to the filtered events
+    const sortedResult = sortEvents(result);
     
     setEvents(sortedResult);
   };
@@ -671,6 +730,48 @@ const EventsScreen = () => {
                   navigation.navigate("CreateEvent");
                 }}
               />
+            </View>
+          </View>
+        )}
+
+        {/* Floating Sort Filter */}
+        {events.length > 0 && (
+          <View style={styles.sortFilterContainer}>
+            <Text style={styles.sortFilterLabel}>Sort by:</Text>
+            <View style={styles.sortButtonsContainer}>
+              <TouchableOpacity
+                style={[
+                  styles.sortButton,
+                  sortOption === "date" && styles.sortButtonActive
+                ]}
+                onPress={() => setSortOption("date")}
+              >
+                <Text
+                  style={[
+                    styles.sortButtonText,
+                    sortOption === "date" && styles.sortButtonTextActive
+                  ]}
+                >
+                  Date
+                </Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={[
+                  styles.sortButton,
+                  sortOption === "interested" && styles.sortButtonActive
+                ]}
+                onPress={() => setSortOption("interested")}
+              >
+                <Text
+                  style={[
+                    styles.sortButtonText,
+                    sortOption === "interested" && styles.sortButtonTextActive
+                  ]}
+                >
+                  Interested
+                </Text>
+              </TouchableOpacity>
             </View>
           </View>
         )}
@@ -982,6 +1083,52 @@ const styles = StyleSheet.create({
   thankYouText: {
     color: '#0066cc',
     fontSize: 16,
+    fontWeight: '500',
+  },
+  // Sort filter styles
+  sortFilterContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: 'white',
+    borderRadius: 10,
+    marginHorizontal: 16,
+    marginBottom: 5,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.18,
+    shadowRadius: 1.0,
+    elevation: 1,
+  },
+  sortFilterLabel: {
+    fontSize: 14,
+    color: '#666',
+    marginRight: 10,
+  },
+  sortButtonsContainer: {
+    flexDirection: 'row',
+  },
+  sortButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 15,
+    marginHorizontal: 5,
+    backgroundColor: '#f0f0f0',
+  },
+  sortButtonActive: {
+    backgroundColor: '#097969',
+  },
+  sortButtonText: {
+    fontSize: 12,
+    color: '#666',
+  },
+  sortButtonTextActive: {
+    color: 'white',
     fontWeight: '500',
   },
 });
