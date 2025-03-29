@@ -396,7 +396,7 @@ const EventsScreen = () => {
             }}
             style={styles.optionsButton}
           >
-            <Ionicons name="ellipsis-vertical" size={20} color="#0066cc" />
+            <Ionicons name="ellipsis-vertical" size={20} color="#aaa" />
           </TouchableOpacity>
         </View>
         
@@ -526,7 +526,7 @@ const EventsScreen = () => {
                 setEventDetailsVisible(true);
               }}
             >
-              <Ionicons name="information-circle-outline" size={20} color="#0066cc" />
+              <Ionicons name="information-circle-outline" size={20} color="#333" />
               <Text style={styles.optionText}>Event Details</Text>
             </TouchableOpacity>
             
@@ -540,7 +540,7 @@ const EventsScreen = () => {
                     navigation.navigate("InterestedList", { event: selectedEvent });
                   }}
                 >
-                  <Ionicons name="people-outline" size={20} color="#0066cc" />
+                  <Ionicons name="people-outline" size={20} color="#333" />
                   <Text style={styles.optionText}>Interested List</Text>
                 </TouchableOpacity>
                 
@@ -555,7 +555,7 @@ const EventsScreen = () => {
                     });
                   }}
                 >
-                  <Ionicons name="create-outline" size={20} color="#0066cc" />
+                  <Ionicons name="create-outline" size={20} color="#333" />
                   <Text style={styles.optionText}>Update Event</Text>
                 </TouchableOpacity>
                 
@@ -563,7 +563,7 @@ const EventsScreen = () => {
                   style={styles.optionItem}
                   onPress={confirmDeleteEvent}
                 >
-                  <Ionicons name="trash-outline" size={20} color="#0066cc" />
+                  <Ionicons name="trash-outline" size={20} color="#333" />
                   <Text style={styles.optionText}>Delete Event</Text>
                 </TouchableOpacity>
               </>
@@ -1123,16 +1123,19 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     marginHorizontal: 5,
     backgroundColor: '#f0f0f0',
+    borderWidth: 1,
+    borderColor: 'transparent',
   },
   sortButtonActive: {
-    backgroundColor: '#097969',
+    backgroundColor: 'white',
+    borderColor: '#097969',
   },
   sortButtonText: {
     fontSize: 12,
     color: '#666',
   },
   sortButtonTextActive: {
-    color: 'white',
+    color: '#097969',
     fontWeight: '500',
   },
 });
