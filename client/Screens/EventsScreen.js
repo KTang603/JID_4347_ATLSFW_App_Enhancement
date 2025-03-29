@@ -10,6 +10,7 @@ import {
   Linking,
   Dimensions,
   RefreshControl,
+  Modal,
 } from "react-native";
 import { useSelector } from "react-redux";
 import AppPrimaryButton from "../components/AppPrimaryButton";
@@ -21,6 +22,7 @@ import {
   addParticipantRequest,
   getAllEvent,
 } from "../redux/actions/eventAction";
+import MY_IP_ADDRESS from "../environment_variables.mjs";
 
 const EventsScreen = () => {
   // State management
@@ -129,6 +131,50 @@ const EventsScreen = () => {
     }
   };
   
+  // Delete event function
+  const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
+  const [eventToDelete, setEventToDelete] = useState(null);
+  
+  const confirmDeleteEvent = (event) => {
+    setEventToDelete(event);
+    setDeleteConfirmVisible(true);
+  };
+  
+  const deleteEvent = async () => {
+    if (!eventToDelete) return;
+    
+    try {
+      const response = await fetch(`http://${MY_IP_ADDRESS}:5050/events/delete/${eventToDelete._id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        // Remove the deleted event from the state
+        const updatedEvents = events.filter(event => event._id !== eventToDelete._id);
+        setEvents(updatedEvents);
+        
+        const updatedOldEvents = oldEvent.filter(event => event._id !== eventToDelete._id);
+        setOldEvent(updatedOldEvents);
+        
+        Alert.alert("Success", "Event deleted successfully");
+      } else {
+        Alert.alert("Error", data.message || "Failed to delete event");
+      }
+    } catch (error) {
+      console.error("Error deleting event:", error);
+      Alert.alert("Error", "Failed to delete event");
+    } finally {
+      setDeleteConfirmVisible(false);
+      setEventToDelete(null);
+    }
+  };
+  
   // Handle pull-to-refresh - show all events (clear filters)
   const onRefresh = React.useCallback(() => {
     setRefreshing(true);
@@ -176,8 +222,18 @@ const EventsScreen = () => {
 
     return (
       <View style={styles.eventCard}>
-        {/* Event Title */}
-        <Text style={styles.eventTitle}>{event.event_title}</Text>
+        {/* Event Title with Delete Icon for Admin */}
+        <View style={styles.titleRow}>
+          <Text style={styles.eventTitle}>{event.event_title}</Text>
+          {isAdmin && (
+            <TouchableOpacity 
+              onPress={() => confirmDeleteEvent(event)}
+              style={styles.deleteButton}
+            >
+              <Ionicons name="trash-outline" size={20} color="#0066cc" />
+            </TouchableOpacity>
+          )}
+        </View>
 
         {/* Event Location and Time */}
         <View style={styles.locationContainer}>
@@ -318,6 +374,36 @@ const EventsScreen = () => {
         />
       }
     >
+      {/* Delete Confirmation Modal */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={deleteConfirmVisible}
+        onRequestClose={() => setDeleteConfirmVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Delete Event</Text>
+            <Text style={styles.modalMessage}>
+              Are you sure you want to delete this event? This action cannot be undone.
+            </Text>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={() => setDeleteConfirmVisible(false)}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.deleteConfirmButton]}
+                onPress={deleteEvent}
+              >
+                <Text style={styles.deleteButtonText}>Delete</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
       <View style={styles.container}>
         {/* Calendar Component */}
         <View style={styles.calendarContainer}>
@@ -368,6 +454,65 @@ const EventsScreen = () => {
 };
 
 const styles = StyleSheet.create({
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderRadius: 10,
+    padding: 20,
+    width: '80%',
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 15,
+  },
+  modalMessage: {
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 20,
+    color: '#666',
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+  },
+  modalButton: {
+    padding: 10,
+    borderRadius: 5,
+    width: '45%',
+    alignItems: 'center',
+  },
+  cancelButton: {
+    backgroundColor: '#f0f0f0',
+  },
+  deleteConfirmButton: {
+    backgroundColor: '#e74c3c',
+  },
+  cancelButtonText: {
+    color: '#333',
+  },
+  deleteButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+  },
+  // Title row with delete button
+  titleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  deleteButton: {
+    padding: 5,
+  },
   container: {
     backgroundColor: "white",
     paddingBottom: 20,
@@ -409,7 +554,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "bold",
     color: "#333",
-    marginBottom: 8,
+    flex: 1,
   },
   tagsRow: {
     flexDirection: "row",

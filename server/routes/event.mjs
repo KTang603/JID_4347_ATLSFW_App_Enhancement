@@ -153,5 +153,43 @@ router.post("/events/create", verifyToken, async (req, res) => {
   }
 });
 
+// Delete event endpoint - Admin only
+router.delete("/events/delete/:id", requireAdmin, async (req, res) => {
+  try {
+    const eventId = req.params.id;
+    
+    if (!eventId) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Missing event ID' 
+      });
+    }
+
+    // Delete the event from the database
+    const result = await events_db.collection('events').deleteOne({
+      _id: new ObjectId(eventId)
+    });
+
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Event not found or already deleted' 
+      });
+    }
+
+    res.status(200).json({ 
+      success: true,
+      message: 'Event deleted successfully'
+    });
+  } catch (err) {
+    console.error('Error deleting event:', err);
+    res.status(500).json({ 
+      success: false, 
+      message: "Failed to delete event",
+      error: err.message 
+    });
+  }
+});
+
 
 export default router;
