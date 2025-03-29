@@ -30,19 +30,23 @@ const EventsScreen = () => {
   const formatEventDateTime = (dateStr, startTime, endTime) => {
     if (!dateStr) return "";
     
-    // Parse the date
-    const date = new Date(dateStr);
+    // Parse the date - ensure we're using the correct date by handling timezone issues
+    // Format: YYYY-MM-DD (e.g., 2025-03-29)
+    const [year, month, day] = dateStr.split('-').map(num => parseInt(num, 10));
+    
+    // Create date using UTC to avoid timezone issues (months are 0-indexed in JS)
+    const date = new Date(Date.UTC(year, month - 1, day));
     
     // Get day of week
     const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    const dayOfWeek = days[date.getDay()];
+    const dayOfWeek = days[date.getUTCDay()];
     
     // Get month
     const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-    const month = months[date.getMonth()];
+    const monthName = months[date.getUTCMonth()];
     
-    // Format date
-    const day = date.getDate();
+    // Format date - use UTC methods to avoid timezone issues
+    const dayOfMonth = date.getUTCDate();
     
     // Format time (convert 24h to 12h with am/pm)
     const formatTime = (timeStr) => {
@@ -64,7 +68,7 @@ const EventsScreen = () => {
     };
     
     // Format the full date and time string
-    let formattedDateTime = `${dayOfWeek}, ${month} ${day}`;
+    let formattedDateTime = `${dayOfWeek}, ${monthName} ${dayOfMonth}`;
     
     if (startTime) {
       formattedDateTime += ` · ${formatTime(startTime)}`;
