@@ -85,7 +85,7 @@ const LoginScreen = ({navigation}) => {
 
           navigation.reset({
             index: 0,
-            routes: [{ name: 'News Feed' }],
+            routes: [{ name: 'Home' }],
           });
       } else {
         Alert.alert('Login Error', data.message || 'Login failed. Please try again.');

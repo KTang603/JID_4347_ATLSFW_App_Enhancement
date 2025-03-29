@@ -28,7 +28,8 @@ const SettingPage = () => {
       {isAdmin && (
         <>
           <AppPrimaryButton title="Users List" handleSubmit={() => {navigation.navigate("AdminDataList", { listType: "users" })}} />
-          <AppPrimaryButton title="Article List" handleSubmit={() => {navigation.navigate("AdminDataList", { listType: "articles" })}} />
+          <AppPrimaryButton title="Vendor List" handleSubmit={() => {navigation.navigate("AdminDataList", { listType: "vendors" })}} />
+          <AppPrimaryButton title="Admin Article List" handleSubmit={() => {navigation.navigate("AdminDataList", { listType: "articles" })}} />
           <AppPrimaryButton title="Most Liked" handleSubmit={() => {navigation.navigate("AdminDataList", { listType: "mostLiked" })}} />
           <AppPrimaryButton title="Most Saved" handleSubmit={() => {navigation.navigate("AdminDataList", { listType: "mostSaved" })}} />
           <AppPrimaryButton title="News Api Details" handleSubmit={() => {navigation.navigate("NewsApiDetails")}} />

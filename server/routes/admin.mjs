@@ -4,7 +4,7 @@ import { users_db, posts_db, checkConnection, news_db } from "../db/conn.mjs";
 import { verifyToken, requireAdmin } from "../middleware/auth.mjs";
 import jwt from 'jsonwebtoken';
 import { fetchNewsArticles } from "../scripts/fetch-news.mjs";
-import { VENDOR_ROLES } from "../utils/constant.mjs";
+import { ACTIVATE_STATUS, DEACTIVATE_STATUS, VENDOR_ROLES } from "../utils/constant.mjs";
 
 const router = express.Router();
 
@@ -42,18 +42,22 @@ router.post("/users/change_status", async (req, res) => {
   try {
      const { user_id, user_status } = req.body;
      const users = await users_db.collection('customer_info');
-    const currentUser = await users.find({_id: new ObjectId(user_id)}).toArray();
+     const currentUser = await users.find({_id: new ObjectId(user_id)}).toArray();
       var updated_user = {};
-     if(currentUser[0].user_status){
-       updated_user =  {...currentUser[0],user_status: !currentUser[0].user_status}
-     }
+      if(currentUser[0].user_status == null || currentUser[0].user_status === undefined ){
+        updated_user =  {...currentUser[0],user_status: DEACTIVATE_STATUS}
+      } else {
+        updated_user =  {...currentUser[0],user_status: !currentUser[0].user_status}
+      }
+
+    
 
     // Update user document
     const result = await users.updateOne(
         { _id: new ObjectId(user_id) },
         { $set: updated_user }
     );
-    res.status(200).json({status:true,message:`This user is ${user_status=='1'?"Activated":"Deactivated"}`});
+    res.status(200).json({status:true,message:`This user is ${user_status == ACTIVATE_STATUS ?"Activated":"Deactivated"}`});
   } catch (error) {
     console.error("Error fetching users:", error);
     res.status(500).json({ error: "Failed to fetch users" });
