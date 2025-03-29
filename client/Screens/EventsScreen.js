@@ -11,6 +11,7 @@ import {
   Dimensions,
   RefreshControl,
   Modal,
+  FlatList,
 } from "react-native";
 import { useSelector } from "react-redux";
 import AppPrimaryButton from "../components/AppPrimaryButton";
@@ -131,13 +132,36 @@ const EventsScreen = () => {
     }
   };
   
-  // Delete event function
+  // Event actions
   const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
   const [eventToDelete, setEventToDelete] = useState(null);
+  const [optionsVisible, setOptionsVisible] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState(null);
+  const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
   
-  const confirmDeleteEvent = (event) => {
-    setEventToDelete(event);
-    setDeleteConfirmVisible(true);
+  const showEventOptions = (event, nativeEvent) => {
+    setSelectedEvent(event);
+    
+    // Get the screen width
+    const screenWidth = Dimensions.get('window').width;
+    
+    // Position the menu with its right edge at the click position, with offsets
+    setMenuPosition({ 
+      top: nativeEvent.pageY - 50, // Offset to move up
+      right: screenWidth - nativeEvent.pageX + 25 // Right edge at click position with offset to the left
+    });
+    
+    setOptionsVisible(true);
+  };
+  
+  const confirmDeleteEvent = () => {
+    setOptionsVisible(false);
+    setEventToDelete(selectedEvent);
+    
+    // Use setTimeout to ensure the delete confirmation modal appears after the options modal is closed
+    setTimeout(() => {
+      setDeleteConfirmVisible(true);
+    }, 100);
   };
   
   const deleteEvent = async () => {
@@ -202,17 +226,8 @@ const EventsScreen = () => {
     }
   };
 
-  // // Filter events for selected date
-  // const getEventsForSelectedDate = () => {
-  //   if (!selectedDate) return [];
-  //   return events.filter(event => {
-  //     const eventDate = event.event_date.split('T')[0];
-  //     return eventDate === selectedDate;
-  //   });
-  // };
-
   // Component to display individual event details
-  const EventCard = ({ event }) => {
+  const EventCard = ({ event, index }) => {
     const isParticipated = event.participants
       ? event.participants.includes(_id)
       : false;
@@ -221,16 +236,23 @@ const EventsScreen = () => {
     const eventType = event.event_type || "regular";
 
     return (
-      <View style={styles.eventCard}>
-        {/* Event Title with Delete Icon for Admin */}
+      <TouchableOpacity 
+        style={styles.eventCard}
+        onPress={() => Linking.openURL(event.event_link)}
+        activeOpacity={0.8}
+      >
+        {/* Event Title with Options Menu for Admin */}
         <View style={styles.titleRow}>
           <Text style={styles.eventTitle}>{event.event_title}</Text>
           {isAdmin && (
             <TouchableOpacity 
-              onPress={() => confirmDeleteEvent(event)}
-              style={styles.deleteButton}
+              onPress={(e) => {
+                e.stopPropagation(); // Prevent card click
+                showEventOptions(event, e.nativeEvent);
+              }}
+              style={styles.optionsButton}
             >
-              <Ionicons name="trash-outline" size={20} color="#0066cc" />
+              <Ionicons name="ellipsis-vertical" size={20} color="#0066cc" />
             </TouchableOpacity>
           )}
         </View>
@@ -257,47 +279,38 @@ const EventsScreen = () => {
           </Text>
         </View>
 
-        {/* Event Link */}
-        <View
-          style={{
-            flexDirection: "row",
-            borderTopWidth: 1,
-            borderTopColor: "#e0e0e0",
-            flex: 1,
-            justifyContent: "space-between",
-            paddingTop: 10,
-          }}
-        >
-          <TouchableOpacity
-            onPress={() => Linking.openURL(event.event_link)}
-            style={styles.linkContainer}
-          >
-            <Text style={styles.eventLink}>View Event</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            disabled={isParticipated}
-            onPress={() => {
-              isAdmin ? navigation.navigate("InterestedList", { event }) :addParticipant(event._id);
+        {/* Interested Button - Only for non-admin users */}
+        {!isAdmin && (
+          <View
+            style={{
+              flexDirection: "row",
+              borderTopWidth: 1,
+              borderTopColor: "#e0e0e0",
+              flex: 1,
+              justifyContent: "flex-end",
+              paddingTop: 10,
             }}
-            style={styles.linkContainer} // Remove the conditional background color
           >
-            <Text
-              style={[
-                styles.eventLink,
-                { color: isParticipated ? "#000" : "#0066cc" }, // Use black color when interested
-              ]}
+            <TouchableOpacity
+              disabled={isParticipated}
+              onPress={(e) => {
+                e.stopPropagation(); // Prevent card click
+                addParticipant(event._id);
+              }}
+              style={styles.linkContainer}
             >
-              {" "}
-              {isAdmin
-                ? "Interested list"
-                : isParticipated
-                ? "Interested"
-                : "Interested?"}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+              <Text
+                style={[
+                  styles.eventLink,
+                  { color: isParticipated ? "#000" : "#0066cc" },
+                ]}
+              >
+                {isParticipated ? "Interested" : "Interested?"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </TouchableOpacity>
     );
   };
 
@@ -374,6 +387,59 @@ const EventsScreen = () => {
         />
       }
     >
+      {/* Options Modal */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={optionsVisible}
+        onRequestClose={() => setOptionsVisible(false)}
+      >
+        <TouchableOpacity 
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setOptionsVisible(false)}
+        >
+          <View style={[
+            styles.optionsModalContent,
+            { top: menuPosition.top, right: menuPosition.right }
+          ]}>
+            <TouchableOpacity 
+              style={styles.optionItem}
+              onPress={() => {
+                setOptionsVisible(false);
+                navigation.navigate("InterestedList", { event: selectedEvent });
+              }}
+            >
+              <Ionicons name="people-outline" size={20} color="#0066cc" />
+              <Text style={styles.optionText}>Interested List</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.optionItem}
+              onPress={() => {
+                setOptionsVisible(false);
+                // Navigate to CreateEvent screen with event data for updating
+                navigation.navigate("CreateEvent", { 
+                  eventToUpdate: selectedEvent,
+                  isUpdating: true 
+                });
+              }}
+            >
+              <Ionicons name="create-outline" size={20} color="#0066cc" />
+              <Text style={styles.optionText}>Update Event</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.optionItem}
+              onPress={confirmDeleteEvent}
+            >
+              <Ionicons name="trash-outline" size={20} color="#0066cc" />
+              <Text style={styles.optionText}>Delete Event</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+      
       {/* Delete Confirmation Modal */}
       <Modal
         animationType="fade"
@@ -382,10 +448,17 @@ const EventsScreen = () => {
         onRequestClose={() => setDeleteConfirmVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+          <View style={[
+            styles.deleteModalContent,
+            { 
+              position: 'absolute',
+              top: menuPosition.top,
+              right: menuPosition.right
+            }
+          ]}>
             <Text style={styles.modalTitle}>Delete Event</Text>
             <Text style={styles.modalMessage}>
-              Are you sure you want to delete this event? This action cannot be undone.
+              Are you sure you want to delete this event?
             </Text>
             <View style={styles.modalButtons}>
               <TouchableOpacity 
@@ -444,7 +517,7 @@ const EventsScreen = () => {
             <Text> No event for selected date</Text>
           ) : (
             events.map((event, index) => (
-              <EventCard key={index} event={event} />
+              <EventCard key={index} event={event} index={index} />
             ))
           )}
         </View>
@@ -458,8 +531,6 @@ const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   modalContent: {
     backgroundColor: 'white',
@@ -467,6 +538,31 @@ const styles = StyleSheet.create({
     padding: 20,
     width: '80%',
     alignItems: 'center',
+    alignSelf: 'center',
+    marginTop: '50%',
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  deleteModalContent: {
+    backgroundColor: 'white',
+    borderRadius: 10,
+    padding: 20,
+    width: 250,
+    alignItems: 'flex-start',
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   modalTitle: {
     fontSize: 18,
@@ -510,8 +606,36 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 8,
   },
-  deleteButton: {
+  optionsButton: {
     padding: 5,
+  },
+  optionsModalContent: {
+    position: 'absolute',
+    backgroundColor: 'white',
+    borderRadius: 10,
+    padding: 10,
+    width: 200,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+    zIndex: 1000,
+  },
+  optionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  optionText: {
+    marginLeft: 10,
+    fontSize: 16,
+    color: '#333',
   },
   container: {
     backgroundColor: "white",
