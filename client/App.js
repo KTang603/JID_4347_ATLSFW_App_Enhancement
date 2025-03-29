@@ -85,7 +85,7 @@ const App = () => {
           <Stack.Screen name="NewsApiDetails" component={NewsApiDetailsScreen} />
           <Stack.Screen name="Forgot Password" component={ForgotPasswordScreen} />
           <Stack.Screen name="Events" component={EventsScreen} />
-          <Stack.Screen name="CreateEvent" component={CreateEvent} />
+          <Stack.Screen name="Create Event" component={CreateEvent} />
           <Stack.Screen name="InterestedList" component={InterestedList} />
 
 
