@@ -549,7 +549,7 @@ const EventsScreen = () => {
                   onPress={() => {
                     setOptionsVisible(false);
                     // Navigate to CreateEvent screen with event data for updating
-                    navigation.navigate("CreateEvent", { 
+                    navigation.navigate("Create Event", { 
                       eventToUpdate: selectedEvent,
                       isUpdating: true 
                     });
@@ -731,15 +731,15 @@ const EventsScreen = () => {
               <AppPrimaryButton
                 title={"Add Event"}
                 handleSubmit={() => {
-                  navigation.navigate("CreateEvent");
+                  navigation.navigate("Create Event");
                 }}
               />
             </View>
           </View>
         )}
 
-        {/* Floating Sort Filter */}
-        {events.length > 0 && (
+        {/* Floating Sort Filter - Only for non-admin users */}
+        {events.length > 0 && !isAdmin && (
           <View style={styles.sortFilterContainer}>
             <Text style={styles.sortFilterLabel}>Sort by:</Text>
             <View style={styles.sortButtonsContainer}>
