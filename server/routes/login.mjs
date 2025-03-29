@@ -1,7 +1,7 @@
 import express from "express";
 import { posts_db, users_db } from "../db/conn.mjs";
 import jwt from "jsonwebtoken";
-import { ADMIN_ROLES, VENDOR_ROLES } from "../utils/constant.mjs";
+import { ADMIN_ROLES, VENDOR_ROLES, ACTIVATE_STATUS, DEACTIVATE_STATUS } from "../utils/constant.mjs";
 
 /*
 enum AccountType {
@@ -43,6 +43,16 @@ router.post("/", async (req, res) => {
       return res
         .status(500)
         .json({ success: false, message: "User information not found" });
+    }
+
+    // Check if user is deactivated (skip for admin users)
+    if (userInfo.user_roles !== ADMIN_ROLES && 
+        (userInfo.user_status === DEACTIVATE_STATUS || userInfo.user_status === false)) {
+      return res.status(403).json({
+        success: false,
+        message: "Your account has been deactivated. Please contact an administrator.",
+        code: "ACCOUNT_DEACTIVATED"
+      });
     }
 
     if (existingUser.user_roles == VENDOR_ROLES) {

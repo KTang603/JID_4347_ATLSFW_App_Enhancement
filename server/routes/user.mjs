@@ -1,11 +1,11 @@
 import express from "express";
 import { users_db } from "../db/conn.mjs";
 import { ObjectId } from "mongodb";
-import { verifyToken } from "../middleware/auth.mjs";
+import { verifyToken, checkUserStatus } from "../middleware/auth.mjs";
 
 const router = express.Router();
 
-router.get('/articles', verifyToken, async (req, res) => {
+router.get('/articles', verifyToken, checkUserStatus, async (req, res) => {
     try {
         const user_id = req.user.id;
         
@@ -71,7 +71,7 @@ router.get('/articles', verifyToken, async (req, res) => {
     }
 });
 
-router.get('/get_profile', verifyToken, async (req, res) => {
+router.get('/get_profile', verifyToken, checkUserStatus, async (req, res) => {
         const user_id = req.query.userId;
         // Validate user_id
         if (!user_id || !ObjectId.isValid(user_id)) {
@@ -89,7 +89,7 @@ router.get('/get_profile', verifyToken, async (req, res) => {
 })
 
 
-router.patch('/edit', async (req, res) => {
+router.patch('/edit', verifyToken, checkUserStatus, async (req, res) => {
     try {
         const {user_id} = req.query;
         console.log('user_id---'+user_id);

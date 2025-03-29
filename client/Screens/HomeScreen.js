@@ -15,6 +15,7 @@ import { useSelector } from "react-redux";
 import { getToken } from "../utils/StorageUtils";
 import { HEADER_LOGO } from "../assets";
 import AppPrimaryButton from "../components/AppPrimaryButton";
+import { handleApiError } from "../utils/ApiErrorHandler";
 
 const HomeScreen = () => {
   const [loading, setLoading] = useState(true);
@@ -50,9 +51,15 @@ const HomeScreen = () => {
       setLoading(false);
     } catch (error) {
       console.error("Error fetching home data:", error);
-      setLoading(false);
       
-      // Set some dummy data for demonstration
+      // Check if this is a deactivated account error
+      const errorHandled = await handleApiError(error, navigation);
+      
+      // If the error wasn't handled as a deactivated account, continue with default handling
+      if (!errorHandled) {
+        setLoading(false);
+        
+        // Set some dummy data for demonstration
       setUpcomingEvents([
         {
           _id: "1",
@@ -109,6 +116,7 @@ const HomeScreen = () => {
           description: "Natural dyeing techniques using plant-based materials",
         },
       ]);
+      }
     }
   };
 

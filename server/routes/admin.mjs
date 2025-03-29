@@ -45,9 +45,11 @@ router.post("/users/change_status", async (req, res) => {
      const currentUser = await users.find({_id: new ObjectId(user_id)}).toArray();
       var updated_user = {};
       if(currentUser[0].user_status == null || currentUser[0].user_status === undefined ){
-        updated_user =  {...currentUser[0],user_status: DEACTIVATE_STATUS}
+        updated_user =  {...currentUser[0], user_status: DEACTIVATE_STATUS}
+      } else if(currentUser[0].user_status === false || currentUser[0].user_status === DEACTIVATE_STATUS) {
+        updated_user =  {...currentUser[0], user_status: ACTIVATE_STATUS}
       } else {
-        updated_user =  {...currentUser[0],user_status: !currentUser[0].user_status}
+        updated_user =  {...currentUser[0], user_status: DEACTIVATE_STATUS}
       }
 
     
