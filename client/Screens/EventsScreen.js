@@ -26,6 +26,57 @@ import {
 import MY_IP_ADDRESS from "../environment_variables.mjs";
 
 const EventsScreen = () => {
+  // Helper function to format date and time
+  const formatEventDateTime = (dateStr, startTime, endTime) => {
+    if (!dateStr) return "";
+    
+    // Parse the date
+    const date = new Date(dateStr);
+    
+    // Get day of week
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const dayOfWeek = days[date.getDay()];
+    
+    // Get month
+    const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    const month = months[date.getMonth()];
+    
+    // Format date
+    const day = date.getDate();
+    
+    // Format time (convert 24h to 12h with am/pm)
+    const formatTime = (timeStr) => {
+      if (!timeStr) return "";
+      
+      const [hours, minutes] = timeStr.split(':');
+      const hour = parseInt(hours, 10);
+      const minute = parseInt(minutes, 10);
+      
+      const period = hour >= 12 ? 'pm' : 'am';
+      const hour12 = hour % 12 || 12; // Convert 0 to 12
+      
+      // If minutes is 00, just show the hour
+      if (minute === 0) {
+        return `${hour12}${period}`;
+      }
+      
+      return `${hour12}:${minutes.padStart(2, '0')}${period}`;
+    };
+    
+    // Format the full date and time string
+    let formattedDateTime = `${dayOfWeek}, ${month} ${day}`;
+    
+    if (startTime) {
+      formattedDateTime += ` · ${formatTime(startTime)}`;
+      
+      if (endTime) {
+        formattedDateTime += ` - ${formatTime(endTime)}`;
+      }
+    }
+    
+    return formattedDateTime;
+  };
+
   // State management
   const [selectedDate, setSelectedDate] = useState("");
   const [events, setEvents] = useState([]);
@@ -257,19 +308,23 @@ const EventsScreen = () => {
           )}
         </View>
 
-        {/* Event Location and Time */}
-        <View style={styles.locationContainer}>
-          <Text style={styles.eventLocation}>{event.event_location}</Text>
-          {event.event_time && (
-            <Text style={styles.eventTime}>
-              <Ionicons name="time-outline" size={14} color="#02833D" /> {event.event_time}
-            </Text>
-          )}
-        </View>
-
         {/* Event Description */}
         <Text style={styles.eventDescription} numberOfLines={3}>
           {event.event_desc}
+        </Text>
+        
+        {/* Event Date and Time */}
+        {event.event_date && (
+          <Text style={styles.eventTime}>
+            <Ionicons name="calendar-outline" size={14} color="#666" />
+            {" "}{formatEventDateTime(event.event_date, event.event_time, event.event_end_time)}
+          </Text>
+        )}
+        
+        {/* Event Location */}
+        <Text style={styles.eventLocation}>
+          <Ionicons name="location-outline" size={14} color="#666" />
+          {" "}{event.event_location}
         </Text>
         
         {/* Event Type Tag */}
@@ -702,16 +757,17 @@ const styles = StyleSheet.create({
   eventLocation: {
     fontSize: 14,
     color: "#666",
+    marginBottom: 8,
   },
   eventTime: {
     fontSize: 14,
-    color: "#02833D",
-    marginTop: 4,
+    color: "#666",
+    marginBottom: 8,
   },
   eventDescription: {
     fontSize: 14,
     color: "#444",
-    marginBottom: 12,
+    marginBottom: 10,
     lineHeight: 20,
   },
   linkContainer: {},

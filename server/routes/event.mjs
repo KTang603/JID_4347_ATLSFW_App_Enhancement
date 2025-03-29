@@ -107,7 +107,7 @@ router.post("/events/create", verifyToken, async (req, res) => {
     // Log received data
     console.log('Received event data:', req.body);
 
-    const { event_title, event_desc, event_link, event_location, event_date, event_time, user_id, event_type, ticket_url } = req.body;
+    const { event_title, event_desc, event_link, event_location, event_date, event_time, event_end_time, user_id, event_type, ticket_url } = req.body;
     
     // Check each field individually and provide specific error
     const missingFields = [];
@@ -116,7 +116,7 @@ router.post("/events/create", verifyToken, async (req, res) => {
     if (!event_link) missingFields.push('link');
     if (!event_location) missingFields.push('location');
     if (!event_date) missingFields.push('date');
-    if (!event_time) missingFields.push('time');
+    if (!event_time) missingFields.push('start time');
 
     if (missingFields.length > 0) {
       return res.status(400).json({ 
@@ -133,6 +133,7 @@ router.post("/events/create", verifyToken, async (req, res) => {
       event_location,
       event_date,
       event_time,
+      event_end_time: event_end_time || "", // Add end time with default empty string
       user_id,
       event_type: event_type || "regular", // Default to regular if not specified
       ticket_url: ticket_url || "", // Add ticket URL field with default empty string
@@ -211,6 +212,7 @@ router.put("/events/update/:id", requireAdmin, async (req, res) => {
       event_location, 
       event_date, 
       event_time, 
+      event_end_time,
       event_type,
       ticket_url
     } = req.body;
@@ -222,7 +224,7 @@ router.put("/events/update/:id", requireAdmin, async (req, res) => {
     if (!event_link) missingFields.push('link');
     if (!event_location) missingFields.push('location');
     if (!event_date) missingFields.push('date');
-    if (!event_time) missingFields.push('time');
+    if (!event_time) missingFields.push('start time');
 
     if (missingFields.length > 0) {
       return res.status(400).json({ 
@@ -242,6 +244,7 @@ router.put("/events/update/:id", requireAdmin, async (req, res) => {
           event_location,
           event_date,
           event_time,
+          event_end_time: event_end_time || "", // Add end time with default empty string
           event_type: event_type || "regular", // Default to regular if not specified
           ticket_url: ticket_url || "", // Add ticket URL field with default empty string
           updated_at: new Date()
