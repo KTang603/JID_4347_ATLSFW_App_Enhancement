@@ -23,14 +23,16 @@ const CreateEvent = ({ route }) => {
   
   // State to control picker modal visibility
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [showStartTimePicker, setShowStartTimePicker] = useState(false);
+  const [showEndTimePicker, setShowEndTimePicker] = useState(false);
   
   // State to manage form data - matches the API endpoint requirements
   const [eventData, setEventData] = useState({
     event_title: "",
     event_location: "",
     event_date: "",
-    event_time: "",
+    event_time: "", // Start time
+    event_end_time: "", // End time
     event_desc: "",
     event_link: "",
     ticket_url: "", // New field for ticket URL
@@ -46,6 +48,7 @@ const CreateEvent = ({ route }) => {
         event_location: eventToUpdate.event_location || "",
         event_date: eventToUpdate.event_date || "",
         event_time: eventToUpdate.event_time || "",
+        event_end_time: eventToUpdate.event_end_time || "",
         event_desc: eventToUpdate.event_desc || "",
         event_link: eventToUpdate.event_link || "",
         ticket_url: eventToUpdate.ticket_url || "", // Include ticket URL in pre-populated data
@@ -58,12 +61,23 @@ const CreateEvent = ({ route }) => {
   // State to control event type dropdown
   const [showEventTypeDropdown, setShowEventTypeDropdown] = useState(false);
 
+  // Format time display for UI
+  const formatTimeDisplay = () => {
+    if (eventData.event_time && eventData.event_end_time) {
+      return `${eventData.event_time} - ${eventData.event_end_time}`;
+    } else if (eventData.event_time) {
+      return `${eventData.event_time}${eventData.event_end_time ? ` - ${eventData.event_end_time}` : ''}`;
+    } else {
+      return "Select Time";
+    }
+  };
+
   const handleSubmit = async () => {
     try {
       // Validate form data
       if (!eventData.event_title || !eventData.event_location || 
           !eventData.event_date || !eventData.event_time || !eventData.event_desc || !eventData.event_link) {
-        Alert.alert("Error", "Please fill all fields");
+        Alert.alert("Error", "Please fill all required fields");
         return;
       }
       
@@ -75,6 +89,7 @@ const CreateEvent = ({ route }) => {
         event_location: eventData.event_location,
         event_date: eventData.event_date,
         event_time: eventData.event_time,
+        event_end_time: eventData.event_end_time,
         ticket_url: eventData.ticket_url, // Include ticket URL in request data
         user_id: eventData.user_id,
         event_type: eventData.event_type,
@@ -169,17 +184,35 @@ const CreateEvent = ({ route }) => {
 
       {/* Time Input - Clickable field to show time picker */}
       <Text style={styles.label}>Event Time:</Text>
-      <TouchableOpacity 
-        onPress={() => setShowTimePicker(true)}
-        style={styles.dateInput}
-      >
-        <View style={styles.dropdownButtonContent}>
-          <Text style={eventData.event_time ? styles.dateText : styles.placeholderText}>
-            {eventData.event_time || "Select Time"}
-          </Text>
-          <Ionicons name="time-outline" size={16} color="#666" />
-        </View>
-      </TouchableOpacity>
+      <View style={styles.timeRangeContainer}>
+        {/* Start Time */}
+        <TouchableOpacity 
+          onPress={() => setShowStartTimePicker(true)}
+          style={[styles.dateInput, { flex: 1, marginRight: 5 }]}
+        >
+          <View style={styles.dropdownButtonContent}>
+            <Text style={eventData.event_time ? styles.dateText : styles.placeholderText}>
+              {eventData.event_time || "Start Time"}
+            </Text>
+            <Ionicons name="time-outline" size={16} color="#666" />
+          </View>
+        </TouchableOpacity>
+        
+        <Text style={styles.toText}>to</Text>
+        
+        {/* End Time */}
+        <TouchableOpacity 
+          onPress={() => setShowEndTimePicker(true)}
+          style={[styles.dateInput, { flex: 1, marginLeft: 5 }]}
+        >
+          <View style={styles.dropdownButtonContent}>
+            <Text style={eventData.event_end_time ? styles.dateText : styles.placeholderText}>
+              {eventData.event_end_time || "End Time"}
+            </Text>
+            <Ionicons name="time-outline" size={16} color="#666" />
+          </View>
+        </TouchableOpacity>
+      </View>
 
       {/* Event Description Input - Multiline for longer text */}
       <Text style={styles.label}>Event Description:</Text>
@@ -294,15 +327,15 @@ const CreateEvent = ({ route }) => {
         </View>
       </Modal>
 
-      {/* Time Picker Modal */}
+      {/* Start Time Picker Modal */}
       <Modal
-        visible={showTimePicker}
+        visible={showStartTimePicker}
         transparent={true}
         animationType="slide"
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            <Text style={styles.timePickerTitle}>Select Time</Text>
+            <Text style={styles.timePickerTitle}>Select Start Time</Text>
             
             {/* Simple Time Picker */}
             <View style={styles.timePickerContainer}>
@@ -360,7 +393,7 @@ const CreateEvent = ({ route }) => {
             {/* Done Button */}
             <TouchableOpacity 
               style={styles.doneButton}
-              onPress={() => setShowTimePicker(false)}
+              onPress={() => setShowStartTimePicker(false)}
             >
               <Text style={styles.doneButtonText}>Done</Text>
             </TouchableOpacity>
@@ -368,7 +401,89 @@ const CreateEvent = ({ route }) => {
             {/* Cancel Button */}
             <TouchableOpacity 
               style={styles.closeButton}
-              onPress={() => setShowTimePicker(false)}
+              onPress={() => setShowStartTimePicker(false)}
+            >
+              <Text style={styles.closeButtonText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* End Time Picker Modal */}
+      <Modal
+        visible={showEndTimePicker}
+        transparent={true}
+        animationType="slide"
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.timePickerTitle}>Select End Time</Text>
+            
+            {/* Simple Time Picker */}
+            <View style={styles.timePickerContainer}>
+              {/* Hours */}
+              <View style={styles.timeColumn}>
+                <Text style={styles.timeColumnLabel}>Hour</Text>
+                <ScrollView style={styles.timeScrollView}>
+                  {Array.from({ length: 24 }, (_, i) => i).map((hour) => (
+                    <TouchableOpacity
+                      key={`hour-${hour}`}
+                      style={[
+                        styles.timeOption,
+                        eventData.event_end_time.startsWith(hour.toString().padStart(2, '0')) && styles.selectedTimeOption
+                      ]}
+                      onPress={() => {
+                        const currentTime = eventData.event_end_time || '00:00';
+                        const minutes = currentTime.split(':')[1] || '00';
+                        const newTime = `${hour.toString().padStart(2, '0')}:${minutes}`;
+                        setEventData({...eventData, event_end_time: newTime});
+                      }}
+                    >
+                      <Text style={styles.timeOptionText}>{hour.toString().padStart(2, '0')}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+              
+              <Text style={styles.timeSeparator}>:</Text>
+              
+              {/* Minutes */}
+              <View style={styles.timeColumn}>
+                <Text style={styles.timeColumnLabel}>Minute</Text>
+                <ScrollView style={styles.timeScrollView}>
+                  {Array.from({ length: 60 }, (_, i) => i).map((minute) => (
+                    <TouchableOpacity
+                      key={`minute-${minute}`}
+                      style={[
+                        styles.timeOption,
+                        eventData.event_end_time.endsWith(minute.toString().padStart(2, '0')) && styles.selectedTimeOption
+                      ]}
+                      onPress={() => {
+                        const currentTime = eventData.event_end_time || '00:00';
+                        const hours = currentTime.split(':')[0] || '00';
+                        const newTime = `${hours}:${minute.toString().padStart(2, '0')}`;
+                        setEventData({...eventData, event_end_time: newTime});
+                      }}
+                    >
+                      <Text style={styles.timeOptionText}>{minute.toString().padStart(2, '0')}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            </View>
+            
+            {/* Done Button */}
+            <TouchableOpacity 
+              style={styles.doneButton}
+              onPress={() => setShowEndTimePicker(false)}
+            >
+              <Text style={styles.doneButtonText}>Done</Text>
+            </TouchableOpacity>
+            
+            {/* Cancel Button */}
+            <TouchableOpacity 
+              style={styles.closeButton}
+              onPress={() => setShowEndTimePicker(false)}
             >
               <Text style={styles.closeButtonText}>Cancel</Text>
             </TouchableOpacity>
@@ -381,6 +496,16 @@ const CreateEvent = ({ route }) => {
 
 // Styles for form elements
 const styles = StyleSheet.create({
+  // Time range styles
+  timeRangeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 5,
+  },
+  toText: {
+    marginHorizontal: 5,
+    color: '#666',
+  },
   // Time picker styles
   timePickerTitle: {
     fontSize: 18,
