@@ -1,7 +1,7 @@
 import jwt from "jsonwebtoken";
 import { users_db } from "../db/conn.mjs";
 import { ObjectId } from "mongodb";
-import { ADMIN_ROLES, USER_ROLES } from "../utils/constant.mjs";
+import { ADMIN_ROLES, USER_ROLES, ACTIVATE_STATUS, DEACTIVATE_STATUS } from "../utils/constant.mjs";
 
 export const verifyToken = async (req, res, next) => {
   try {
@@ -57,6 +57,37 @@ export const requireAdmin = (req, res, next) => {
   }
   // console.log('Admin access granted');
   next();
+};
+
+export const checkUserStatus = async (req, res, next) => {
+  try {
+    // Skip this check for admin users
+    if (req.user.accountType === ADMIN_ROLES) {
+      return next();
+    }
+
+    // Get user from database to check status
+    const user = await users_db.collection("customer_info").findOne({ 
+      _id: new ObjectId(req.user.id) 
+    });
+
+    // If user not found or is deactivated
+    if (!user || user.user_status === DEACTIVATE_STATUS || user.user_status === false) {
+      return res.status(403).json({ 
+        message: "Account has been deactivated", 
+        code: "ACCOUNT_DEACTIVATED" 
+      });
+    }
+
+    // User is active, proceed
+    next();
+  } catch (error) {
+    console.error("Error checking user status:", error);
+    return res.status(500).json({ 
+      message: "Error checking user status", 
+      error: error.message 
+    });
+  }
 };
 
 export const requirePermisssion = (req, res, next) => {
