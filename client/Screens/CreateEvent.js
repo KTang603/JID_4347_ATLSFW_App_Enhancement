@@ -33,6 +33,7 @@ const CreateEvent = ({ route }) => {
     event_time: "",
     event_desc: "",
     event_link: "",
+    ticket_url: "", // New field for ticket URL
     event_type: "regular", // Default to regular event
     user_id: user_id  // Include user_id who created the event
   });
@@ -47,6 +48,7 @@ const CreateEvent = ({ route }) => {
         event_time: eventToUpdate.event_time || "",
         event_desc: eventToUpdate.event_desc || "",
         event_link: eventToUpdate.event_link || "",
+        ticket_url: eventToUpdate.ticket_url || "", // Include ticket URL in pre-populated data
         event_type: eventToUpdate.event_type || "regular",
         user_id: user_id
       });
@@ -73,6 +75,7 @@ const CreateEvent = ({ route }) => {
         event_location: eventData.event_location,
         event_date: eventData.event_date,
         event_time: eventData.event_time,
+        ticket_url: eventData.ticket_url, // Include ticket URL in request data
         user_id: eventData.user_id,
         event_type: eventData.event_type,
         requestType: "EVENT"
@@ -195,6 +198,15 @@ const CreateEvent = ({ route }) => {
         onChangeText={(text) => setEventData({...eventData, event_link: text})}
         style={styles.input}
         placeholder="Enter event link"
+      />
+
+      {/* Ticket URL Input */}
+      <Text style={styles.label}>Ticket URL:</Text>
+      <TextInput
+        value={eventData.ticket_url}
+        onChangeText={(text) => setEventData({...eventData, ticket_url: text})}
+        style={styles.input}
+        placeholder="Enter ticket URL (optional)"
       />
 
       {/* Event Type Dropdown */}
