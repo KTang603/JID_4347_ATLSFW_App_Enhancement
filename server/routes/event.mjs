@@ -107,7 +107,7 @@ router.post("/events/create", verifyToken, async (req, res) => {
     // Log received data
     console.log('Received event data:', req.body);
 
-    const { event_title, event_desc, event_link, event_location, event_date, event_time, user_id, event_type } = req.body;
+    const { event_title, event_desc, event_link, event_location, event_date, event_time, user_id, event_type, ticket_url } = req.body;
     
     // Check each field individually and provide specific error
     const missingFields = [];
@@ -135,6 +135,7 @@ router.post("/events/create", verifyToken, async (req, res) => {
       event_time,
       user_id,
       event_type: event_type || "regular", // Default to regular if not specified
+      ticket_url: ticket_url || "", // Add ticket URL field with default empty string
       created_at: new Date()
     });
 
@@ -210,7 +211,8 @@ router.put("/events/update/:id", requireAdmin, async (req, res) => {
       event_location, 
       event_date, 
       event_time, 
-      event_type 
+      event_type,
+      ticket_url
     } = req.body;
     
     // Check for required fields
@@ -241,6 +243,7 @@ router.put("/events/update/:id", requireAdmin, async (req, res) => {
           event_date,
           event_time,
           event_type: event_type || "regular", // Default to regular if not specified
+          ticket_url: ticket_url || "", // Add ticket URL field with default empty string
           updated_at: new Date()
         } 
       }
