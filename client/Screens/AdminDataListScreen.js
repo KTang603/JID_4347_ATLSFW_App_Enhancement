@@ -6,6 +6,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import MY_IP_ADDRESS from "../environment_variables.mjs";
 import { useSelector } from "react-redux";
 import AppPrimaryButton from "../components/AppPrimaryButton";
+import { ACTIVATE_STATUS, DEACTIVATE_STATUS } from "../utils/AppConstant";
 
 const AdminDataListScreen = () => {
   const navigation = useNavigation();
@@ -22,7 +23,7 @@ const AdminDataListScreen = () => {
     const titles = {
       users: "Users List",
       vendors: "Vendor List",
-      articles: "Article List",
+      articles: "Admin Article List",
       mostLiked: "Most Liked Articles",
       mostSaved: "Most Saved Articles"
     };
@@ -91,15 +92,14 @@ const AdminDataListScreen = () => {
         mostSaved: "/admin/most-saved"
       };
       const endpoint = endpoints[listType];
-      console.log('endpoint----'+endpoint);
       try {
-       
-        const response = await axios.get(`http://${MY_IP_ADDRESS}:5050${endpoint}`);
+       const response = await axios.get(`http://${MY_IP_ADDRESS}:5050${endpoint}`);
         
+         console.log('response----'+JSON.stringify(response));
         setLoading(false);
         if (response.status == 200) {
           responseData = response.data; 
-          setData(response.data); //USERS 
+          setData(response.data); //USERS //VENDORS
 
           // let responseData = [];
           // if (Array.isArray(response.data)) {
@@ -154,9 +154,10 @@ const AdminDataListScreen = () => {
 
   // Render different item types based on the list type
   const renderItem = ({ item }) => {
-    switch (listType) {
 
+    switch (listType) {
       case "users":
+        const userStatus = item.user_status == DEACTIVATE_STATUS ? ACTIVATE_STATUS: DEACTIVATE_STATUS;
         return (
           <View>
           <View style={styles.card}>
@@ -177,19 +178,28 @@ const AdminDataListScreen = () => {
           </View>
           <View style={{position:'absolute',bottom:0,right:5,top:25}}>
           <AppPrimaryButton disabled={item.user_roles == 2?true:false} containerStyle ={{width:120,backgroundColor: item.user_roles == 2?'#808080':'#17A398',marginBottom:5}} title= {item.user_roles == 2 ? "Vendor" : "Make Vendor"} handleSubmit={() => {sendRequestForVendor(item._id)}} />
-            <AppPrimaryButton containerStyle ={{width:120,backgroundColor:'#EE6C4D',marginBottom:5}} title="Deactivate" handleSubmit={() => {sendRequestForActivateAndDeactivate(item._id,0)}} />
+            <AppPrimaryButton containerStyle ={{width:120,backgroundColor:'#EE6C4D',marginBottom:5}} title={item.user_status == DEACTIVATE_STATUS ? "Activate" : "Deactivate" }handleSubmit={() => {sendRequestForActivateAndDeactivate(item._id,userStatus)}} />
             </View>
           </View>
 
         );
       
       case "vendors":
+        
+        const shopName = item.discovery_info ? item.discovery_info.brand_name: item.first_name +" "+ item.last_name 
+        const shopEmail = item.user_email ?? ''
+        const shopLink = item.discovery_info ? item.discovery_info.shop_now_link :''
+        const shopTtile = item.discovery_info ? item.discovery_info.title :''
+        const shopIntro = item.discovery_info ? item.discovery_info.intro :''
+
+
         return (
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>{item.brand_name || "Unknown Vendor"}</Text>
-            <Text style={styles.cardSubtitle}>{item.email || "No email"}</Text>
-            <Text style={styles.cardDetail}>{item.title || "No title"}</Text>
-            {item.intro && <Text style={styles.cardDescription} numberOfLines={2}>{item.intro}</Text>}
+            <Text style={styles.cardTitle}>{shopName}</Text>
+            {shopEmail.length> 0 && <Text style={styles.cardSubtitle}>{shopEmail}</Text> }
+            {shopLink.length> 0 && <Text style={styles.cardSubtitle}>{shopLink}</Text> }
+            {shopTtile.length> 0 && <Text style={styles.cardSubtitle}>{shopTtile}</Text> }
+            {shopIntro.length >0 && <Text style={styles.cardDescription} numberOfLines={2}>{shopIntro}</Text>}
           </View>
         );
       

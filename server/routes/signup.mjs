@@ -1,6 +1,6 @@
 import express from "express";
 import { posts_db, users_db } from "../db/conn.mjs";
-import { USER_ROLES } from "../utils/constant.mjs";
+import { ACTIVATE_STATUS, USER_ROLES } from "../utils/constant.mjs";
 
 /*
 enum AccountType {
@@ -66,6 +66,7 @@ router.post("/signup", async (req, res) => {
     phone_number: phone_number,
     birthday: birthday,
     user_email:user_email,
+    user_status:ACTIVATE_STATUS,
     user_roles: USER_ROLES, // 1 for user, 2 for admin
     // encrypted_email: encrypted_email,
     // liked_articles: [],

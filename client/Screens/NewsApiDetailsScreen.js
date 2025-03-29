@@ -32,10 +32,7 @@ const makeRequest = async (method, url, data = null) => {
       config.data = data;
     }
   }
-
-  console.log(`Making ${method} request to:`, config.url);
-  console.log('Request config:', config);
-  
+ 
   try {
     const response = await axios(config);
     console.log('Response:', response.data);
@@ -71,35 +68,6 @@ const NewsApiDetailsScreen = () => {
     fetchDomains();
   }, [token]);
 
-  const handleAddArticle = async () => {
-    if (!newArticleTitle.trim() || !newArticleUrl.trim()) {
-      Alert.alert('Error', 'Please fill in the article title and URL');
-      return;
-    }
-
-    try {
-      const articleData = {
-        article_title: newArticleTitle,
-        article_preview_image: null,
-        article_link: newArticleUrl,
-        author_id: user_id,
-        author_name: `${userInfo.first_name} ${userInfo.last_name}`,
-        author_pfp_link: 'default_newsapi_avatar.jpg',
-        tags: ['sustainability'],
-        source: 'Manual'
-      };
-      console.log('Sending article data:', articleData);
-      const response = await makeRequest('post', '/posts/create', articleData);
-
-      if (response.data.success) {
-        setNewArticleTitle('');
-        setNewArticleUrl('');
-        Alert.alert('Success', 'Article added successfully');
-      }
-    } catch (error) {
-      Alert.alert('Error', error.response?.data?.message || 'Failed to add article');
-    }
-  };
 
   const fetchNewsApiArticles = async () => {
     try {
@@ -143,24 +111,6 @@ const NewsApiDetailsScreen = () => {
         <AppPrimaryButton 
           title="Fetch NewsData.io Articles"
           handleSubmit={fetchNewsApiArticles}
-        />
-
-        <Text style={[styles.sectionTitle, { marginTop: 20 }]}>Add Article Manually</Text>
-        <TextInput
-          placeholder="Article Title"
-          style={[styles.input, { marginBottom: 5 }]}
-          value={newArticleTitle}
-          onChangeText={setNewArticleTitle}
-        />
-        <TextInput
-          placeholder="Article URL"
-          style={[styles.input, { marginBottom: 20 }]}
-          value={newArticleUrl}
-          onChangeText={setNewArticleUrl}
-        />
-        <AppPrimaryButton 
-          title="Add Article"
-          handleSubmit={handleAddArticle}
         />
       </View>
     </ScrollView>
