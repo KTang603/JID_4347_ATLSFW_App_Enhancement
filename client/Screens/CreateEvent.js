@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { View, Text, TextInput, StyleSheet, Alert, Modal, TouchableOpacity, ScrollView, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import AppPrimaryButton from "../components/AppPrimaryButton";
@@ -8,7 +8,10 @@ import { useNavigation } from "@react-navigation/native";
 import { useSelector } from "react-redux";
 import { Calendar } from "react-native-calendars";
 
-const CreateEvent = () => {
+const CreateEvent = ({ route }) => {
+  // Check if we're updating an existing event
+  const isUpdating = route.params?.isUpdating || false;
+  const eventToUpdate = route.params?.eventToUpdate || null;
   // Navigation hook for moving between screens
   const navigation = useNavigation();
   
@@ -34,52 +37,96 @@ const CreateEvent = () => {
     user_id: user_id  // Include user_id who created the event
   });
   
+  // Pre-populate form if updating an existing event
+  useEffect(() => {
+    if (isUpdating && eventToUpdate) {
+      setEventData({
+        event_title: eventToUpdate.event_title || "",
+        event_location: eventToUpdate.event_location || "",
+        event_date: eventToUpdate.event_date || "",
+        event_time: eventToUpdate.event_time || "",
+        event_desc: eventToUpdate.event_desc || "",
+        event_link: eventToUpdate.event_link || "",
+        event_type: eventToUpdate.event_type || "regular",
+        user_id: user_id
+      });
+    }
+  }, [isUpdating, eventToUpdate]);
+  
   // State to control event type dropdown
   const [showEventTypeDropdown, setShowEventTypeDropdown] = useState(false);
 
   const handleSubmit = async () => {
     try {
-      // Log the data we're about to send
-      console.log('Sending event data:', eventData);
-  
+      // Validate form data
       if (!eventData.event_title || !eventData.event_location || 
           !eventData.event_date || !eventData.event_time || !eventData.event_desc || !eventData.event_link) {
         Alert.alert("Error", "Please fill all fields");
         return;
       }
-  
-      const response = await axios.post(
-        `http://${MY_IP_ADDRESS}:5050/events/create`,
-        {
-          event_title: eventData.event_title,
-          event_desc: eventData.event_desc,
-          event_link: eventData.event_link,
-          event_location: eventData.event_location,
-          event_date: eventData.event_date,
-          event_time: eventData.event_time,
-          user_id: eventData.user_id,
-          event_type: eventData.event_type, // Include event type
-          requestType: "EVENT"
-        },
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-  
-      if (response.data.success) {
-        Alert.alert("Success", "Event created successfully", [
+      
+      // Prepare request data
+      const requestData = {
+        event_title: eventData.event_title,
+        event_desc: eventData.event_desc,
+        event_link: eventData.event_link,
+        event_location: eventData.event_location,
+        event_date: eventData.event_date,
+        event_time: eventData.event_time,
+        user_id: eventData.user_id,
+        event_type: eventData.event_type,
+        requestType: "EVENT"
+      };
+      
+      let response;
+      
+      if (isUpdating && eventToUpdate) {
+        // Update existing event
+        response = await axios.put(
+          `http://${MY_IP_ADDRESS}:5050/events/update/${eventToUpdate._id}`,
+          requestData,
           {
-            text: "OK",
-            onPress: () => navigation.goBack()
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
           }
-        ]);
+        );
+        
+        if (response.data.success) {
+          Alert.alert("Success", "Event updated successfully", [
+            {
+              text: "OK",
+              onPress: () => navigation.goBack()
+            }
+          ]);
+        }
+      } else {
+        // Create new event
+        response = await axios.post(
+          `http://${MY_IP_ADDRESS}:5050/events/create`,
+          requestData,
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+        
+        if (response.data.success) {
+          Alert.alert("Success", "Event created successfully", [
+            {
+              text: "OK",
+              onPress: () => navigation.goBack()
+            }
+          ]);
+        }
       }
     } catch (error) {
       console.error("Error response:", error.response?.data);
-      Alert.alert("Error", error.response?.data?.message || "Failed to create event");
+      const action = isUpdating ? "update" : "create";
+      Alert.alert("Error", error.response?.data?.message || `Failed to ${action} event`);
     }
   };
 
@@ -195,7 +242,10 @@ const CreateEvent = () => {
       )}
 
       {/* Submit Button - Uses custom AppPrimaryButton component */}
-      <AppPrimaryButton title={"Add Event"} handleSubmit={handleSubmit} />
+      <AppPrimaryButton 
+        title={isUpdating ? "Update Event" : "Add Event"} 
+        handleSubmit={handleSubmit} 
+      />
 
       {/* Date Picker Modal */}
       <Modal

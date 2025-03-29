@@ -191,5 +191,81 @@ router.delete("/events/delete/:id", requireAdmin, async (req, res) => {
   }
 });
 
+// Update event endpoint - Admin only
+router.put("/events/update/:id", requireAdmin, async (req, res) => {
+  try {
+    const eventId = req.params.id;
+    
+    if (!eventId) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Missing event ID' 
+      });
+    }
+    
+    const { 
+      event_title, 
+      event_desc, 
+      event_link, 
+      event_location, 
+      event_date, 
+      event_time, 
+      event_type 
+    } = req.body;
+    
+    // Check for required fields
+    const missingFields = [];
+    if (!event_title) missingFields.push('title');
+    if (!event_desc) missingFields.push('description');
+    if (!event_link) missingFields.push('link');
+    if (!event_location) missingFields.push('location');
+    if (!event_date) missingFields.push('date');
+    if (!event_time) missingFields.push('time');
+
+    if (missingFields.length > 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: `Missing event information: ${missingFields.join(', ')}` 
+      });
+    }
+    
+    // Update the event in the database
+    const result = await events_db.collection('events').updateOne(
+      { _id: new ObjectId(eventId) },
+      { 
+        $set: {
+          event_title,
+          event_desc,
+          event_link,
+          event_location,
+          event_date,
+          event_time,
+          event_type: event_type || "regular", // Default to regular if not specified
+          updated_at: new Date()
+        } 
+      }
+    );
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Event not found' 
+      });
+    }
+
+    res.status(200).json({ 
+      success: true,
+      message: 'Event updated successfully'
+    });
+  } catch (err) {
+    console.error('Error updating event:', err);
+    res.status(500).json({ 
+      success: false, 
+      message: "Failed to update event",
+      error: err.message 
+    });
+  }
+});
+
 
 export default router;
