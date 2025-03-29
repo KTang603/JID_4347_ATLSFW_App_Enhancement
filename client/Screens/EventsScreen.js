@@ -82,6 +82,7 @@ const EventsScreen = () => {
   const [events, setEvents] = useState([]);
   const [oldEvent, setOldEvent] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [eventDetailsVisible, setEventDetailsVisible] = useState(false);
 
   const navigation = useNavigation();
 
@@ -154,6 +155,14 @@ const EventsScreen = () => {
         filteredEvents = filteredEvents.filter(event => 
           event.event_date === selectedDate
         );
+        
+        // For same-day events, sort by time
+        filteredEvents = filteredEvents.sort((a, b) => {
+          if (a.event_time && b.event_time) {
+            return a.event_time.localeCompare(b.event_time);
+          }
+          return 0;
+        });
       }
       
       // Apply event type filter if specified
@@ -168,12 +177,21 @@ const EventsScreen = () => {
     }
   }, [oldEvent, selectedDate, eventTypeFilter]);
 
-  // Fetch events from API
+  // Fetch events from API and sort by date
   const fetchEvents = async () => {
     try {
       const response = await getAllEvent({ token });
-      setEvents(response.data.event);
-      setOldEvent(response.data.event);
+      
+      // Sort events by date in ascending order
+      const sortedEvents = [...response.data.event].sort((a, b) => {
+        // Convert dates to timestamps for comparison
+        const dateA = new Date(a.event_date).getTime();
+        const dateB = new Date(b.event_date).getTime();
+        return dateA - dateB; // Ascending order
+      });
+      
+      setEvents(sortedEvents);
+      setOldEvent(sortedEvents);
     } catch (error) {
       console.error("Error in fetchEvents:", error);
       Alert.alert("Error", "Failed to load events");
@@ -193,6 +211,13 @@ const EventsScreen = () => {
   const showEventOptions = (event, nativeEvent) => {
     setSelectedEvent(event);
     
+    // For non-admin users, show event details directly
+    if (!isAdmin) {
+      setEventDetailsVisible(true);
+      return;
+    }
+    
+    // For admin users, show the options menu
     // Get the screen width
     const screenWidth = Dimensions.get('window').width;
     
@@ -289,29 +314,22 @@ const EventsScreen = () => {
     return (
       <TouchableOpacity 
         style={styles.eventCard}
-        onPress={() => Linking.openURL(event.event_link)}
+        onPress={() => showEventOptions(event, {})} // Open details modal on card click
         activeOpacity={0.8}
       >
-        {/* Event Title with Options Menu for Admin */}
+        {/* Event Title with Options Menu */}
         <View style={styles.titleRow}>
           <Text style={styles.eventTitle}>{event.event_title}</Text>
-          {isAdmin && (
-            <TouchableOpacity 
-              onPress={(e) => {
-                e.stopPropagation(); // Prevent card click
-                showEventOptions(event, e.nativeEvent);
-              }}
-              style={styles.optionsButton}
-            >
-              <Ionicons name="ellipsis-vertical" size={20} color="#0066cc" />
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity 
+            onPress={(e) => {
+              e.stopPropagation(); // Prevent card click
+              showEventOptions(event, e.nativeEvent);
+            }}
+            style={styles.optionsButton}
+          >
+            <Ionicons name="ellipsis-vertical" size={20} color="#0066cc" />
+          </TouchableOpacity>
         </View>
-
-        {/* Event Description */}
-        <Text style={styles.eventDescription} numberOfLines={3}>
-          {event.event_desc}
-        </Text>
         
         {/* Event Date and Time */}
         {event.event_date && (
@@ -326,45 +344,13 @@ const EventsScreen = () => {
           <Ionicons name="location-outline" size={14} color="#666" />
           {" "}{event.event_location}
         </Text>
-        
+
         {/* Event Type Tag */}
         <View style={styles.tagsRow}>
           <Text style={styles.tag}>
             {eventType === "workshop" ? "Workshop" : "Event"}
           </Text>
         </View>
-
-        {/* Interested Button - Only for non-admin users */}
-        {!isAdmin && (
-          <View
-            style={{
-              flexDirection: "row",
-              borderTopWidth: 1,
-              borderTopColor: "#e0e0e0",
-              flex: 1,
-              justifyContent: "flex-end",
-              paddingTop: 10,
-            }}
-          >
-            <TouchableOpacity
-              disabled={isParticipated}
-              onPress={(e) => {
-                e.stopPropagation(); // Prevent card click
-                addParticipant(event._id);
-              }}
-              style={styles.linkContainer}
-            >
-              <Text
-                style={[
-                  styles.eventLink,
-                  { color: isParticipated ? "#000" : "#0066cc" },
-                ]}
-              >
-                {isParticipated ? "Interested" : "Interested?"}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        )}
       </TouchableOpacity>
     );
   };
@@ -424,10 +410,21 @@ const EventsScreen = () => {
   const _filterEvent = (day) => {
     setSelectedDate(day.dateString);
 
+    // Filter events for the selected date
     const result = oldEvent.filter((event) => {
       return event.event_date == day.dateString;
     });
-    setEvents(result);
+    
+    // Sort filtered events by time if available, otherwise just use the sorted order
+    const sortedResult = [...result].sort((a, b) => {
+      // If both events have time, sort by time
+      if (a.event_time && b.event_time) {
+        return a.event_time.localeCompare(b.event_time);
+      }
+      return 0; // Keep original order if no time available
+    });
+    
+    setEvents(sortedResult);
   };
 
   return (
@@ -458,39 +455,56 @@ const EventsScreen = () => {
             styles.optionsModalContent,
             { top: menuPosition.top, right: menuPosition.right }
           ]}>
+            {/* Event Details option for all users */}
             <TouchableOpacity 
               style={styles.optionItem}
               onPress={() => {
                 setOptionsVisible(false);
-                navigation.navigate("InterestedList", { event: selectedEvent });
+                setEventDetailsVisible(true);
               }}
             >
-              <Ionicons name="people-outline" size={20} color="#0066cc" />
-              <Text style={styles.optionText}>Interested List</Text>
+              <Ionicons name="information-circle-outline" size={20} color="#0066cc" />
+              <Text style={styles.optionText}>Event Details</Text>
             </TouchableOpacity>
             
-            <TouchableOpacity 
-              style={styles.optionItem}
-              onPress={() => {
-                setOptionsVisible(false);
-                // Navigate to CreateEvent screen with event data for updating
-                navigation.navigate("CreateEvent", { 
-                  eventToUpdate: selectedEvent,
-                  isUpdating: true 
-                });
-              }}
-            >
-              <Ionicons name="create-outline" size={20} color="#0066cc" />
-              <Text style={styles.optionText}>Update Event</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.optionItem}
-              onPress={confirmDeleteEvent}
-            >
-              <Ionicons name="trash-outline" size={20} color="#0066cc" />
-              <Text style={styles.optionText}>Delete Event</Text>
-            </TouchableOpacity>
+            {/* Admin-only options */}
+            {isAdmin && (
+              <>
+                <TouchableOpacity 
+                  style={styles.optionItem}
+                  onPress={() => {
+                    setOptionsVisible(false);
+                    navigation.navigate("InterestedList", { event: selectedEvent });
+                  }}
+                >
+                  <Ionicons name="people-outline" size={20} color="#0066cc" />
+                  <Text style={styles.optionText}>Interested List</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={styles.optionItem}
+                  onPress={() => {
+                    setOptionsVisible(false);
+                    // Navigate to CreateEvent screen with event data for updating
+                    navigation.navigate("CreateEvent", { 
+                      eventToUpdate: selectedEvent,
+                      isUpdating: true 
+                    });
+                  }}
+                >
+                  <Ionicons name="create-outline" size={20} color="#0066cc" />
+                  <Text style={styles.optionText}>Update Event</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={styles.optionItem}
+                  onPress={confirmDeleteEvent}
+                >
+                  <Ionicons name="trash-outline" size={20} color="#0066cc" />
+                  <Text style={styles.optionText}>Delete Event</Text>
+                </TouchableOpacity>
+              </>
+            )}
           </View>
         </TouchableOpacity>
       </Modal>
@@ -529,6 +543,100 @@ const EventsScreen = () => {
                 <Text style={styles.deleteButtonText}>Delete</Text>
               </TouchableOpacity>
             </View>
+          </View>
+        </View>
+      </Modal>
+      
+      {/* Event Details Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={eventDetailsVisible}
+        onRequestClose={() => setEventDetailsVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.eventDetailsModalContent}>
+            {selectedEvent && (
+              <>
+                <View style={styles.eventDetailsHeader}>
+                  <Text style={styles.eventDetailsTitle}>{selectedEvent.event_title}</Text>
+                  <TouchableOpacity 
+                    onPress={() => setEventDetailsVisible(false)}
+                    style={styles.closeButton}
+                  >
+                    <Ionicons name="close" size={24} color="#666" />
+                  </TouchableOpacity>
+                </View>
+                
+                <ScrollView style={styles.eventDetailsScrollView}>
+                  {/* Date and Time */}
+                  <View style={styles.eventDetailSection}>
+                    <Text style={styles.eventDetailLabel}>Date & Time</Text>
+                      <Text style={styles.eventDetailText}>
+                        {formatEventDateTime(selectedEvent.event_date, selectedEvent.event_time, selectedEvent.event_end_time)}
+                      </Text>
+                  </View>
+                  
+                  {/* Location */}
+                  <View style={styles.eventDetailSection}>
+                    <Text style={styles.eventDetailLabel}>Location</Text>
+                    <Text style={styles.eventDetailText}>
+                      {selectedEvent.event_location}
+                    </Text>
+                  </View>
+                  
+                  {/* Description */}
+                  <View style={styles.eventDetailSection}>
+                    <Text style={styles.eventDetailLabel}>Description</Text>
+                    <Text style={styles.eventDetailText}>
+                      {selectedEvent.event_desc}
+                    </Text>
+                  </View>
+                  
+                  {/* Links */}
+                  <View style={styles.eventDetailSection}>
+                    <Text style={styles.eventDetailLabel}>Event Link</Text>
+                    <TouchableOpacity
+                      onPress={() => Linking.openURL(selectedEvent.event_link)}
+                    >
+                      <Text style={styles.eventDetailLink}>
+                        Open Event Link
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                  
+                  {/* Ticket URL if available */}
+                  {selectedEvent.ticket_url && (
+                    <View style={styles.eventDetailSection}>
+                      <Text style={styles.eventDetailLabel}>Tickets</Text>
+                      <TouchableOpacity
+                        onPress={() => Linking.openURL(selectedEvent.ticket_url)}
+                      >
+                        <Text style={styles.eventDetailLink}>
+                          Get Tickets
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                  
+                  {/* Interested Button or Thank You Message - Only for non-admin users */}
+                  {!isAdmin && (
+                    <View style={styles.eventDetailSection}>
+                      {selectedEvent.participants && selectedEvent.participants.includes(_id) ? (
+                        <View style={styles.thankYouContainer}>
+                          <Text style={styles.thankYouText}>Thank you for your interest!</Text>
+                        </View>
+                      ) : (
+                        <AppPrimaryButton 
+                          title="Interested?" 
+                          handleSubmit={() => addParticipant(selectedEvent._id)}
+                        />
+                      )}
+                    </View>
+                  )}
+                </ScrollView>
+              </>
+            )}
           </View>
         </View>
       </Modal>
@@ -789,6 +897,92 @@ const styles = StyleSheet.create({
     fontStyle: "italic",
     textAlign: "center",
     padding: 20,
+  },
+  // Status row for event type and interested status
+  statusRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 5,
+  },
+  interestedTag: {
+    backgroundColor: '#e6f7ff',
+    color: '#0066cc',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+    fontSize: 12,
+    marginTop: 5,
+  },
+  // Event Details Modal styles
+  eventDetailsModalContent: {
+    backgroundColor: 'white',
+    borderRadius: 10,
+    width: '90%',
+    maxHeight: '80%',
+    alignSelf: 'center',
+    marginTop: '20%',
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  eventDetailsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+    padding: 15,
+  },
+  eventDetailsTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    flex: 1,
+    paddingRight: 10,
+  },
+  closeButton: {
+    padding: 5,
+  },
+  eventDetailsScrollView: {
+    padding: 15,
+  },
+  eventDetailSection: {
+    marginBottom: 20,
+  },
+  eventDetailLabel: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#666',
+    marginBottom: 5,
+  },
+  eventDetailText: {
+    fontSize: 14,
+    color: '#333',
+    lineHeight: 20,
+  },
+  eventDetailLink: {
+    fontSize: 14,
+    color: '#0066cc',
+    marginTop: 5,
+  },
+  // Thank you message styles
+  thankYouContainer: {
+    backgroundColor: '#e6f7ff',
+    borderRadius: 5,
+    padding: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  thankYouText: {
+    color: '#0066cc',
+    fontSize: 16,
+    fontWeight: '500',
   },
 });
 
