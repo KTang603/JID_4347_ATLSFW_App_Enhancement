@@ -452,7 +452,13 @@ const EventsScreen = () => {
     // Process each event
     oldEvent.forEach((event) => {
       const date = event.event_date;
-      const isInterested = event.participants && event.participants.includes(_id);
+      
+      // For admin users, check if any user is interested
+      // For regular users, check if the current user is interested
+      const hasParticipants = event.participants && event.participants.length > 0;
+      const isInterested = isAdmin 
+        ? hasParticipants 
+        : (event.participants && event.participants.includes(_id));
       
       if (!eventDate[date]) {
         // Initialize with dots array for multi-dot support
@@ -464,7 +470,7 @@ const EventsScreen = () => {
         };
       }
       
-      // If user is interested in this event, add a red dot
+      // If user is interested in this event (or any user for admin), add a red dot
       if (isInterested) {
         // Check if we already have dots for this date
         if (eventDate[date].dots) {
