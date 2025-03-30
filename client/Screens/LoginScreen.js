@@ -200,14 +200,12 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     fontSize: 16,
-    fontFamily: 'Roboto',
     fontWeight: '500',
     color: 'black',
     textAlign: 'center',
   },
   loginButtonText: {
     fontSize: 18,
-    fontFamily: 'Roboto',
     fontWeight: '500',
     color: 'black',
     textAlign: 'center',
@@ -218,7 +216,6 @@ const styles = StyleSheet.create({
   },
   newHereText: {
     fontSize: 18,
-    fontFamily: 'Roboto',
     fontWeight: '500',
     textAlign: 'center',
   },
