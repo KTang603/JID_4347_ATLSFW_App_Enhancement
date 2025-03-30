@@ -221,8 +221,30 @@ const EventsScreen = () => {
         });
       }
       
-      // Apply sorting based on selected option
-      filteredEvents = sortEvents(filteredEvents);
+      // Filter for "interested" events if that option is selected
+      if (sortOption === "interested") {
+        filteredEvents = filteredEvents.filter(event => 
+          event.participants && event.participants.includes(_id)
+        );
+      }
+      
+      // Apply sorting based on selected option (date sorting for both options)
+      filteredEvents = filteredEvents.sort((a, b) => {
+        // First compare dates
+        const dateA = new Date(a.event_date).getTime();
+        const dateB = new Date(b.event_date).getTime();
+        
+        if (dateA !== dateB) {
+          return dateA - dateB; // Sort by date if dates are different
+        }
+        
+        // If dates are the same, sort by time if available
+        if (a.event_time && b.event_time) {
+          return a.event_time.localeCompare(b.event_time);
+        }
+        
+        return 0; // Keep original order if no time available
+      });
       
       setEvents(filteredEvents);
     }
