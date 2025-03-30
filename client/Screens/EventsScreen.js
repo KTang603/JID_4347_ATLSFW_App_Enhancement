@@ -738,10 +738,9 @@ const EventsScreen = () => {
           </View>
         )}
 
-        {/* Floating Sort Filter - Only for non-admin users */}
+        {/* Toggle Filter - Only for non-admin users */}
         {events.length > 0 && !isAdmin && (
           <View style={styles.sortFilterContainer}>
-            <Text style={styles.sortFilterLabel}>Sort by:</Text>
             <View style={styles.sortButtonsContainer}>
               <TouchableOpacity
                 style={[
@@ -1091,52 +1090,43 @@ const styles = StyleSheet.create({
   },
   // Sort filter styles
   sortFilterContainer: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    marginVertical: 15,
+  },
+  sortButtonsContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#E0E0E0',
+    borderRadius: 15,
+    padding: 2,
+    width: 125,
+  },
+  sortButton: {
+    flex: 1,
+    paddingVertical: 5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 13,
+  },
+  sortButtonActive: {
     backgroundColor: 'white',
-    borderRadius: 10,
-    marginHorizontal: 16,
-    marginBottom: 5,
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 1,
     },
-    shadowOpacity: 0.18,
-    shadowRadius: 1.0,
-    elevation: 1,
-  },
-  sortFilterLabel: {
-    fontSize: 14,
-    color: '#666',
-    marginRight: 10,
-  },
-  sortButtonsContainer: {
-    flexDirection: 'row',
-  },
-  sortButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 15,
-    marginHorizontal: 5,
-    backgroundColor: '#f0f0f0',
-    borderWidth: 1,
-    borderColor: 'transparent',
-  },
-  sortButtonActive: {
-    backgroundColor: 'white',
-    borderColor: '#097969',
+    shadowOpacity: 0.2,
+    shadowRadius: 1.41,
+    elevation: 2,
   },
   sortButtonText: {
     fontSize: 12,
+    fontWeight: '500',
     color: '#666',
   },
   sortButtonTextActive: {
-    color: '#097969',
-    fontWeight: '500',
+    color: '#333',
+    fontWeight: '600',
   },
 });
 
