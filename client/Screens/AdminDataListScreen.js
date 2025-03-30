@@ -1,12 +1,13 @@
 import { useNavigation, useRoute } from "@react-navigation/native";
 import React, { useEffect, useState } from "react";
-import { FlatList, Text, View, StyleSheet, ActivityIndicator, TouchableOpacity, Image, Alert } from "react-native";
+import { FlatList, Text, View, StyleSheet, ActivityIndicator, TouchableOpacity, Image, Alert, Modal, Dimensions } from "react-native";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import MY_IP_ADDRESS from "../environment_variables.mjs";
 import { useSelector } from "react-redux";
 import AppPrimaryButton from "../components/AppPrimaryButton";
 import { ACTIVATE_STATUS, ADMIN_ROLES, DEACTIVATE_STATUS, USER_ROLES, VENDOR_ROLES } from "../utils/AppConstant";
+import { Ionicons } from "@expo/vector-icons";
 
 const AdminDataListScreen = () => {
   const navigation = useNavigation();
@@ -17,6 +18,38 @@ const AdminDataListScreen = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const token = useSelector((store) => store.userInfo?.token);
+  
+  // State for modals
+  const [optionsVisible, setOptionsVisible] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [menuPosition, setMenuPosition] = useState({ top: 0, right: 0 });
+  const [vendorConfirmVisible, setVendorConfirmVisible] = useState(false);
+  
+  // Function to show options menu
+  const showUserOptions = (user, nativeEvent) => {
+    setSelectedUser(user);
+    
+    // Get the screen width
+    const screenWidth = Dimensions.get('window').width;
+    
+    // Position the menu with its right edge at the click position, with offsets
+    setMenuPosition({ 
+      top: nativeEvent.pageY - 50, // Offset to move up
+      right: screenWidth - nativeEvent.pageX + 25 // Right edge at click position with offset to the left
+    });
+    
+    setOptionsVisible(true);
+  };
+
+  // Function to show vendor confirmation dialog
+  const showVendorConfirmation = () => {
+    setOptionsVisible(false);
+    
+    // Use setTimeout to ensure the vendor confirmation modal appears after the options modal is closed
+    setTimeout(() => {
+      setVendorConfirmVisible(true);
+    }, 100);
+  };
 
   useEffect(() => {
     // Set the screen title based on the list type
@@ -158,31 +191,60 @@ const AdminDataListScreen = () => {
     switch (listType) {
       case "users":
         const userStatus = item.user_status == DEACTIVATE_STATUS ? ACTIVATE_STATUS: DEACTIVATE_STATUS;
+        const isVendor = item.user_roles == VENDOR_ROLES;
+        
         return (
-          <View>
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>
-              {item.first_name || ""} {item.last_name || ""}
-            </Text>
-            {item.username &&  <Text style={styles.cardSubtitle}>
-              Username: {item.username}
-            </Text> }
-             {item.user_email &&  <Text style={styles.cardSubtitle}>
-              Email: {item.user_email}
-            </Text> }
+          <TouchableOpacity 
+            style={styles.card}
+            activeOpacity={0.8}
+          >
+            {/* Title row with options menu */}
+            <View style={styles.titleRow}>
+              <Text style={styles.cardTitle}>
+                {item.first_name || ""} {item.last_name || ""}
+              </Text>
+              
+              {!isAdmin && (
+                <TouchableOpacity 
+                  onPress={(e) => showUserOptions(item, e.nativeEvent)}
+                  style={styles.optionsButton}
+                >
+                  <Ionicons name="ellipsis-vertical" size={20} color="#aaa" />
+                </TouchableOpacity>
+              )}
+            </View>
+            
+            {item.username && (
+              <Text style={styles.cardSubtitle}>
+                Username: {item.username}
+              </Text>
+            )}
+            
+            {item.user_email && (
+              <Text style={styles.cardSubtitle}>
+                Email: {item.user_email}
+              </Text>
+            )}
+            
             <View style={styles.tagContainer}>
-              <Text style={styles.tag}>
+              <Text style={[
+                styles.tag,
+                isVendor ? styles.vendorTag : styles.userTag,
+                isAdmin && styles.adminTag
+              ]}>
                 {getUserType(item.user_roles)}
               </Text>
-            </View> 
-          </View>
-         {!isAdmin && <View style={{position:'absolute',bottom:0,right:5,top:25}}>
-          <AppPrimaryButton disabled={item.user_roles == 2?true:false} containerStyle ={{width:120,backgroundColor: item.user_roles == 2?'#808080':'#17A398',marginBottom:5}} title= {item.user_roles == 2 ? "Vendor" : "Make Vendor"} handleSubmit={() => {sendRequestForVendor(item._id)}} />
-            <AppPrimaryButton containerStyle ={{width:120,backgroundColor:'#EE6C4D',marginBottom:5}} title={item.user_status == DEACTIVATE_STATUS ? "Activate" : "Deactivate" }handleSubmit={() => {sendRequestForActivateAndDeactivate(item._id,userStatus)}} />
+              
+              {!isAdmin && (
+                <Text style={[
+                  styles.statusTag,
+                  item.user_status != DEACTIVATE_STATUS ? styles.activeTag : styles.inactiveTag
+                ]}>
+                  {item.user_status != DEACTIVATE_STATUS ? "Active" : "Deactivated"}
+                </Text>
+              )}
             </View>
-         }
-          </View> 
-
+          </TouchableOpacity>
         );
       
       case "vendors":
@@ -271,6 +333,93 @@ const AdminDataListScreen = () => {
 
   return (
     <View style={styles.container}>
+      {/* Options Modal */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={optionsVisible}
+        onRequestClose={() => setOptionsVisible(false)}
+      >
+        <TouchableOpacity 
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setOptionsVisible(false)}
+        >
+          <View style={[
+            styles.optionsModalContent,
+            { top: menuPosition.top, right: menuPosition.right }
+          ]}>
+            {/* Make Vendor option */}
+            {selectedUser && selectedUser.user_roles != VENDOR_ROLES && selectedUser.user_roles != ADMIN_ROLES && (
+              <TouchableOpacity 
+                style={styles.optionItem}
+                onPress={() => showVendorConfirmation()}
+              >
+                <Ionicons name="business-outline" size={20} color="#333" />
+                <Text style={styles.optionText}>Make Vendor</Text>
+              </TouchableOpacity>
+            )}
+            
+            {/* Activate/Deactivate option */}
+            {selectedUser && selectedUser.user_roles != ADMIN_ROLES && (
+              <TouchableOpacity 
+                style={styles.optionItem}
+                onPress={() => {
+                  setOptionsVisible(false);
+                  const userStatus = selectedUser.user_status == DEACTIVATE_STATUS ? ACTIVATE_STATUS : DEACTIVATE_STATUS;
+                  sendRequestForActivateAndDeactivate(selectedUser._id, userStatus);
+                }}
+              >
+                <Ionicons 
+                  name={selectedUser?.user_status == DEACTIVATE_STATUS ? "power-outline" : "power"} 
+                  size={20} 
+                  color="#333" 
+                />
+                <Text style={styles.optionText}>
+                  {selectedUser?.user_status == DEACTIVATE_STATUS ? "Activate" : "Deactivate"}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </TouchableOpacity>
+      </Modal>
+      
+      {/* Vendor Confirmation Modal */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={vendorConfirmVisible}
+        onRequestClose={() => setVendorConfirmVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.confirmModalContent}>
+            <Text style={styles.modalTitle}>Make User a Vendor?</Text>
+            <Text style={styles.modalMessage}>
+              This action cannot be undone. Once a user is converted to a vendor, they will have vendor privileges and access.
+            </Text>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={() => setVendorConfirmVisible(false)}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.confirmButton]}
+                onPress={() => {
+                  setVendorConfirmVisible(false);
+                  if (selectedUser) {
+                    sendRequestForVendor(selectedUser._id);
+                  }
+                }}
+              >
+                <Text style={styles.confirmButtonText}>Confirm</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+      
       {data.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyText}>No data found</Text>
@@ -291,6 +440,93 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#f5f5f5",
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  optionsModalContent: {
+    position: 'absolute',
+    backgroundColor: 'white',
+    borderRadius: 10,
+    padding: 10,
+    width: 160, // Reduced by 20% from 200px
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+    zIndex: 1000,
+  },
+  confirmModalContent: {
+    backgroundColor: 'white',
+    borderRadius: 10,
+    padding: 20,
+    width: '80%',
+    maxWidth: 400,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  optionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  optionText: {
+    marginLeft: 10,
+    fontSize: 16,
+    color: '#333',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 15,
+    color: '#333',
+  },
+  modalMessage: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 20,
+    lineHeight: 20,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  modalButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 5,
+    minWidth: 100,
+    alignItems: 'center',
+  },
+  cancelButton: {
+    backgroundColor: '#f0f0f0',
+  },
+  confirmButton: {
+    backgroundColor: '#17A398',
+  },
+  cancelButtonText: {
+    color: '#333',
+    fontWeight: '500',
+  },
+  confirmButtonText: {
+    color: 'white',
+    fontWeight: '500',
   },
   loadingContainer: {
     flex: 1,
@@ -373,19 +609,55 @@ const styles = StyleSheet.create({
     color: "#666",
     marginTop: 5,
   },
+  // Title row with options button
+  titleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  optionsButton: {
+    padding: 5,
+  },
   tagContainer: {
     flexDirection: "row",
+    flexWrap: "wrap",
     marginTop: 5,
+    gap: 6,
   },
   tag: {
-    backgroundColor: "#e0f2f1",
-    color: "#00796b",
     paddingHorizontal: 8,
-    paddingVertical: 2,
+    paddingVertical: 3,
     borderRadius: 4,
     fontSize: 12,
-    marginRight: 5,
-    marginTop: 5,
+    overflow: 'hidden',
+  },
+  userTag: {
+    backgroundColor: "#e3f2fd",
+    color: "#1976d2",
+  },
+  vendorTag: {
+    backgroundColor: "#e0f2f1",
+    color: "#00796b",
+  },
+  adminTag: {
+    backgroundColor: "#fce4ec",
+    color: "#c2185b",
+  },
+  statusTag: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 4,
+    fontSize: 12,
+    overflow: 'hidden',
+  },
+  activeTag: {
+    backgroundColor: "#e8f5e9",
+    color: "#2e7d32",
+  },
+  inactiveTag: {
+    backgroundColor: "#ffebee",
+    color: "#c62828",
   },
   tagsRow: {
     flexDirection: "row",
