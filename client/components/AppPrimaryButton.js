@@ -29,7 +29,6 @@ const styles = StyleSheet.create({
       },
       buttonTextWrapper: {
         fontSize: 18,
-        fontFamily: "Roboto",
         fontWeight: "500",
         color: "black",
         textAlign: "center",
