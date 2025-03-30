@@ -1,7 +1,11 @@
 import { MongoClient } from "mongodb";
 import getMongoPasscode from "../password.mjs";
 
-const uri = "mongodb+srv://" + getMongoPasscode() + "@cluster0.buqut.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
+// Old connection string
+// const uri = "mongodb+srv://" + getMongoPasscode() + "@cluster0.buqut.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
+
+// New connection string
+const uri = "mongodb+srv://" + getMongoPasscode() + "@cluster0.k4tdfvm.mongodb.net/?retryWrites=true&w=majority";
 
 class DatabaseConnection {
     constructor() {

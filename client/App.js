@@ -43,7 +43,7 @@ const ConditionalNavBar = ({ currentScreen }) => {
   if (['Log In', 'Sign Up','Splash', 'Forgot Password'].includes(currentScreen)) {
     return null;
   }
-  return <NavBar />;
+  return <NavBar currentScreen={currentScreen} />;
 };
 
 const App = () => {
