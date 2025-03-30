@@ -8,6 +8,8 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
+  Modal,
+  Linking,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
@@ -16,6 +18,7 @@ import { getToken } from "../utils/StorageUtils";
 import { HEADER_LOGO } from "../assets";
 import AppPrimaryButton from "../components/AppPrimaryButton";
 import { handleApiError } from "../utils/ApiErrorHandler";
+import MY_IP_ADDRESS from "../environment_variables.mjs";
 
 const HomeScreen = () => {
   const [loading, setLoading] = useState(true);
@@ -23,6 +26,8 @@ const HomeScreen = () => {
   const [upcomingEvents, setUpcomingEvents] = useState([]);
   const [featuredBrands, setFeaturedBrands] = useState([]);
   const [workshops, setWorkshops] = useState([]);
+  const [eventDetailsVisible, setEventDetailsVisible] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState(null);
   const navigation = useNavigation();
   const token = useSelector((store) => store.token.token);
 
@@ -35,7 +40,7 @@ const HomeScreen = () => {
       setLoading(true);
       
       // Fetch all home page data in a single request
-      const response = await fetch("http://localhost:5050/home/all", {
+      const response = await fetch(`http://${MY_IP_ADDRESS}:5050/home/all`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -44,7 +49,29 @@ const HomeScreen = () => {
       if (response.ok) {
         const data = await response.json();
         setUpcomingEvents(data.upcomingEvents || []);
-        setFeaturedBrands(data.featuredBrands || []);
+        
+        // Always use mock data for featured brands
+        const mockBrands = [
+          {
+            _id: "1",
+            name: "EcoThreads",
+            description: "Sustainable clothing made from recycled materials",
+            image: "https://example.com/brand1.jpg",
+          },
+          {
+            _id: "2",
+            name: "Green Stitch",
+            description: "Handcrafted accessories using eco-friendly materials",
+            image: "https://example.com/brand2.jpg",
+          },
+          {
+            _id: "3",
+            name: "Terra Wear",
+            description: "Biodegradable fashion for conscious consumers",
+            image: "https://example.com/brand3.jpg",
+          },
+        ];
+        setFeaturedBrands(mockBrands);
         setWorkshops(data.workshops || []);
       }
       
@@ -59,63 +86,31 @@ const HomeScreen = () => {
       if (!errorHandled) {
         setLoading(false);
         
-        // Set some dummy data for demonstration
-      setUpcomingEvents([
-        {
-          _id: "1",
-          title: "Atlanta Sustainable Fashion Week 2025",
-          date: "April 15-20, 2025",
-          location: "Ponce City Market, Atlanta",
-          image: "https://example.com/event1.jpg",
-        },
-        {
-          _id: "2",
-          title: "Eco-Fashion Showcase",
-          date: "May 5, 2025",
-          location: "High Museum of Art, Atlanta",
-          image: "https://example.com/event2.jpg",
-        },
-      ]);
-      
-      setFeaturedBrands([
-        {
-          _id: "1",
-          name: "EcoThreads",
-          description: "Sustainable clothing made from recycled materials",
-          image: "https://example.com/brand1.jpg",
-        },
-        {
-          _id: "2",
-          name: "Green Stitch",
-          description: "Handcrafted accessories using eco-friendly materials",
-          image: "https://example.com/brand2.jpg",
-        },
-        {
-          _id: "3",
-          name: "Terra Wear",
-          description: "Biodegradable fashion for conscious consumers",
-          image: "https://example.com/brand3.jpg",
-        },
-      ]);
-      
-      setWorkshops([
-        {
-          _id: "1",
-          title: "Clothing Repair Workshop",
-          date: "April 16, 2025",
-          time: "2:00 PM - 4:00 PM",
-          location: "Community Center, Atlanta",
-          description: "Learn how to repair and extend the life of your clothing",
-        },
-        {
-          _id: "2",
-          title: "Sustainable Fabric Dyeing",
-          date: "April 18, 2025",
-          time: "10:00 AM - 12:00 PM",
-          location: "Piedmont Park, Atlanta",
-          description: "Natural dyeing techniques using plant-based materials",
-        },
-      ]);
+        // Set empty arrays for events and workshops to show "Coming Soon!" messages
+        setUpcomingEvents([]);
+        setWorkshops([]);
+        
+        // Set mock data for featured brands
+        setFeaturedBrands([
+          {
+            _id: "1",
+            name: "EcoThreads",
+            description: "Sustainable clothing made from recycled materials",
+            image: "https://example.com/brand1.jpg",
+          },
+          {
+            _id: "2",
+            name: "Green Stitch",
+            description: "Handcrafted accessories using eco-friendly materials",
+            image: "https://example.com/brand2.jpg",
+          },
+          {
+            _id: "3",
+            name: "Terra Wear",
+            description: "Biodegradable fashion for conscious consumers",
+            image: "https://example.com/brand3.jpg",
+          },
+        ]);
       }
     }
   };
@@ -126,16 +121,58 @@ const HomeScreen = () => {
     setRefreshing(false);
   };
 
+  // Helper function to format time from 24-hour to 12-hour format
+  const formatTime = (time) => {
+    if (!time) return "";
+    
+    const [hours, minutes] = time.split(":");
+    const hour = parseInt(hours, 10);
+    const ampm = hour >= 12 ? "PM" : "AM";
+    const hour12 = hour % 12 || 12; // Convert 0 to 12 for 12 AM
+    
+    return `${hour12}:${minutes} ${ampm}`;
+  };
+
   const renderEventItem = (event) => (
     <TouchableOpacity 
       key={event._id}
       style={styles.eventCard}
-      onPress={() => navigation.navigate("Events", { eventId: event._id })}
+      onPress={() => showEventDetails(event)}
     >
       <View style={styles.eventInfo}>
-        <Text style={styles.eventTitle}>{event.title}</Text>
-        <Text style={styles.eventDate}>{event.date}</Text>
-        <Text style={styles.eventLocation}>{event.location}</Text>
+        <View style={styles.titleRow}>
+          <Text style={styles.eventTitle}>{event.event_title || event.title || "Untitled Event"}</Text>
+          <TouchableOpacity 
+            onPress={(e) => {
+              e.stopPropagation(); // Prevent card click
+              showEventDetails(event);
+            }}
+            style={styles.optionsButton}
+          >
+            <Ionicons name="ellipsis-vertical" size={20} color="#aaa" />
+          </TouchableOpacity>
+        </View>
+        
+        {/* Description - make sure we're not displaying URLs */}
+        {(event.event_desc || event.description) && (
+          <Text style={styles.eventDescription} numberOfLines={2}>
+            {/* Filter out URLs from description */}
+            {(() => {
+              const desc = event.event_desc || event.description;
+              // Check if the description is a URL
+              if (desc && (desc.startsWith('http://') || desc.startsWith('https://'))) {
+                return "Click for event details";
+              }
+              return desc;
+            })()}
+          </Text>
+        )}
+        
+        {/* Date and Time - moved to bottom */}
+        <Text style={[styles.eventDate, { marginTop: 5 }]}>
+          {event.event_date || event.date || "No date"}
+          {event.event_time ? ` • ${formatTime(event.event_time)}` : ""}
+        </Text>
       </View>
     </TouchableOpacity>
   );
@@ -164,15 +201,42 @@ const HomeScreen = () => {
     <TouchableOpacity 
       key={workshop._id}
       style={styles.workshopCard}
-      onPress={() => navigation.navigate("Events", { eventId: workshop._id })}
+      onPress={() => showEventDetails(workshop)}
     >
       <View style={styles.workshopHeader}>
         <Ionicons name="construct" size={24} color="#02833D" />
-        <Text style={styles.workshopTitle}>{workshop.title}</Text>
+        <Text style={styles.workshopTitle}>{workshop.event_title || workshop.title || "Untitled Workshop"}</Text>
+        <TouchableOpacity 
+          onPress={(e) => {
+            e.stopPropagation(); // Prevent card click
+            showEventDetails(workshop);
+          }}
+          style={styles.optionsButton}
+        >
+          <Ionicons name="ellipsis-vertical" size={20} color="#aaa" />
+        </TouchableOpacity>
       </View>
-      <Text style={styles.workshopDate}>{workshop.date} • {workshop.time}</Text>
-      <Text style={styles.workshopLocation}>{workshop.location}</Text>
-      <Text style={styles.workshopDescription} numberOfLines={2}>{workshop.description}</Text>
+      
+      {/* Description */}
+      {(workshop.event_desc || workshop.description) && (
+        <Text style={styles.eventDescription} numberOfLines={2}>
+          {/* Filter out URLs from description */}
+          {(() => {
+            const desc = workshop.event_desc || workshop.description;
+            // Check if the description is a URL
+            if (desc && (desc.startsWith('http://') || desc.startsWith('https://'))) {
+              return "Click for workshop details";
+            }
+            return desc;
+          })()}
+        </Text>
+      )}
+      
+      {/* Date and Time - moved to bottom */}
+      <Text style={[styles.workshopDate, { marginTop: 5 }]}>
+        {workshop.event_date || workshop.date || "No date"} 
+        {workshop.event_time ? ` • ${formatTime(workshop.event_time)}` : workshop.time ? ` • ${workshop.time}` : ""}
+      </Text>
     </TouchableOpacity>
   );
 
@@ -185,6 +249,48 @@ const HomeScreen = () => {
     );
   }
 
+  // Helper function to format event date and time
+  const formatEventDateTime = (dateStr, startTime, endTime) => {
+    if (!dateStr) return "";
+    
+    // Parse the date - ensure we're using the correct date by handling timezone issues
+    // Format: YYYY-MM-DD (e.g., 2025-03-29)
+    const [year, month, day] = dateStr.split('-').map(num => parseInt(num, 10));
+    
+    // Create date using UTC to avoid timezone issues (months are 0-indexed in JS)
+    const date = new Date(Date.UTC(year, month - 1, day));
+    
+    // Get day of week
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const dayOfWeek = days[date.getUTCDay()];
+    
+    // Get month
+    const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    const monthName = months[date.getUTCMonth()];
+    
+    // Format date - use UTC methods to avoid timezone issues
+    const dayOfMonth = date.getUTCDate();
+    
+    // Format the full date and time string
+    let formattedDateTime = `${dayOfWeek}, ${monthName} ${dayOfMonth}`;
+    
+    if (startTime) {
+      formattedDateTime += ` · ${formatTime(startTime)}`;
+      
+      if (endTime) {
+        formattedDateTime += ` - ${formatTime(endTime)}`;
+      }
+    }
+    
+    return formattedDateTime;
+  };
+
+  // Function to show event details modal
+  const showEventDetails = (event) => {
+    setSelectedEvent(event);
+    setEventDetailsVisible(true);
+  };
+
   return (
     <ScrollView 
       style={styles.container}
@@ -192,6 +298,87 @@ const HomeScreen = () => {
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={["#02833D"]} />
       }
     >
+      {/* Event Details Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={eventDetailsVisible}
+        onRequestClose={() => setEventDetailsVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.eventDetailsModalContent}>
+            {selectedEvent && (
+              <>
+                <View style={styles.eventDetailsHeader}>
+                  <Text style={styles.eventDetailsTitle}>{selectedEvent.event_title || selectedEvent.title || "Untitled Event"}</Text>
+                  <TouchableOpacity 
+                    onPress={() => setEventDetailsVisible(false)}
+                    style={styles.closeButton}
+                  >
+                    <Ionicons name="close" size={24} color="#666" />
+                  </TouchableOpacity>
+                </View>
+                
+                <ScrollView style={styles.eventDetailsScrollView}>
+                  {/* Date and Time */}
+                  <View style={styles.eventDetailSection}>
+                    <Text style={styles.eventDetailLabel}>Date & Time</Text>
+                      <Text style={styles.eventDetailText}>
+                        {formatEventDateTime(selectedEvent.event_date, selectedEvent.event_time, selectedEvent.event_end_time)}
+                      </Text>
+                  </View>
+                  
+                  {/* Location */}
+                  <View style={styles.eventDetailSection}>
+                    <Text style={styles.eventDetailLabel}>Location</Text>
+                    <Text style={styles.eventDetailText}>
+                      {selectedEvent.event_location || selectedEvent.location || "No location provided"}
+                    </Text>
+                  </View>
+                  
+                  {/* Description */}
+                  {(selectedEvent.event_desc || selectedEvent.description) && (
+                    <View style={styles.eventDetailSection}>
+                      <Text style={styles.eventDetailLabel}>Description</Text>
+                      <Text style={styles.eventDetailText}>
+                        {selectedEvent.event_desc || selectedEvent.description}
+                      </Text>
+                    </View>
+                  )}
+                  
+                  {/* Links */}
+                  {selectedEvent.event_link && (
+                    <View style={styles.eventDetailSection}>
+                      <Text style={styles.eventDetailLabel}>Event Link</Text>
+                      <TouchableOpacity
+                        onPress={() => Linking.openURL(selectedEvent.event_link)}
+                      >
+                        <Text style={styles.eventDetailLink}>
+                          Open Event Link
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                  
+                  {/* Ticket URL if available */}
+                  {selectedEvent.ticket_url && (
+                    <View style={styles.eventDetailSection}>
+                      <Text style={styles.eventDetailLabel}>Tickets</Text>
+                      <TouchableOpacity
+                        onPress={() => Linking.openURL(selectedEvent.ticket_url)}
+                      >
+                        <Text style={styles.eventDetailLink}>
+                          Get Tickets
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </ScrollView>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
 
       {/* Upcoming Events Section */}
       <View style={styles.section}>
@@ -205,7 +392,7 @@ const HomeScreen = () => {
           {upcomingEvents.length > 0 ? (
             upcomingEvents.map(renderEventItem)
           ) : (
-            <Text style={styles.noDataText}>No upcoming events at this time</Text>
+            <Text style={styles.noDataText}>Events Coming Soon!</Text>
           )}
         </View>
       </View>
@@ -373,6 +560,20 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#666",
   },
+  eventDescription: {
+    fontSize: 14,
+    color: "#666",
+    marginTop: 5,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 5,
+  },
+  optionsButton: {
+    padding: 5,
+  },
   ticketCard: {
     backgroundColor: "#e0f2f1",
     borderRadius: 8,
@@ -453,6 +654,7 @@ const styles = StyleSheet.create({
   workshopHeader: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
     marginBottom: 10,
   },
   workshopTitle: {
@@ -460,6 +662,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#333",
     marginLeft: 10,
+    flex: 1,
   },
   workshopDate: {
     fontSize: 14,
@@ -481,6 +684,67 @@ const styles = StyleSheet.create({
     fontStyle: "italic",
     textAlign: "center",
     padding: 20,
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  eventDetailsModalContent: {
+    backgroundColor: 'white',
+    borderRadius: 10,
+    width: '90%',
+    maxHeight: '80%',
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  eventDetailsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+    padding: 15,
+  },
+  eventDetailsTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    flex: 1,
+    paddingRight: 10,
+  },
+  closeButton: {
+    padding: 5,
+  },
+  eventDetailsScrollView: {
+    padding: 15,
+  },
+  eventDetailSection: {
+    marginBottom: 20,
+  },
+  eventDetailLabel: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#666',
+    marginBottom: 5,
+  },
+  eventDetailText: {
+    fontSize: 14,
+    color: '#333',
+    lineHeight: 20,
+  },
+  eventDetailLink: {
+    fontSize: 14,
+    color: '#0066cc',
+    marginTop: 5,
   },
 });
 
