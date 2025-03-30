@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { StyleSheet, TouchableOpacity, Text, View } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation} from "@react-navigation/native";
 import { clearAll, getAccountType } from "../utils/StorageUtils";
 import AppPrimaryButton from "../components/AppPrimaryButton";
 import { ACCOUNT_TYPE_ADMIN } from "./ProfilePage";
+
 
 const SettingPage = () => {
   const navigation = useNavigation();
@@ -11,7 +12,10 @@ const SettingPage = () => {
 
   const _makeLogout = async () => {
     await clearAll();
-    navigation.replace("Log In");
+    navigation.reset({
+      index: 0,
+      routes: [{ name: "Log In" }],
+    })
   };
 
   const udpateDetails = async () => {
@@ -32,7 +36,7 @@ const SettingPage = () => {
           <AppPrimaryButton title="Admin Article List" handleSubmit={() => {navigation.navigate("AdminDataList", { listType: "articles" })}} />
           <AppPrimaryButton title="Most Liked" handleSubmit={() => {navigation.navigate("AdminDataList", { listType: "mostLiked" })}} />
           <AppPrimaryButton title="Most Saved" handleSubmit={() => {navigation.navigate("AdminDataList", { listType: "mostSaved" })}} />
-          <AppPrimaryButton title="News Api Details" handleSubmit={() => {navigation.navigate("NewsApiDetails")}} />
+          <AppPrimaryButton title="News Api Config" handleSubmit={() => {navigation.navigate("NewsApiDetails")}} />
         </>
       )}
       <AppPrimaryButton

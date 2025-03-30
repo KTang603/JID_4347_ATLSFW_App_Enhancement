@@ -12,6 +12,7 @@ import { useSelector } from "react-redux";
 import axios from "axios";
 import MY_IP_ADDRESS from "../environment_variables.mjs";
 import AppPrimaryButton from "../components/AppPrimaryButton";
+import { useNavigation } from "@react-navigation/native";
 
 const makeRequest = async (method, url, data = null) => {
   const config = {
@@ -44,29 +45,27 @@ const makeRequest = async (method, url, data = null) => {
 };
 
 const NewsApiDetailsScreen = () => {
-  const [newDomain, setNewDomain] = useState('');
-  const [domains, setDomains] = useState([]);
   const [newsApiKey, setNewsApiKey] = useState('');
-  const [newArticleTitle, setNewArticleTitle] = useState('');
-  const [newArticleUrl, setNewArticleUrl] = useState('');
-  const userInfo = useSelector((store) => store.userInfo?.userInfo || {});
-  const user_id = useSelector((store) => store.user_id.user_id);
-  const token = useSelector((store) => store.token.token);
+  const navigate = useNavigation();
 
   useEffect(() => {
-    const fetchDomains = async () => {
+    navigate.setOptions({
+      title: 'News Api Config',
+    })
+
+    const fetchNewsApiKey = async () => {
       try {
-        const response = await makeRequest('get', '/news/domains');
-        if (Array.isArray(response.data)) {
-          setDomains(response.data);
+        const response = await makeRequest('get', '/admin/fetch_news_api_key');
+        if (response.data.status == 'success') {
+          setNewsApiKey(response.data.data.api_key);
         }
       } catch (error) {
         console.error("Error fetching domains:", error.message);
       }
     };
 
-    fetchDomains();
-  }, [token]);
+    fetchNewsApiKey();
+  }, []);
 
 
   const fetchNewsApiArticles = async () => {
@@ -75,10 +74,7 @@ const NewsApiDetailsScreen = () => {
         Alert.alert('Error', 'Please enter your NewsData.io API key');
         return;
       }
-      const response = await makeRequest('post', '/news/fetch', { 
-        searchQuery: newDomain,
-        apiKey: newsApiKey
-      });
+      const response = await makeRequest('get', '/news/fetch');
       if (response.data.success) {
         Alert.alert('Success', response.data.message);
       }
@@ -87,31 +83,57 @@ const NewsApiDetailsScreen = () => {
     }
   };
 
+  const saveNewsApiKey = async () => {
+    try {
+      if (!newsApiKey) {
+        Alert.alert('Error', 'Please enter your NewsData.io API key');
+        return;
+      }
+      const response = await makeRequest('post', '/admin/save_api_key', { 
+        apiKey: newsApiKey
+      });
+      if (response.data.status == 'success') {
+        Alert.alert('Success', response.data.message);
+      }
+    } catch (error) {
+      Alert.alert('Error', error.response?.data?.message || 'Failed to fetch articles');
+    }
+  };
+
+
   return (
     <ScrollView style={styles.container}>
       <View style={styles.contentSection}>
-        <Text style={styles.sectionTitle}>NewsData.io Configuration</Text>
+        <Text style={styles.sectionTitle}>NewsData.io API KEY</Text>
         <TextInput
-          placeholder="NewsData.io API Key"
+          placeholder="Ex: pub_69919892f87f86c7d48e31dfb61e8e91e0f3b"
           style={[styles.input, { marginBottom: 5 }]}
           value={newsApiKey}
           onChangeText={setNewsApiKey}
-          secureTextEntry={true}
+          secureTextEntry={false}
         />
-        <TextInput
+        {/* <TextInput
           placeholder="Enter search query (e.g., fashion)"
           style={[styles.input, { marginBottom: 5 }]}
           value={newDomain}
           onChangeText={setNewDomain}
-        />
-        <Text style={styles.apiQueryText}>
+        /> */}
+        {/* <Text style={styles.apiQueryText}>
           {`https://newsdata.io/api/1/latest?apikey=${newsApiKey || '[API_KEY]'}&q=${newDomain || '[QUERY]'}&language=en`}
-        </Text>
+        </Text> */}
 
         <AppPrimaryButton 
-          title="Fetch NewsData.io Articles"
+          title="Save"
+          handleSubmit={saveNewsApiKey}
+        />
+        {__DEV__ && <>
+        <Text style={[styles.sectionTitle,{marginBottom:0,marginTop:10}]}>NewsData.io Data</Text>
+        <AppPrimaryButton 
+          title="Fetch News Data"
           handleSubmit={fetchNewsApiArticles}
         />
+        </>
+         }
       </View>
     </ScrollView>
   );
@@ -129,7 +151,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 15,
+    marginBottom: 10,
     color: '#424242',
   },
   input: {

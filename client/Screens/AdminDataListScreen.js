@@ -6,7 +6,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import MY_IP_ADDRESS from "../environment_variables.mjs";
 import { useSelector } from "react-redux";
 import AppPrimaryButton from "../components/AppPrimaryButton";
-import { ACTIVATE_STATUS, DEACTIVATE_STATUS } from "../utils/AppConstant";
+import { ACTIVATE_STATUS, ADMIN_ROLES, DEACTIVATE_STATUS, USER_ROLES, VENDOR_ROLES } from "../utils/AppConstant";
 
 const AdminDataListScreen = () => {
   const navigation = useNavigation();
@@ -141,11 +141,11 @@ const AdminDataListScreen = () => {
 
   const getUserType = (userRoles) => {
     switch (userRoles) {
-      case 3:
+      case ADMIN_ROLES:
         return "Admin";
-      case 1:
+      case USER_ROLES:
         return "User";
-      case 2:
+      case VENDOR_ROLES:
         return "Vendor";
       default:
         return "Unknown";
@@ -154,7 +154,7 @@ const AdminDataListScreen = () => {
 
   // Render different item types based on the list type
   const renderItem = ({ item }) => {
-
+    const isAdmin = item.user_roles == ADMIN_ROLES;
     switch (listType) {
       case "users":
         const userStatus = item.user_status == DEACTIVATE_STATUS ? ACTIVATE_STATUS: DEACTIVATE_STATUS;
@@ -176,11 +176,12 @@ const AdminDataListScreen = () => {
               </Text>
             </View> 
           </View>
-          <View style={{position:'absolute',bottom:0,right:5,top:25}}>
+         {!isAdmin && <View style={{position:'absolute',bottom:0,right:5,top:25}}>
           <AppPrimaryButton disabled={item.user_roles == 2?true:false} containerStyle ={{width:120,backgroundColor: item.user_roles == 2?'#808080':'#17A398',marginBottom:5}} title= {item.user_roles == 2 ? "Vendor" : "Make Vendor"} handleSubmit={() => {sendRequestForVendor(item._id)}} />
             <AppPrimaryButton containerStyle ={{width:120,backgroundColor:'#EE6C4D',marginBottom:5}} title={item.user_status == DEACTIVATE_STATUS ? "Activate" : "Deactivate" }handleSubmit={() => {sendRequestForActivateAndDeactivate(item._id,userStatus)}} />
             </View>
-          </View>
+         }
+          </View> 
 
         );
       

@@ -86,19 +86,19 @@ router.get("/posts", verifyToken, async (req, res) => {
       for(let article of articles){
 
         const saved_articles = await posts_db.collection('saved_articles').find({
-          article_id: article._id
+          article_id: article._id.toString()
         }).toArray();
         
         const liked_articles = await posts_db.collection('liked_articles').find({
-          article_id: article._id
+          article_id: article._id.toString()
         }).toArray();
 
         const articles_exist = await posts_db.collection('saved_articles').find({
-          article_id: article._id, user_id: req.user.id
+          article_id: article._id.toString(), user_id: req.user.id
         }).toArray();
 
         const liked_exist = await posts_db.collection('liked_articles').find({
-          article_id: article._id, user_id: req.user.id
+          article_id: article._id.toString(), user_id: req.user.id
         }).toArray();
 
 
@@ -182,7 +182,10 @@ router.post("/posts/top_saved", async (req, res) => {
 router.post("/posts/saved_articles",verifyToken, async (req, res) => {
   try {
     const {user_id} =req.body;
-    const articles = await posts_db.collection('saved_articles').find({user_id}).toArray();
+    const articles = await posts_db.collection('saved_articles').find({user_id:user_id}).toArray();
+    // console.log('====================================');
+    // console.log('articles----'+JSON.stringify(articles));
+    // console.log('====================================');
 
     if(articles.length > 0 ){
       
@@ -190,7 +193,7 @@ router.post("/posts/saved_articles",verifyToken, async (req, res) => {
 
       let saved_articles = [];
       for(let article of articles){
-        const query = { _id: article.article_id };
+        const query = { _id: new ObjectId(article.article_id) };
         const articlesData = await articlesCollection.find(query).toArray();
         if(articlesData.length > 0){
           saved_articles.push(articlesData[0]);
@@ -202,19 +205,19 @@ router.post("/posts/saved_articles",verifyToken, async (req, res) => {
       for(let article of saved_articles){
 
         const saved_articles = await posts_db.collection('saved_articles').find({
-          article_id: article._id
+          article_id: article._id.toString()
         }).toArray();
-        
+
         const liked_articles = await posts_db.collection('liked_articles').find({
-          article_id: article._id
+          article_id: article._id.toString()
         }).toArray();
 
         const articles_exist = await posts_db.collection('saved_articles').find({
-          article_id: article._id, user_id: req.user.id
+          article_id: article._id.toString(), user_id: req.user.id
         }).toArray();
 
         const liked_exist = await posts_db.collection('liked_articles').find({
-          article_id: article._id, user_id: req.user.id
+          article_id: article._id.toString(), user_id: req.user.id
         }).toArray();
 
 

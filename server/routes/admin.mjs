@@ -1,6 +1,6 @@
 import express from "express";
 import { MongoClient, ObjectId } from "mongodb";
-import { users_db, posts_db, checkConnection, news_db } from "../db/conn.mjs";
+import { users_db, posts_db, checkConnection, news_db,third_party_db } from "../db/conn.mjs";
 import { verifyToken, requireAdmin } from "../middleware/auth.mjs";
 import jwt from 'jsonwebtoken';
 import { fetchNewsArticles } from "../scripts/fetch-news.mjs";
@@ -199,6 +199,45 @@ router.post("/newsdata/fetch", async (req, res) => {
         console.error("Error fetching news articles:", error);
         return res.status(500).json({ success: false, message: "Failed to fetch news articles" });
     }
+});
+
+router.post("/save_api_key", async (req, res) => {
+  try {
+    const {api_key} = req.body;
+    const thirdPartyDb = await third_party_db.collection("config")
+    // const status = await thirdPartyDb.insertOne(
+    //   { "api_key": api_key }
+    //   // { $set: { "api_key": api_key } }    
+    // );
+    
+    const status = await thirdPartyDb.updateOne(
+        { "api_key": api_key },
+        { $set: { "api_key": api_key } }    
+      );
+   if(status.acknowledged){
+    res.status(200).json({status:'success',message:"API key saved successfully."});
+   } else {
+    res.status(200).json({status:'failed',message:"Something went wrong."});
+   }
+  } catch (error) {
+    console.error("Error fetching most saved articles:", error);
+    res.status(500).json({ error: "Failed to fetch most saved articles" });
+  }
+});
+
+router.get("/fetch_news_api_key", async (req, res) => {
+  try {
+    const thirdPartyDb = await third_party_db.collection("config")
+    const response = await thirdPartyDb.findOne({});
+   if(response){
+    res.status(200).json({status:'success',data: response});
+   } else {
+    res.status(200).json({status:'failed',message:"Something went wrong."});
+   }
+  } catch (error) {
+    console.error("Error fetching most saved articles:", error);
+    res.status(500).json({ error: "Failed to fetch most saved articles" });
+  }
 });
 
 export default router;

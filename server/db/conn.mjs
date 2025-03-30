@@ -5,7 +5,7 @@ import getMongoPasscode from "../password.mjs";
 // const uri = "mongodb+srv://" + getMongoPasscode() + "@cluster0.buqut.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
 
 // New connection string
-const uri = "mongodb+srv://" + getMongoPasscode() + "@cluster0.k4tdfvm.mongodb.net/?retryWrites=true&w=majority";
+const uri = "mongodb+srv://" + getMongoPasscode() + "@cluster0.k4tdfvm.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
 
 class DatabaseConnection {
     constructor() {
@@ -21,13 +21,14 @@ class DatabaseConnection {
         this.news_db = null;
         this.events_db = null;
         this.saved_articles_db = null;
+        this.third_party_db = null;
 
 
     }
 
     async connect() {
         if (this.isConnected) {
-            return {saved_articles_db: this.saved_articles_db, posts_db: this.posts_db, users_db: this.users_db, news_db: this.news_db,events_db: this.events_db };
+            return {third_party_db:this.third_party_db,saved_articles_db: this.saved_articles_db, posts_db: this.posts_db, users_db: this.users_db, news_db: this.news_db,events_db: this.events_db };
         }
 
         try {
@@ -40,6 +41,7 @@ class DatabaseConnection {
             this.users_db = this.client.db("users");
             this.news_db = this.client.db("news");
             this.events_db = this.client.db("events");
+            this.third_party_db = this.client.db("third_party");
 
             this.isConnected = true;
 
@@ -65,7 +67,7 @@ class DatabaseConnection {
                 await this.connect();
             });
 
-            return {saved_articles_db: this.saved_articles_db ,posts_db: this.posts_db, users_db: this.users_db, news_db: this.news_db,events_db: this.events_db };
+            return {third_party_db: this.third_party_db,saved_articles_db: this.saved_articles_db ,posts_db: this.posts_db, users_db: this.users_db, news_db: this.news_db,events_db: this.events_db };
         } catch (error) {
             console.error('Error connecting to MongoDB:', error);
             this.isConnected = false;
@@ -98,8 +100,8 @@ class DatabaseConnection {
 const dbConnection = new DatabaseConnection();
 
 // Initialize connection
-const {saved_articles_db ,posts_db, users_db, news_db,events_db } = await dbConnection.connect();
+const {third_party_db,saved_articles_db ,posts_db, users_db, news_db,events_db } = await dbConnection.connect();
 
 // Export database instances and connection checker
-export {saved_articles_db, posts_db, users_db, news_db,events_db };
+export {third_party_db,saved_articles_db, posts_db, users_db, news_db,events_db };
 export const checkConnection = () => dbConnection.checkConnection();
