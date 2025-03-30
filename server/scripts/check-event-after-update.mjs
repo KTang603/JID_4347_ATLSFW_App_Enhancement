@@ -1,8 +1,9 @@
 import { events_db } from "../db/conn.mjs";
+import { ObjectId } from "mongodb";
 
-async function checkEventDetails() {
+async function checkEventAfterUpdate() {
   try {
-    // Connect to the database and get all events
+    // Get all events
     const events = await events_db.collection('events').find({}).toArray();
     
     console.log(`Found ${events.length} events in the database.`);
@@ -17,16 +18,20 @@ async function checkEventDetails() {
       console.log(`End Time: ${event.event_end_time || 'Not specified'}`);
       console.log(`Location: ${event.event_location}`);
       console.log(`Type: ${event.event_type || 'regular'}`);
-      console.log(`Description: ${event.event_desc?.substring(0, 50)}...`);
-      console.log(`Ticket URL: ${event.ticket_url || 'Not specified'}`);
-      console.log(`Participants: ${event.participants?.length || 0}`);
+      
+      // Check if event_end_time exists and has a value
+      if (event.event_end_time) {
+        console.log(`✅ This event has an end time set to: ${event.event_end_time}`);
+      } else {
+        console.log(`❌ This event does not have an end time set.`);
+      }
     });
     
   } catch (error) {
-    console.error("Error checking event details:", error);
+    console.error("Error checking event after update:", error);
   } finally {
     process.exit(0);
   }
 }
 
-checkEventDetails();
+checkEventAfterUpdate();
