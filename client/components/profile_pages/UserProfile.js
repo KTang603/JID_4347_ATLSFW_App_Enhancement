@@ -303,7 +303,6 @@ const styles = StyleSheet.create({
   },
   updateButtonTextStyle: {
     fontSize: 18,
-    fontFamily: 'Roboto',
     fontWeight: '500',
     color: 'black',
     textAlign: 'center',
