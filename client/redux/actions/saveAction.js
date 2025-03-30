@@ -16,6 +16,9 @@ export const getSavedArticles =
           "Content-Type": "application/json",
         },
       });
+      console.log('====================================');
+      console.log('SAVE----'+JSON.stringify(response));
+      console.log('====================================');
       const {data,status}= response;
       if(status){
         dispatch(get_save_list(data.data))
