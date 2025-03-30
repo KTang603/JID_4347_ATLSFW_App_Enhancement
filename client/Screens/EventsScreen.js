@@ -1124,20 +1124,33 @@ const styles = StyleSheet.create({
   },
   sortButtonsContainer: {
     flexDirection: 'row',
-    backgroundColor: '#E0E0E0',
-    borderRadius: 15,
-    padding: 2,
-    width: 125,
+    backgroundColor: 'transparent', // No background color
+    borderRadius: 20, // More rounded corners for modern look
+    borderWidth: 1, // Add border
+    borderColor: 'rgba(9, 121, 105, 0.3)', // Light green border
+    padding: 0, // Remove padding to match inner height
+    width: 160, // Wider to fit text comfortably
+    height: 36, // Match height with inner buttons (paddingVertical 8 * 2 = 16 + some text height)
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
   },
   sortButton: {
     flex: 1,
-    paddingVertical: 5,
+    paddingVertical: 8, // Taller buttons
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 13,
+    borderRadius: 18, // Matching container radius
   },
   sortButtonActive: {
-    backgroundColor: 'white',
+    backgroundColor: 'transparent', // No background color
+    borderWidth: 1, // Add border to the active button
+    borderColor: 'rgba(9, 121, 105, 0.3)', // Same light green border as container
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
@@ -1145,16 +1158,16 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.2,
     shadowRadius: 1.41,
-    elevation: 2,
+    elevation: 3,
   },
   sortButtonText: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '500',
-    color: '#666',
+    color: '#097969', // Green text for inactive state
   },
   sortButtonTextActive: {
-    color: '#333',
-    fontWeight: '600',
+    color: '#097969', // Green text for active state (same as inactive)
+    fontWeight: '500', // Same font weight as inactive state
   },
 });
 
