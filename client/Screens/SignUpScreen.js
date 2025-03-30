@@ -202,7 +202,6 @@ const styles = StyleSheet.create({
   },
   newHereText: {
     fontSize: 18,
-    fontFamily: "Roboto",
     fontWeight: "500",
     textAlign: "center",
   },
