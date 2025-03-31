@@ -1,18 +1,9 @@
 import React from "react";
-import { View, Text, TouchableOpacity, Image,StyleSheet } from "react-native";
-import { SETTING_ICON } from "../assets";
-import { useNavigation } from "@react-navigation/native";
+import { View, StyleSheet } from "react-native";
 
 const ProfileHeader = () => {
-  const navigation = useNavigation();
   return (
     <View style={styles.header}>
-      <TouchableOpacity
-        onPress={() => navigation.navigate("Setting")}
-        style={{ position: "absolute", right: 20, top: 10 }}
-      >
-        <Image source={SETTING_ICON} style={{ height: 30, width: 30 }} />
-      </TouchableOpacity>
     </View>
   );
 };
