@@ -9,7 +9,6 @@ import { getProfileData, setUserInfo } from "../../redux/actions/userInfoAction"
 import { getUserId } from '../../utils/StorageUtils';
 import {SETTING_ICON} from '../../assets/index'
 import { useNavigation } from '@react-navigation/native';
-import ProfileHeader from '../ProfileHeader';
 import { handleApiError } from '../../utils/ApiErrorHandler';
 
 const UserProfile = () => {
@@ -249,7 +248,6 @@ const UserProfile = () => {
   return (
     <View style={styles.container}>
       <ScrollView>
-      <ProfileHeader />
         <View style={styles.profileSection}>
           <TouchableOpacity onPress={pickImage} disabled={!editMode}>
             <Image
@@ -323,14 +321,9 @@ const styles = StyleSheet.create({
     color: 'black',
     textAlign: 'center',
   },
-  header: {
-    backgroundColor: '#02833D', // A green color similar to the one in the image.
-    padding: 50,
-    alignItems: 'center',
-  },
   profileSection: {
     alignItems: 'center',
-    marginTop: -50, // Negative margin to pull the profile section up, overlapping the header
+    marginTop: 30, // Increased margin to add more space below the navigation header
   },
   profileImage: {
     width: 100,

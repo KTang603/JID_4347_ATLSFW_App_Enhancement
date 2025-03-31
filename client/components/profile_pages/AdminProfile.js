@@ -791,14 +791,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "white",
   },
-  header: {
-    backgroundColor: "#02833D",
-    padding: 50,
-    alignItems: "center",
-  },
   profileSection: {
     alignItems: "center",
-    marginTop: -50,
+    marginTop: 30, // Positive margin to position below the navigation header
   },
   profileImage: {
     width: 100,
