@@ -43,6 +43,15 @@ const NewsFeedScreen = ({ navigation }) => {
     });
   }, [navigation, inputTag]);
 
+  // Fetch data when the screen loads
+  useEffect(() => {
+    // Check if user is logged in
+    if (token) {
+      // Fetch data when the screen loads
+      onRefresh();
+    }
+  }, []);
+
   // const fetchUserLikedAndSavedArticles = async () => {
   //   try {
   //     if (!token) {
