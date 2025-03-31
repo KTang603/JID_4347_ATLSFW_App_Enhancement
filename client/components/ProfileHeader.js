@@ -10,8 +10,7 @@ const ProfileHeader = () => {
 
 const styles = StyleSheet.create({
   header: {
-    backgroundColor: "#02833D", // A green color similar to the one in the image.
-    padding: 50,
+    padding: 10, // Reduced padding
     alignItems: "center",
   },
 });
