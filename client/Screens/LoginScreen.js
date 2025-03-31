@@ -125,17 +125,17 @@ const LoginScreen = ({navigation}) => {
           secureTextEntry
         />
 
-        <View style={{ width: "75%", alignItems: "flex-end" }}>
+        <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
+          <Text style={styles.loginButtonText}>Login</Text>
+        </TouchableOpacity>
+
+        <View style={{ width: "75%", alignItems: "center", marginTop: 10 }}>
           <TouchableOpacity
             onPress={() => navigation.navigate("Forgot Password")}
           >
             <Text style={styles.buttonText}>Forgot Password?</Text>
           </TouchableOpacity>
         </View>
-
-        <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-          <Text style={styles.loginButtonText}>Login</Text>
-        </TouchableOpacity>
 
         <TouchableOpacity 
          onPress={() => navigation.navigate('Sign Up')}
@@ -144,7 +144,6 @@ const LoginScreen = ({navigation}) => {
             Don't have an account?
             <Text style={{ fontWeight: "bold" }}> Sign up</Text>
           </Text>
-  
         </TouchableOpacity>
       </View>
      
@@ -206,7 +205,7 @@ const styles = StyleSheet.create({
   },
   loginButtonText: {
     fontSize: 18,
-    fontWeight: '500',
+    fontWeight: '600',
     color: 'black',
     textAlign: 'center',
   },
@@ -215,7 +214,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   newHereText: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '500',
     textAlign: 'center',
   },
