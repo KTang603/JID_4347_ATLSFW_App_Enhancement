@@ -85,6 +85,7 @@ const EventsScreen = () => {
   const [selectedDate, setSelectedDate] = useState("");
   const [events, setEvents] = useState([]);
   const [oldEvent, setOldEvent] = useState([]);
+  const [dateEvents, setDateEvents] = useState([]); // Events for selected date before interest filtering
   const [refreshing, setRefreshing] = useState(false);
   const [eventDetailsVisible, setEventDetailsVisible] = useState(false);
   const [sortOption, setSortOption] = useState("date"); // "date" or "interested"
@@ -126,13 +127,21 @@ const EventsScreen = () => {
         // If filterType is provided, apply it and clear date filter
         setEventTypeFilter(params.filterType);
         setSelectedDate(""); // Clear selected date to show all events of this type
+        setDateEvents([]); // Reset dateEvents
       } else if (params.showAll) {
         // Coming from navbar Events tab click - show all events
         setSelectedDate(""); // Clear selected date to show all events
         setEventTypeFilter(""); // Clear event type filter
+        setDateEvents([]); // Reset dateEvents
       } else if (params.preserveDate && params.selectedDate) {
         // Coming back from InterestedList with a specific date
         setSelectedDate(params.selectedDate);
+        
+        // Filter events for the selected date to update dateEvents
+        const dateFilteredEvents = oldEvent.filter((event) => {
+          return event.event_date == params.selectedDate;
+        });
+        setDateEvents(dateFilteredEvents);
       }
       
       // Clear the params after handling them to avoid reapplying on future focus events
@@ -148,7 +157,7 @@ const EventsScreen = () => {
     
     // Cleanup the listener when the component is unmounted
     return unsubscribe;
-  }, [navigation]);
+  }, [navigation, oldEvent]);
   
   // Sort events based on the selected sort option
   const sortEvents = (eventsToSort) => {
@@ -355,6 +364,7 @@ const EventsScreen = () => {
     // Clear filters
     setSelectedDate("");
     setEventTypeFilter("");
+    setDateEvents([]); // Reset dateEvents
   }, []);
   
   // Function to show all events (used when Events tab is clicked)
@@ -508,14 +518,27 @@ const EventsScreen = () => {
     setSelectedDate(day.dateString);
 
     // Filter events for the selected date
-    const result = oldEvent.filter((event) => {
+    const dateFilteredEvents = oldEvent.filter((event) => {
       return event.event_date == day.dateString;
     });
     
-    // Apply the current sort option to the filtered events
-    const sortedResult = sortEvents(result);
+    // Store all events for this date before interest filtering
+    setDateEvents(dateFilteredEvents);
     
-    setEvents(sortedResult);
+    // Apply the current sort option to the filtered events
+    let finalEvents = [...dateFilteredEvents];
+    
+    // If interested filter is active, apply it
+    if (sortOption === "interested") {
+      finalEvents = finalEvents.filter(event => 
+        event.participants && event.participants.includes(_id)
+      );
+    }
+    
+    // Sort the events
+    finalEvents = sortEvents(finalEvents);
+    
+    setEvents(finalEvents);
   };
 
   return (
@@ -767,7 +790,7 @@ const EventsScreen = () => {
         )}
 
         {/* Toggle Filter - Only for non-admin users */}
-        {events.length > 0 && !isAdmin && (
+        {(events.length > 0 || (selectedDate && dateEvents.length > 0)) && !isAdmin && (
           <View style={styles.sortFilterContainer}>
             <View style={styles.sortButtonsContainer}>
               <TouchableOpacity
@@ -809,7 +832,11 @@ const EventsScreen = () => {
 
         <View style={styles.eventsListContainer}>
           {events.length == 0 ? (
-            <Text> No event for selected date</Text>
+            selectedDate && dateEvents.length == 0 ? (
+              <Text> No event for selected date</Text>
+            ) : (
+              <Text> No events match your current filters</Text>
+            )
           ) : (
             events.map((event, index) => (
               <EventCard key={index} event={event} index={index} />
