@@ -10,6 +10,7 @@ import { getUserId } from '../../utils/StorageUtils';
 import {SETTING_ICON} from '../../assets/index'
 import { useNavigation } from '@react-navigation/native';
 import ProfileHeader from '../ProfileHeader';
+import { handleApiError } from '../../utils/ApiErrorHandler';
 
 const UserProfile = () => {
   const [selectedTab, setSelectedTab] = useState('contact');
@@ -18,6 +19,7 @@ const UserProfile = () => {
   const [imageUri, setImageUri] = useState(null);
   const [savedPath, setSavedPath] = useState(null);
   const userInfo = useSelector((store) => store.userInfo.userInfo);
+  const token = useSelector((store) => store.token.token);
   const navigation = useNavigation();
 
   const [editedFirstName, setEditedFirstName] = useState(userInfo["first_name"]);
@@ -65,30 +67,44 @@ const UserProfile = () => {
         birthday: editedBirthday,
         phone_number: editedPhoneNumber,
       };
+      
+      try {
         // Send the user data to your backend
-    const response = await axios({
-      method:'PATCH',
-      url: "http://" + MY_IP_ADDRESS + ":5050/user/edit/" ,
-      params: {
-        user_id: userId
-      },
-     data: updatedUserInfo
-    }
-    );
+        const response = await axios({
+          method:'PATCH',
+          url: "http://" + MY_IP_ADDRESS + ":5050/user/edit/" ,
+          params: {
+            user_id: userId
+          },
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          data: updatedUserInfo
+        });
 
-    if (response.status == 200) {
-      Alert.alert("Action","Your profile is updated successfully !!")
-      dispatch(
-        setUserInfo({
-          ...userInfo,
-          first_name: editedFirstName,
-          last_name: editedLastName,
-          username: editedUsername,
-          birthday: editedBirthday,
-          phone_number: editedPhoneNumber,
-        })
-      );
-    }
+        if (response.status == 200) {
+          Alert.alert("Action","Your profile is updated successfully !!")
+          dispatch(
+            setUserInfo({
+              ...userInfo,
+              first_name: editedFirstName,
+              last_name: editedLastName,
+              username: editedUsername,
+              birthday: editedBirthday,
+              phone_number: editedPhoneNumber,
+            })
+          );
+        }
+      } catch (error) {
+        // Use the handleApiError function to handle deactivated user accounts
+        const errorHandled = await handleApiError(error, navigation);
+        
+        // If the error wasn't handled as a deactivated account, show a generic error message
+        if (!errorHandled) {
+          Alert.alert("Error", "Failed to update profile");
+        }
+      }
     }
   };
 
