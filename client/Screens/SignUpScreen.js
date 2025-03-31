@@ -132,21 +132,21 @@ const SignUpScreen = ({ navigation }) => {
           secureTextEntry
         />
         <TextInput
-          placeholder="Phone Number(Optional)"
+          placeholder="Phone Number (Optional)"
           value={phoneNum}
           onChangeText={setPhoneNum}
           style={styles.input}
           keyboardType="number-pad"
         />
         <TextInput
-          placeholder="Birthday (yyyy-mm-dd)"
+          placeholder="Birthday (yyyy-mm-dd) (Optional)"
           value={birthday}
           keyboardType="default"
           onChangeText={setBirthday}
           style={styles.input}
         />
         <TextInput
-          placeholder="Gender"
+          placeholder="Gender (Optional)"
           value={gender}
           keyboardType="default"
           onChangeText={setGender}
