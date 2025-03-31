@@ -3,13 +3,13 @@ import {events_db,users_db } from "../db/conn.mjs";
 
 import { ObjectId } from "mongodb";
 
-import { verifyToken, requireAdmin, requirePermisssion } from "../middleware/auth.mjs";
+import { verifyToken, requireAdmin, requirePermisssion, checkUserStatus } from "../middleware/auth.mjs";
 
 const router = express.Router();
 
 // Middleware to verify token for protected routes
 // For ADMIN
-router.use(['/events/create','/events/add_participant', '/events/delete', '/events/update','/events/participantlist'], verifyToken);
+router.use(['/events/create','/events/add_participant', '/events/delete', '/events/update','/events/participantlist'], verifyToken,checkUserStatus);
 
 // Admin only - Create Event (COMMENTED OUT - Using the version below that includes event_type)
 /*
@@ -86,7 +86,7 @@ res.status(200).send('Your request added successfully');
 });
 
 
-router.get("/events", verifyToken, async (req, res) => {
+router.get("/events", verifyToken,checkUserStatus, async (req, res) => {
     try{
         const collection = events_db.collection('events');
         const result = await collection.find({}).toArray();
@@ -102,7 +102,7 @@ router.get("/events", verifyToken, async (req, res) => {
 
 // Add requestType for event creation
 // Admin only - Create 
-router.post("/events/create", verifyToken, async (req, res) => {
+router.post("/events/create", verifyToken,checkUserStatus, async (req, res) => {
   try {
     // Log received data
     console.log('Received event data:', req.body);

@@ -1,7 +1,7 @@
 import express from "express";
 import { ObjectId } from "mongodb";
 import { users_db, posts_db } from "../db/conn.mjs";
-import { verifyToken } from "../middleware/auth.mjs";
+import { checkUserStatus, verifyToken } from "../middleware/auth.mjs";
 
 const router = express.Router();
 
@@ -79,7 +79,7 @@ router.get("/workshops", verifyToken, async (req, res) => {
 });
 
 // Get all home page data in a single request
-router.get("/all", verifyToken, async (req, res) => {
+router.get("/all", verifyToken,checkUserStatus, async (req, res) => {
   try {
     // Get current date
     const currentDate = new Date();
