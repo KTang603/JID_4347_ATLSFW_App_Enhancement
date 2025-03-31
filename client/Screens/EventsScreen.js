@@ -253,7 +253,7 @@ const EventsScreen = () => {
   // Fetch events from API and sort by date
   const fetchEvents = async () => {
     try {
-      const response = await getAllEvent({ token });
+      const response = await getAllEvent({ token,navigation });
       
       // Sort events by date in ascending order
       const sortedEvents = [...response.data.event].sort((a, b) => {

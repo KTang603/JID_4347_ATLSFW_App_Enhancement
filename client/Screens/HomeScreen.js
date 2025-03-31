@@ -14,11 +14,9 @@ import {
 import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSelector } from "react-redux";
-import { getToken } from "../utils/StorageUtils";
-import { HEADER_LOGO } from "../assets";
-import AppPrimaryButton from "../components/AppPrimaryButton";
 import { handleApiError } from "../utils/ApiErrorHandler";
 import MY_IP_ADDRESS from "../environment_variables.mjs";
+import axios from "axios";
 
 const HomeScreen = () => {
   const [loading, setLoading] = useState(true);
@@ -40,14 +38,23 @@ const HomeScreen = () => {
       setLoading(true);
       
       // Fetch all home page data in a single request
-      const response = await fetch(`http://${MY_IP_ADDRESS}:5050/home/all`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      // const response = await fetch(`http://${MY_IP_ADDRESS}:5050/home/all`, {
+      //   headers: {
+      //     Authorization: `Bearer ${token}`,
+      //   },
+      // });
+
+      const response = await axios.get(`http://${MY_IP_ADDRESS}:5050/home/all`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
       
-      if (response.ok) {
-        const data = await response.json();
+      if (response.status === 200) {
+        const data = response.data;
         setUpcomingEvents(data.upcomingEvents || []);
         
         // Always use mock data for featured brands
@@ -74,10 +81,13 @@ const HomeScreen = () => {
         setFeaturedBrands(mockBrands);
         setWorkshops(data.workshops || []);
       }
+      // }else if(response.status === 403){ 
+      //   handleApiError(response,navigation)
+      // }
       
       setLoading(false);
     } catch (error) {
-      console.error("Error fetching home data:", error);
+      // console.error("Error fetching home data:", error);
       
       // Check if this is a deactivated account error
       const errorHandled = await handleApiError(error, navigation);

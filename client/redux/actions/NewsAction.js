@@ -3,8 +3,9 @@ import MY_IP_ADDRESS from "../../environment_variables.mjs";
 import { getUserToken } from "../../utils/StorageUtils";
 import { ARTICLE_LIKE_API, ARTICLE_SAVE_API, CREATE_ARTICLE_API } from "../../utils/ApiUtils";
 import { updatSaveNewsSave, updateSaveNewsLike } from "./saveAction";
+import { handleApiError } from "../../utils/ApiErrorHandler";
 
-export const fetchData =  (page = 1,inputTag,token) => async (dispatch, getState) => {
+export const fetchData =  (page = 1,inputTag,token,navigation) => async (dispatch, getState) => {
     try {
         dispatch(newsDataProgress())        
         const response = await axios.get(
@@ -20,8 +21,7 @@ export const fetchData =  (page = 1,inputTag,token) => async (dispatch, getState
       dispatch(newsDataFullFilled({articles,pagination}))
     } catch (error) {
         dispatch(newsDataFailure())
-
-      console.error("Error during data fetch:", error.message);
+        handleApiError(error,navigation)
     }
   };
 

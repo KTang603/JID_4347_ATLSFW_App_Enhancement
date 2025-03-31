@@ -87,7 +87,7 @@ const NewsFeedScreen = ({ navigation }) => {
 
   const filterArticles = async () => {
     console.log('inputTag----'+inputTag);
-    dispatch(fetchData(1, inputTag, token));
+    dispatch(fetchData(1, inputTag, token,navigation));
     setShowFilterModal(false);
   };
 
@@ -254,7 +254,7 @@ const NewsFeedScreen = ({ navigation }) => {
             style={styles.clearFiltersButton}
             onPress={() => {
               setInputTag([]);
-              dispatch(fetchData(1, [], token));
+              dispatch(fetchData(1, [], token,navigation));
             }}
           >
             <Text style={styles.clearFiltersText}>Clear filters</Text>
@@ -265,13 +265,13 @@ const NewsFeedScreen = ({ navigation }) => {
   };
 
   const onRefresh = () => {
-    dispatch(fetchData(1, [], token));
+    dispatch(fetchData(1, [], token,navigation));
   };
 
   const loadNextPage = async () => {
     const { page, pages } = pagination;
     if (page < pages) {
-      await dispatch(fetchData(page + 1, inputTag, token));
+      await dispatch(fetchData(page + 1, inputTag, token,navigation));
     }
   };
 
