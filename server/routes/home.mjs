@@ -1,6 +1,6 @@
 import express from "express";
 import { ObjectId } from "mongodb";
-import { users_db, posts_db } from "../db/conn.mjs";
+import { users_db, posts_db, events_db } from "../db/conn.mjs";
 import { checkUserStatus, verifyToken } from "../middleware/auth.mjs";
 
 const router = express.Router();
@@ -12,10 +12,10 @@ router.get("/upcoming-events", verifyToken, async (req, res) => {
     const currentDate = new Date();
     
     // Find events that are happening in the future
-    const events = await posts_db.collection("events").find({
-      date: { $gte: currentDate.toISOString() }
+    const events = await events_db.collection("events").find({
+      event_date: { $gte: currentDate.toISOString().split('T')[0] }
     })
-    .sort({ date: 1 }) // Sort by date ascending (soonest first)
+    .sort({ event_date: 1 }) // Sort by date ascending (soonest first)
     .limit(3) // Limit to 3 events
     .toArray();
     
@@ -63,11 +63,15 @@ router.get("/featured-brands", verifyToken, async (req, res) => {
 // Get workshops for the home page
 router.get("/workshops", verifyToken, async (req, res) => {
   try {
+    // Get current date
+    const currentDate = new Date();
+    
     // Find events that are workshops
-    const workshops = await posts_db.collection("events").find({
+    const workshops = await events_db.collection("events").find({
+      event_date: { $gte: currentDate.toISOString().split('T')[0] },
       event_type: "workshop" // Using the event_type field
     })
-    .sort({ date: 1 }) // Sort by date ascending
+    .sort({ event_date: 1 }) // Sort by date ascending
     .limit(2) // Limit to 2 workshops
     .toArray();
     
@@ -85,11 +89,11 @@ router.get("/all", verifyToken,checkUserStatus, async (req, res) => {
     const currentDate = new Date();
     
     // Get upcoming events (regular events only)
-    const upcomingEvents = await posts_db.collection("events").find({
-      date: { $gte: currentDate.toISOString() },
+    const upcomingEvents = await events_db.collection("events").find({
+      event_date: { $gte: currentDate.toISOString().split('T')[0] },
       event_type: "regular" // Only get regular events
     })
-    .sort({ date: 1 })
+    .sort({ event_date: 1 })
     .limit(3)
     .toArray();
     
@@ -115,10 +119,11 @@ router.get("/all", verifyToken,checkUserStatus, async (req, res) => {
     );
     
     // Get workshops
-    const workshops = await posts_db.collection("events").find({
+    const workshops = await events_db.collection("events").find({
+      event_date: { $gte: currentDate.toISOString().split('T')[0] },
       event_type: "workshop"
     })
-    .sort({ date: 1 })
+    .sort({ event_date: 1 })
     .limit(2)
     .toArray();
     
