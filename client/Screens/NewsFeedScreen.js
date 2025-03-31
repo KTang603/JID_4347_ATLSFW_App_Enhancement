@@ -43,7 +43,7 @@ const NewsFeedScreen = ({ navigation }) => {
     });
   }, [navigation, inputTag]);
 
-  // Fetch data when the screen loads
+  // Fetch data when the screen loads, added to logout user if deactivated.
   useEffect(() => {
     // Check if user is logged in
     if (token) {
