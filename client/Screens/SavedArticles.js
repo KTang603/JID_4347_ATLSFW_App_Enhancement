@@ -1,8 +1,9 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   FlatList,
   StyleSheet,
+  RefreshControl,
 } from "react-native";
 import { useSelector, useDispatch } from "react-redux";
 import ListRowItem from "../components/ListRowItem";
@@ -19,9 +20,17 @@ const SavedArticles = ({ navigation }) => {
     (store) => store.saved_articles
   );
 
+  const [refreshing, setRefreshing] = useState(false);
+
   useEffect(() => {
-    dispatch(getSavedArticles(token, _id,navigation));
+    dispatch(getSavedArticles(token, _id, navigation));
   }, []);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    dispatch(getSavedArticles(token, _id, navigation));
+    setRefreshing(false);
+  };
 
   const _likeCallback = (id) => {
     dispatch(handleLike({ token, articles_id: id, user_id: _id }));
@@ -45,6 +54,13 @@ const SavedArticles = ({ navigation }) => {
         keyExtractor={(item) => item._id?.toString() || item.article_link}
         contentContainerStyle={styles.listContainer}
         onEndReachedThreshold={0.5}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={["#9Bd35A", "#689F38"]}
+          />
+        }
         // ListEmptyComponent={renderEmptyState}
       />
       {progress && <BaseIndicator />}
