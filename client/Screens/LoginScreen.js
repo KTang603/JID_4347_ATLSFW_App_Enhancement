@@ -124,12 +124,21 @@ const LoginScreen = ({navigation}) => {
           style={styles.input}
           secureTextEntry
         />
+<<<<<<< HEAD
             
         <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
           <Text style={styles.loginButtonText}>Login</Text>
         </TouchableOpacity>
             
         <View style={{ width: "75%", alignItems: "flex-end" }}>
+=======
+
+        <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
+          <Text style={styles.loginButtonText}>Login</Text>
+        </TouchableOpacity>
+
+        <View style={{ width: "75%", alignItems: "center", marginTop: 10 }}>
+>>>>>>> 42ad764 (Improve login screen UI: reorder elements and standardize font sizes)
           <TouchableOpacity
             onPress={() => navigation.navigate("Forgot Password")}
           >
@@ -144,7 +153,6 @@ const LoginScreen = ({navigation}) => {
             Don't have an account?
             <Text style={{ fontWeight: "bold" }}> Sign up</Text>
           </Text>
-  
         </TouchableOpacity>
       </View>
      
@@ -206,7 +214,7 @@ const styles = StyleSheet.create({
   },
   loginButtonText: {
     fontSize: 18,
-    fontWeight: '500',
+    fontWeight: '600',
     color: 'black',
     textAlign: 'center',
   },
@@ -215,7 +223,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   newHereText: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '500',
     textAlign: 'center',
   },
