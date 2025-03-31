@@ -74,6 +74,111 @@ You can use the "New File" button in the VSCode File Explorer shown below to cre
 
 # Release Notes
 
+## Version v0.4.0
+
+### Features
+
+#### 1. Home Page Implementation
+- **Upcoming Events Section**
+  - Implemented section to display upcoming events from database
+  - Added event cards with title, description, date and time
+  - Integrated "See All" navigation to Events tab
+  - Added event details modal for viewing complete event information
+- **Workshops & Repair Cafe Section**
+  - Added dedicated section for workshop events
+  - Implemented workshop-specific styling and icons
+  - Added filtering by workshop event type
+  - Integrated with Events tab for "See All" functionality
+- **Featured Brands Section**
+  - Implemented brand cards with images and descriptions
+  - Added navigation to vendor pages
+  - Implemented placeholder images for missing brand assets
+- **Ticket Information**
+  - Added ticket purchase section with call-to-action
+  - Implemented external link to ticket purchasing website
+- **Home Page Improvements**
+  - Added pull-to-refresh functionality
+  - Implemented error handling with user-friendly messages
+  - Fixed home page events display by using events_db instead of posts_db
+  - Added loading indicators and empty state handling
+
+#### 2. Events Screen Enhancements
+- **Calendar Improvements**
+  - Enhanced calendar to show red dots for admin users when any user has marked interest
+  - Improved date selection and event filtering
+  - Added multi-dot support for event status visualization
+- **Event Filtering**
+  - Implemented compact toggle UI for Date/Interested sorting
+  - Improved toggle button styles with light green border
+  - Updated Interested filter to only show events the user has marked as interested in
+  - Enhanced empty state messages with context-aware text
+  - Fixed toggle visibility when filtering events
+- **Event Details**
+  - Enhanced event details modal with formatted date and time
+  - Added support for event links and ticket URLs
+  - Improved event card layout and information display
+- **Event Management for Admins**
+  - Implemented event editing functionality for admin users
+  - Added event deletion capability for admin users
+  - Created options menu for event management actions
+  - Added confirmation dialog for event deletion
+
+#### 3. User Interface Enhancements
+- **Profile Page Improvements**
+  - Removed green background from profile headers for cleaner design
+  - Fixed profile image positioning for better visual alignment
+  - Moved settings icon from ProfileHeader to navigation header for better accessibility
+  - Fixed button styling in Settings page to match profile update button
+- **Login & Registration Improvements**
+  - Reordered login elements for better user flow
+  - Standardized font sizes across login screens
+  - Made birthday and gender fields optional in signup process
+  - Fixed font issues by removing Roboto font references
+
+#### 4. Admin Features
+- **User Management**
+  - Implemented three dots menu for user actions in AdminDataListScreen
+  - Added vendor confirmation workflow
+  - Enhanced user activation and deactivation functionality
+  - Improved admin data list display and interaction
+
+### Bug Fixes
+
+#### 1. Authentication & User Management
+- Prevented duplicate alerts when handling deactivated user accounts
+- Fixed navigation issues with deactivated accounts
+- Added proper handling for account activation and deactivation
+- Enhanced NewsFeedScreen to fetch data on load ensuring deactivated users are logged out
+
+#### 2. UI Fixes
+- Fixed toggle visibility in EventsScreen when no events match filters
+- Improved empty state messages to differentiate between no events and filtered results
+- Fixed font rendering issues across multiple screens
+- Fixed button styling inconsistencies
+
+#### 3. Data Handling
+- Fixed home page events display by using events_db instead of posts_db
+- Added proper error handling for API requests
+- Improved date and time formatting for events
+- Enhanced data loading and refresh mechanisms
+
+### Known Issues
+
+#### 1. Event Management
+- No event analytics or metrics
+
+### Coming in Future Releases
+
+#### 1. Shop Page Implementation
+- Vendor/Designer shop page for marketing their products
+- Product catalog and browsing functionality
+- Vendor profile customization
+
+#### 2. Additional Improvements
+- Enhanced vendor integration features
+- More customization options for user profiles
+
+
 ## Version v0.3.0
 ### Features
 1. Profile Page Improvements
