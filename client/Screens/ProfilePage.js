@@ -9,6 +9,7 @@ import {
   Switch,
   TouchableOpacity,
   ScrollView,
+  Image,
 } from "react-native";
 import axios from "axios";
 import hashString from "../utils/hashingUtils.mjs";
@@ -19,6 +20,7 @@ import AdminProfile from "../components/profile_pages/AdminProfile";
 import { getAccountType } from "../utils/StorageUtils";
 import { useDispatch } from "react-redux";
 import { Ionicons } from "@expo/vector-icons";
+import { SETTING_ICON } from "../assets";
 
 export const ACCOUNT_TYPE_ADMIN = "3";
 const ACCOUNT_TYPE_VENDOR = "2";
@@ -35,7 +37,19 @@ const ProfilePage = ({ navigation }) => {
 
   useEffect(() => {
     getData();
-  }, []);
+    
+    // Set the header right button for settings
+    navigation.setOptions({
+      headerRight: () => (
+        <TouchableOpacity
+          onPress={() => navigation.navigate("Setting")}
+          style={{ marginRight: 10 }}
+        >
+          <Image source={SETTING_ICON} style={{ height: 24, width: 24 }} />
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation]);
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -44,21 +58,6 @@ const ProfilePage = ({ navigation }) => {
       case "Settings":
         return (
           <ScrollView style={styles.settingsContainer}>
-            <TouchableOpacity
-              style={styles.settingItem}
-              onPress={() => navigation.navigate("SettingPage")}
-            >
-              <View style={styles.settingItemContent}>
-                <Ionicons
-                  name="settings-outline"
-                  size={24}
-                  color="#333"
-                  style={styles.settingIcon}
-                />
-                <Text style={styles.settingText}>Account Settings</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={24} color="#999" />
-            </TouchableOpacity>
 
             {account_type == ACCOUNT_TYPE_ADMIN && (
               <TouchableOpacity
