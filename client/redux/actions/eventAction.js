@@ -5,6 +5,7 @@ import {
   PARTICIPANT_LISTS,
 } from "../../utils/ApiUtils";
 import axios from "axios";
+import { handleApiError } from "../../utils/ApiErrorHandler";
 
 export const addParticipantRequest = async (request) => {
   try {
@@ -28,7 +29,7 @@ export const addParticipantRequest = async (request) => {
   }
 };
 
-export const getAllEvent = async ({ token }) => {
+export const getAllEvent = async ({ token,navigation }) => {
   try {
     const response = await axios.get(EVENT_LIST_API, {
       headers: {
@@ -37,8 +38,7 @@ export const getAllEvent = async ({ token }) => {
     });
     return response;
   } catch (error) {
-    console.error("Error in fetchEvents:", error);
-    Alert.alert("Error", "Failed to load events");
+    handleApiError(error,navigation)
   }
 };
 

@@ -20,7 +20,7 @@ const SavedArticles = ({ navigation }) => {
   );
 
   useEffect(() => {
-    dispatch(getSavedArticles(token, _id));
+    dispatch(getSavedArticles(token, _id,navigation));
   }, []);
 
   const _likeCallback = (id) => {

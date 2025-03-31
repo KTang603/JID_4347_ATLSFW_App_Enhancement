@@ -18,8 +18,8 @@ import { storeAccountType, storeUserId, storeUserToken } from '../utils/StorageU
 import { HEADER_LOGO, LOGIN_LOGO } from '../assets';
 
 const LoginScreen = ({navigation}) => {
-  const [email, setEmail] = useState(__DEV__?'admin@gmail.com':'');
-  const [password, setPassword] = useState(__DEV__?'Password@12345':'');
+  const [email, setEmail] = useState(__DEV__?'user1@gmail.com':'');
+  const [password, setPassword] = useState(__DEV__?'Password123@':'');
   const [isLoading, setIsLoading] = useState(false);
 
   const dispatch = useDispatch();
