@@ -38,7 +38,14 @@ export const getAllEvent = async ({ token,navigation }) => {
     });
     return response;
   } catch (error) {
-    handleApiError(error,navigation)
+    const errorHandled = handleApiError(error, navigation);
+    // Return a default response with empty events array if the error was handled
+    if (errorHandled) {
+      return { data: { event: [] } };
+    }
+    // Otherwise, alert the user about the error
+    Alert.alert("Error", "Failed to load events");
+    return { data: { event: [] } };
   }
 };
 
