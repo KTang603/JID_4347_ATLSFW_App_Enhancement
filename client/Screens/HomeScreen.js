@@ -13,121 +13,37 @@ import {
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
-import { useSelector } from "react-redux";
-import { handleApiError } from "../utils/ApiErrorHandler";
-import MY_IP_ADDRESS from "../environment_variables.mjs";
-import axios from "axios";
+import { useSelector, useDispatch } from "react-redux";
+import { fetchHomeData } from "../redux/actions/homeAction";
 
 const HomeScreen = () => {
-  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [upcomingEvents, setUpcomingEvents] = useState([]);
-  const [featuredBrands, setFeaturedBrands] = useState([]);
-  const [workshops, setWorkshops] = useState([]);
   const [eventDetailsVisible, setEventDetailsVisible] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const navigation = useNavigation();
+  const dispatch = useDispatch();
   const token = useSelector((store) => store.token.token);
+  const { upcomingEvents, featuredBrands, workshops, loading, authError } = useSelector((store) => store.home);
 
   useEffect(() => {
-    fetchHomeData();
-  }, []);
-
-  const fetchHomeData = async () => {
-    try {
-      setLoading(true);
-      
-      // Fetch all home page data in a single request
-      // const response = await fetch(`http://${MY_IP_ADDRESS}:5050/home/all`, {
-      //   headers: {
-      //     Authorization: `Bearer ${token}`,
-      //   },
-      // });
-
-      const response = await axios.get(`http://${MY_IP_ADDRESS}:5050/home/all`,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-      
-      if (response.status === 200) {
-        const data = response.data;
-        setUpcomingEvents(data.upcomingEvents || []);
-        
-        // Always use mock data for featured brands
-        const mockBrands = [
-          {
-            _id: "1",
-            name: "EcoThreads",
-            description: "Sustainable clothing made from recycled materials",
-            image: "https://example.com/brand1.jpg",
-          },
-          {
-            _id: "2",
-            name: "Green Stitch",
-            description: "Handcrafted accessories using eco-friendly materials",
-            image: "https://example.com/brand2.jpg",
-          },
-          {
-            _id: "3",
-            name: "Terra Wear",
-            description: "Biodegradable fashion for conscious consumers",
-            image: "https://example.com/brand3.jpg",
-          },
-        ];
-        setFeaturedBrands(mockBrands);
-        setWorkshops(data.workshops || []);
-      }
-      // }else if(response.status === 403){ 
-      //   handleApiError(response,navigation)
-      // }
-      
-      setLoading(false);
-    } catch (error) {
-      // console.error("Error fetching home data:", error);
-      
-      // Check if this is a deactivated account error
-      const errorHandled = await handleApiError(error, navigation);
-      
-      // If the error wasn't handled as a deactivated account, continue with default handling
-      if (!errorHandled) {
-        setLoading(false);
-        
-        // Set empty arrays for events and workshops to show "Coming Soon!" messages
-        setUpcomingEvents([]);
-        setWorkshops([]);
-        
-        // Set mock data for featured brands
-        setFeaturedBrands([
-          {
-            _id: "1",
-            name: "EcoThreads",
-            description: "Sustainable clothing made from recycled materials",
-            image: "https://example.com/brand1.jpg",
-          },
-          {
-            _id: "2",
-            name: "Green Stitch",
-            description: "Handcrafted accessories using eco-friendly materials",
-            image: "https://example.com/brand2.jpg",
-          },
-          {
-            _id: "3",
-            name: "Terra Wear",
-            description: "Biodegradable fashion for conscious consumers",
-            image: "https://example.com/brand3.jpg",
-          },
-        ]);
-      }
+    if (token) {
+      dispatch(fetchHomeData(token, navigation));
+    } else {
+      // Redirect to login screen if token is not found
+      navigation.replace("Log In");
     }
-  };
+  }, [token, dispatch, navigation]);
+
+  // Check for authentication errors and redirect to login if needed
+  useEffect(() => {
+    if (authError) {
+      navigation.replace("Log In");
+    }
+  }, [authError, navigation]);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await fetchHomeData();
+    await dispatch(fetchHomeData(token, navigation));
     setRefreshing(false);
   };
 
