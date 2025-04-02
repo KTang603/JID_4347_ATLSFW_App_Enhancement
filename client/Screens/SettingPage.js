@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { StyleSheet, TouchableOpacity, Text, View } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import { StyleSheet, TouchableOpacity, Text, View, ScrollView } from "react-native";
+import { useNavigation} from "@react-navigation/native";
 import { clearAll, getAccountType } from "../utils/StorageUtils";
 import AppPrimaryButton from "../components/AppPrimaryButton";
 import { ACCOUNT_TYPE_ADMIN } from "./ProfilePage";
+
 
 const SettingPage = () => {
   const navigation = useNavigation();
@@ -11,7 +12,10 @@ const SettingPage = () => {
 
   const _makeLogout = async () => {
     await clearAll();
-    navigation.replace("Log In");
+    navigation.reset({
+      index: 0,
+      routes: [{ name: "Log In" }],
+    })
   };
 
   const udpateDetails = async () => {
@@ -24,32 +28,67 @@ const SettingPage = () => {
   }, []);
 
   return (
-    <View>
-      {isAdmin && (
-        <>
-          <AppPrimaryButton title="Users List" handleSubmit={() => {navigation.navigate("UserList")}} />
-          <AppPrimaryButton title="Vendor List" handleSubmit={() => {}} />
-          <AppPrimaryButton title="Article List" handleSubmit={() => {}} />
-          <AppPrimaryButton title="Most Liked" handleSubmit={() => {}} />
-          <AppPrimaryButton title="Most Saved" handleSubmit={() => {}} />
-          <AppPrimaryButton title="News Api Details" handleSubmit={() => {}} />
-        </>
-      )}
-      <AppPrimaryButton
-        title="Logout"
-        handleSubmit={() => {
-          _makeLogout();
-        }}
-      />
-    </View>
+    <ScrollView style={styles.container}>
+      <View style={styles.buttonContainer}>
+        {isAdmin && (
+          <>
+            <AppPrimaryButton 
+              title="Users List" 
+              containerStyle={styles.buttonStyle}
+              handleSubmit={() => {navigation.navigate("AdminDataList", { listType: "users" })}} 
+            />
+            <AppPrimaryButton 
+              title="Vendor List" 
+              containerStyle={styles.buttonStyle}
+              handleSubmit={() => {navigation.navigate("AdminDataList", { listType: "vendors" })}} 
+            />
+            <AppPrimaryButton 
+              title="Admin Article List" 
+              containerStyle={styles.buttonStyle}
+              handleSubmit={() => {navigation.navigate("AdminDataList", { listType: "articles" })}} 
+            />
+            <AppPrimaryButton 
+              title="Most Liked" 
+              containerStyle={styles.buttonStyle}
+              handleSubmit={() => {navigation.navigate("AdminDataList", { listType: "mostLiked" })}} 
+            />
+            <AppPrimaryButton 
+              title="Most Saved" 
+              containerStyle={styles.buttonStyle}
+              handleSubmit={() => {navigation.navigate("AdminDataList", { listType: "mostSaved" })}} 
+            />
+            <AppPrimaryButton 
+              title="News Api Config" 
+              containerStyle={styles.buttonStyle}
+              handleSubmit={() => {navigation.navigate("NewsApiDetails")}} 
+            />
+          </>
+        )}
+        <AppPrimaryButton
+          title="Logout"
+          containerStyle={styles.buttonStyle}
+          handleSubmit={() => {
+            _makeLogout();
+          }}
+        />
+      </View>
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
-  updateButtonStyle: {
+  container: {
+    flex: 1,
+    backgroundColor: 'white',
+  },
+  buttonContainer: {
+    padding: 16,
+    alignItems: 'center',
+  },
+  buttonStyle: {
     backgroundColor: "lightgray",
     borderRadius: 3,
-    width: "100%",
+    width: "80%",
     alignItems: "center",
     justifyContent: "center",
     alignSelf: "center",
@@ -58,7 +97,6 @@ const styles = StyleSheet.create({
   },
   updateButtonTextStyle: {
     fontSize: 18,
-    fontFamily: "Roboto",
     fontWeight: "500",
     color: "black",
     textAlign: "center",

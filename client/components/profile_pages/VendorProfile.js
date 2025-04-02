@@ -120,14 +120,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'white',
   },
-  header: {
-    backgroundColor: '#02833D', // A green color similar to the one in the image.
-    padding: 50,
-    alignItems: 'center',
-  },
   profileSection: {
     alignItems: 'center',
-    marginTop: -50, // Negative margin to pull the profile section up, overlapping the header
+    marginTop: 30, // Positive margin to position below the navigation header
   },
   profileImage: {
     width: 100,

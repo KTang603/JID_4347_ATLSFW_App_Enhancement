@@ -2,7 +2,7 @@ import express from "express";
 import { posts_db, users_db,saved_articles_db } from "../db/conn.mjs";
 import { ObjectId } from "mongodb";
 import tagsList from "../utils/tagsList.mjs";
-import { verifyToken, requireAdmin } from "../middleware/auth.mjs";
+import { verifyToken, requireAdmin, checkUserStatus } from "../middleware/auth.mjs";
 
 const router = express.Router();
 
@@ -17,7 +17,7 @@ router.get("/tags", verifyToken, async (req, res) => {
 });
 
 // Admin only - Create article
-router.post("/posts/create", requireAdmin, async (req, res) => {
+router.post("/posts/create", requireAdmin,checkUserStatus, async (req, res) => {
   const { article_title, article_preview_image, article_link, author_id, author_name, author_pfp_link, tags, source } = req.body;
   if (!article_title || !article_link || !author_id || !author_name) {
       return res.status(400).json({ success: false, message: 'Missing article information' });
@@ -43,7 +43,7 @@ router.post("/posts/create", requireAdmin, async (req, res) => {
 });
 
 // Get articles with pagination and filtering
-router.get("/posts", verifyToken, async (req, res) => {
+router.get("/posts", verifyToken,checkUserStatus, async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
@@ -86,19 +86,19 @@ router.get("/posts", verifyToken, async (req, res) => {
       for(let article of articles){
 
         const saved_articles = await posts_db.collection('saved_articles').find({
-          article_id: article._id
+          article_id: article._id.toString()
         }).toArray();
         
         const liked_articles = await posts_db.collection('liked_articles').find({
-          article_id: article._id
+          article_id: article._id.toString()
         }).toArray();
 
         const articles_exist = await posts_db.collection('saved_articles').find({
-          article_id: article._id, user_id: req.user.id
+          article_id: article._id.toString(), user_id: req.user.id
         }).toArray();
 
         const liked_exist = await posts_db.collection('liked_articles').find({
-          article_id: article._id, user_id: req.user.id
+          article_id: article._id.toString(), user_id: req.user.id
         }).toArray();
 
 
@@ -179,10 +179,13 @@ router.post("/posts/top_saved", async (req, res) => {
 });
 
 
-router.post("/posts/saved_articles",verifyToken, async (req, res) => {
+router.post("/posts/saved_articles",verifyToken,checkUserStatus, async (req, res) => {
   try {
     const {user_id} =req.body;
-    const articles = await posts_db.collection('saved_articles').find({user_id}).toArray();
+    const articles = await posts_db.collection('saved_articles').find({user_id:user_id}).toArray();
+    // console.log('====================================');
+    // console.log('articles----'+JSON.stringify(articles));
+    // console.log('====================================');
 
     if(articles.length > 0 ){
       
@@ -190,7 +193,7 @@ router.post("/posts/saved_articles",verifyToken, async (req, res) => {
 
       let saved_articles = [];
       for(let article of articles){
-        const query = { _id: article.article_id };
+        const query = { _id: new ObjectId(article.article_id) };
         const articlesData = await articlesCollection.find(query).toArray();
         if(articlesData.length > 0){
           saved_articles.push(articlesData[0]);
@@ -202,19 +205,19 @@ router.post("/posts/saved_articles",verifyToken, async (req, res) => {
       for(let article of saved_articles){
 
         const saved_articles = await posts_db.collection('saved_articles').find({
-          article_id: article._id
+          article_id: article._id.toString()
         }).toArray();
-        
+
         const liked_articles = await posts_db.collection('liked_articles').find({
-          article_id: article._id
+          article_id: article._id.toString()
         }).toArray();
 
         const articles_exist = await posts_db.collection('saved_articles').find({
-          article_id: article._id, user_id: req.user.id
+          article_id: article._id.toString(), user_id: req.user.id
         }).toArray();
 
         const liked_exist = await posts_db.collection('liked_articles').find({
-          article_id: article._id, user_id: req.user.id
+          article_id: article._id.toString(), user_id: req.user.id
         }).toArray();
 
 
@@ -242,7 +245,7 @@ router.post("/posts/saved_articles",verifyToken, async (req, res) => {
 
 
 // Admin only - Update article
-router.put("/posts/:article_id", verifyToken, requireAdmin, async (req, res) => {
+router.put("/posts/:article_id", verifyToken,checkUserStatus, requireAdmin, async (req, res) => {
   try {
     const { article_id } = req.params;
     const updateData = req.body;
@@ -269,7 +272,7 @@ router.put("/posts/:article_id", verifyToken, requireAdmin, async (req, res) => 
 });
 
 // Admin only - Delete article
-router.delete("/posts/:article_id", verifyToken, requireAdmin, async (req, res) => {
+router.delete("/posts/:article_id", verifyToken,checkUserStatus, requireAdmin, async (req, res) => {
   try {
     const { article_id } = req.params;
     
@@ -300,7 +303,7 @@ router.delete("/posts/:article_id", verifyToken, requireAdmin, async (req, res) 
 });
 
 // Protected route for user interactions
-router.post('/posts/:article_id/', verifyToken, async (req, res) => {
+router.post('/posts/:article_id/', verifyToken,checkUserStatus, async (req, res) => {
   try {
     const { article_id } = req.params;
     const user_id = req.user.id;

@@ -18,8 +18,8 @@ import { storeAccountType, storeUserId, storeUserToken } from '../utils/StorageU
 import { HEADER_LOGO, LOGIN_LOGO } from '../assets';
 
 const LoginScreen = ({navigation}) => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState(__DEV__?'user1@gmail.com':'');
+  const [password, setPassword] = useState(__DEV__?'Password123@':'');
   const [isLoading, setIsLoading] = useState(false);
 
   const dispatch = useDispatch();
@@ -85,7 +85,7 @@ const LoginScreen = ({navigation}) => {
 
           navigation.reset({
             index: 0,
-            routes: [{ name: 'News Feed' }],
+            routes: [{ name: 'Home' }],
           });
       } else {
         Alert.alert('Login Error', data.message || 'Login failed. Please try again.');
@@ -125,17 +125,17 @@ const LoginScreen = ({navigation}) => {
           secureTextEntry
         />
 
-        <View style={{ width: "75%", alignItems: "flex-end" }}>
+        <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
+          <Text style={styles.loginButtonText}>Login</Text>
+        </TouchableOpacity>
+
+        <View style={{ width: "75%", alignItems: "center", marginTop: 10 }}>
           <TouchableOpacity
             onPress={() => navigation.navigate("Forgot Password")}
           >
             <Text style={styles.buttonText}>Forgot Password?</Text>
           </TouchableOpacity>
         </View>
-
-        <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-          <Text style={styles.loginButtonText}>Login</Text>
-        </TouchableOpacity>
 
         <TouchableOpacity 
          onPress={() => navigation.navigate('Sign Up')}
@@ -144,7 +144,6 @@ const LoginScreen = ({navigation}) => {
             Don't have an account?
             <Text style={{ fontWeight: "bold" }}> Sign up</Text>
           </Text>
-  
         </TouchableOpacity>
       </View>
      
@@ -200,15 +199,13 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     fontSize: 16,
-    fontFamily: 'Roboto',
     fontWeight: '500',
     color: 'black',
     textAlign: 'center',
   },
   loginButtonText: {
     fontSize: 18,
-    fontFamily: 'Roboto',
-    fontWeight: '500',
+    fontWeight: '600',
     color: 'black',
     textAlign: 'center',
   },
@@ -217,8 +214,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   newHereText: {
-    fontSize: 18,
-    fontFamily: 'Roboto',
+    fontSize: 16,
     fontWeight: '500',
     textAlign: 'center',
   },

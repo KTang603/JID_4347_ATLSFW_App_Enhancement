@@ -1,8 +1,9 @@
 import axios from "axios";
 import { ARTICLE_SAVED_API } from "../../utils/ApiUtils";
+import { handleApiError } from "../../utils/ApiErrorHandler";
 
 export const getSavedArticles =
-  (token, id) => async (dispatch, getState) => {
+  (token, id,navigation) => async (dispatch, getState) => {
     try {
       dispatch(get_save_list_progress())
       const response = await axios({
@@ -16,13 +17,16 @@ export const getSavedArticles =
           "Content-Type": "application/json",
         },
       });
+      console.log('====================================');
+      console.log('SAVE----'+JSON.stringify(response));
+      console.log('====================================');
       const {data,status}= response;
       if(status){
         dispatch(get_save_list(data.data))
       }
     } catch (error) {
       dispatch(get_save_list_failure())
-      console.error("Error fetching tags:", error.message);
+      handleApiError(error,navigation)
     }
   };
 

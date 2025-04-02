@@ -8,14 +8,10 @@ const router = express.Router();
 router.use(verifyToken, requireAdmin);
 
 // Manually trigger news fetch
-router.post("/fetch", async (req, res) => {
+router.get("/fetch", async (req, res) => {
   try {
-    const { searchQuery, apiKey } = req.body;
-    if (!apiKey) {
-      return res.status(400).json({ success: false, message: "NewsData.io API key is required" });
-    }
     const { fetchNewsArticles } = await import('../scripts/fetch-news.mjs');
-    const result = await fetchNewsArticles(searchQuery || 'sustainable fashion', apiKey);
+    const result = await fetchNewsArticles();
     if (!result) {
       return res.status(400).json({ success: false, message: "NewsData.io API key not configured" });
     }

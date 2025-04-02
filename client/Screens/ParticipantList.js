@@ -69,7 +69,7 @@ const ParticipantList = (props) => {
         <View
           style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
         >
-          <Text style={{ fontSize: 20 }}>No Participants</Text>
+          <Text style={{ fontSize: 20 }}>No Interested Users</Text>
         </View>
       ) : (
         <FlatList
