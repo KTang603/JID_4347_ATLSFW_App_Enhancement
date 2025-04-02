@@ -4,6 +4,7 @@ import { getUserId, getUserToken, clearAll } from "../utils/StorageUtils";
 import { useNavigation } from "@react-navigation/native";
 import { useDispatch } from "react-redux";
 import { fetchData, fetchTags } from "../redux/actions/NewsAction";
+import { fetchHomeData } from "../redux/actions/homeAction";
 import {
   getProfileData,
   updateUserToken,
@@ -66,6 +67,7 @@ const SplashPage = () => {
         dispatch(getProfileData());
         dispatch(fetchTags(token));
         dispatch(fetchData(1, [], token));
+        dispatch(fetchHomeData(token, navigation));
       } catch (error) {
         console.error("Error in network call:", error);
         // Handle other errors

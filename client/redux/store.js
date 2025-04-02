@@ -8,6 +8,7 @@ import userInfoReducer from './reducers/userInfoReducer';
 import vendReducer from './reducers/vendReducer';
 import tokenReducer from './reducers/tokenReducer';
 import newsReducer from './reducers/NewsReducer';
+import homeReducer from './reducers/homeReducer';
 
 // HOW REDUX STATE WORKS
 // 
@@ -42,7 +43,8 @@ const rootReducer = combineReducers({
     userInfo: userInfoReducer,
     isInit: vendReducer,
     token: tokenReducer,
-    news: newsReducer
+    news: newsReducer,
+    home: homeReducer
 });
 
 export const store = configureStore({
