@@ -18,7 +18,7 @@ router.get("/tags", verifyToken, async (req, res) => {
 
 // Admin only - Create article
 router.post("/posts/create", requireAdmin,checkUserStatus, async (req, res) => {
-  const { article_title, article_preview_image, article_link, author_id, author_name, author_pfp_link, tags, source } = req.body;
+  const { article_title, article_preview_image, article_link, author_id, author_name, article_description, tags, source } = req.body;
   if (!article_title || !article_link || !author_id || !author_name) {
       return res.status(400).json({ success: false, message: 'Missing article information' });
   }
@@ -29,7 +29,7 @@ router.post("/posts/create", requireAdmin,checkUserStatus, async (req, res) => {
       article_link,
       author_id,
       author_name,
-      author_pfp_link,
+      article_description,
       tags,
       like_count: 0,
       save_count: 0,

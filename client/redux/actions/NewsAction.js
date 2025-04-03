@@ -26,14 +26,14 @@ export const fetchData =  (page = 1,inputTag,token,navigation) => async (dispatc
   };
 
 
-  export const createArticle = async (articleTitle,articleImage,articleLink,userInfo,authorPfpLink,tags)=>{ 
+  export const createArticle = async (articleTitle,articleImage,articleLink,userInfo,articleDescription,tags)=>{ 
     const payload = {
       article_title: articleTitle,
       article_preview_image: articleImage,
       article_link: articleLink,
       author_id: userInfo["_id"],
       author_name: userInfo["first_name"] + " " + userInfo["last_name"],
-      author_pfp_link: authorPfpLink,
+      article_description: articleDescription,
       tags: tags.split(",").map((tag) => tag.trim()),
     };
      const response = await axios.post(CREATE_ARTICLE_API, payload);
