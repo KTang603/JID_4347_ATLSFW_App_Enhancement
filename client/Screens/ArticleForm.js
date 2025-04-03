@@ -17,7 +17,7 @@ const ArticleForm = () => {
   const [articleTitle, setArticleTitle] = useState("");
   const [articleImage, setArticleImage] = useState("");
   const [articleLink, setArticleLink] = useState("");
-  const [authorPfpLink, setAuthorPfpLink] = useState("");
+  const [articleDescription, setArticleDescription] = useState("");
   const [tags, setTags] = useState("");
   const userInfo = useSelector((store) => store.userInfo.userInfo);
 
@@ -29,8 +29,8 @@ const ArticleForm = () => {
       Alert.alert("Error", "Article Link cannot be empty");
     } else if (articleImage.trim().length == 0) {
       Alert.alert("Error", "Article Image Link cannot be empty");
-    } else if (authorPfpLink.trim().length == 0) {
-      Alert.alert("Error", "Author Profile Picture Link cannot be empty");
+    } else if (articleDescription.trim().length == 0) {
+      Alert.alert("Error", "Article Description cannot be empty");
     } else if (tags.trim().length == 0) {
       Alert.alert("Error", "Tags cannot be empty");
     } else {
@@ -39,14 +39,14 @@ const ArticleForm = () => {
         articleImage,
         articleLink,
         userInfo,
-        authorPfpLink,
+        articleDescription,
         tags
       );
       if (response.data.success) {
         setArticleTitle("");
         setArticleImage("");
         setArticleLink("");
-        setAuthorPfpLink("");
+        setArticleDescription("");
         setTags("");
         Alert.alert("Article Created Successfully");
       } else {
@@ -83,9 +83,11 @@ const ArticleForm = () => {
         />
         <TextInput
           style={styles.input}
-          placeholder="Author Profile Picture Link"
-          onChangeText={setAuthorPfpLink}
-          value={authorPfpLink}
+          placeholder="Article Description"
+          onChangeText={setArticleDescription}
+          value={articleDescription}
+          multiline={true}
+          numberOfLines={4}
         />
         <TextInput
           style={styles.input}

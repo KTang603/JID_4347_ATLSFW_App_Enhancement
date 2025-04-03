@@ -374,6 +374,9 @@ const Article = (props) => {
           />
         </TouchableOpacity>
         <Text style={styles.title}>{title}</Text>
+        {props.article.article_description && (
+          <Text style={styles.description}>{props.article.article_description}</Text>
+        )}
         <TouchableOpacity
           onPress={() => navigateToAuthor(author_id)}
           style={{ marginTop: 10 }}
@@ -446,6 +449,13 @@ const styles = StyleSheet.create({
   },
   saveText: {
     bottom: 2,
+  },
+  description: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'left',
+    marginHorizontal: 10,
+    marginBottom: 5,
   },
   authorName: {
     textDecorationLine: "underline",
