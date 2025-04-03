@@ -1,10 +1,4 @@
-import { Alert } from 'react-native';
-import { clearAll } from './StorageUtils';
-import { CommonActions } from '@react-navigation/native';
-
-// Flags to track if we've already shown the deactivation alert and navigated to login
-let deactivationAlertShown = false;
-let navigatedToLogin = false;
+import tokenService from './TokenService';
 
 /**
  * Handles API errors, with special handling for deactivated accounts
@@ -19,42 +13,8 @@ export const handleApiError = async (error, navigation) => {
       error.response.data && 
       error.response.data.code === 'ACCOUNT_DEACTIVATED') {
     
-    // Clear all stored user data
-    await clearAll();
-    
-    // Only show the alert if we haven't shown it already
-    if (!deactivationAlertShown) {
-      deactivationAlertShown = true;
-      
-      // Show an alert to the user
-      Alert.alert(
-        'Account Deactivated',
-        'Your account has been deactivated by an administrator. Please contact support for more information.',
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              // Navigate to login only if we haven't already
-              if (navigation && !navigatedToLogin) {
-                navigatedToLogin = true;
-                navigation.dispatch(
-                  CommonActions.reset({
-                    index: 0,
-                    routes: [{ name: 'Log In' }],
-                  })
-                );
-                
-                // Reset the flags after a delay to allow for future deactivation alerts
-                setTimeout(() => {
-                  deactivationAlertShown = false;
-                  navigatedToLogin = false;
-                }, 5000);
-              }
-            }
-          }
-        ]
-      );
-    }
+    // Use TokenService to handle deactivated account
+    await tokenService.handleDeactivatedAccount(navigation);
     
     return true; // Error was handled
   }

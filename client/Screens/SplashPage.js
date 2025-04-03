@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { View, Image, Alert } from "react-native";
-import { getUserId, getUserToken, clearAll } from "../utils/StorageUtils";
+import tokenService from "../utils/TokenService";
 import { useNavigation } from "@react-navigation/native";
 import { useDispatch } from "react-redux";
 import { fetchData, fetchTags } from "../redux/actions/NewsAction";
@@ -17,9 +17,9 @@ const SplashPage = () => {
   const navigation = useNavigation();
   const dispatch = useDispatch();
 
-  const checkUserId = async () => {
-    const userId = await getUserId();
-    if (userId == null) {
+  const checkAuthentication = async () => {
+    const isAuthenticated = await tokenService.isAuthenticated();
+    if (!isAuthenticated) {
       navigation.replace("Log In");
     } else {
       navigation.reset({
@@ -30,13 +30,13 @@ const SplashPage = () => {
   };
 
   const networkCall = async () => {
-    const token = await getUserToken();
+    const token = await tokenService.getToken();
     if (token) {
       dispatch(updateUserToken(token));
       
       try {
         // Try to get profile data first to check if user is still active
-        const response = await fetch(`http://${MY_IP_ADDRESS}:5050/user/get_profile?userId=${await getUserId()}`, {
+        const response = await fetch(`http://${MY_IP_ADDRESS}:5050/user/get_profile?userId=${await tokenService.getUserId()}`, {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
@@ -47,18 +47,8 @@ const SplashPage = () => {
         if (!response.ok) {
           const data = await response.json();
           if (response.status === 403 && data.code === 'ACCOUNT_DEACTIVATED') {
-            // Clear all stored user data
-            await clearAll();
-            
-            // Show an alert to the user
-            Alert.alert(
-              'Account Deactivated',
-              'Your account has been deactivated by an administrator. Please contact support for more information.',
-              [{ text: 'OK' }]
-            );
-            
-            // Navigate to login screen
-            navigation.replace("Log In");
+            // Use TokenService to handle deactivated account
+            await tokenService.handleDeactivatedAccount(navigation);
             return;
           }
         }
@@ -83,7 +73,7 @@ const SplashPage = () => {
   useEffect(() => {
     networkCall();
     setTimeout(() => {
-      checkUserId();
+      checkAuthentication();
     }, 3000);
   }, []);
 

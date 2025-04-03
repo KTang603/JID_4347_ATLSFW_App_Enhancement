@@ -14,7 +14,7 @@ import { getVend } from '../redux/actions/vendAction';
 import { setToken } from '../redux/actions/tokenAction';
 import {LOGIN_API} from '../utils/ApiUtils.js'
 import {fetchData, fetchTags} from '../redux/actions/NewsAction'
-import { storeAccountType, storeUserId, storeUserToken } from '../utils/StorageUtils';
+import tokenService from '../utils/TokenService';
 import { HEADER_LOGO, LOGIN_LOGO } from '../assets';
 
 const LoginScreen = ({navigation}) => {
@@ -62,18 +62,22 @@ const LoginScreen = ({navigation}) => {
           dispatch(setID(data.user._id));
           dispatch(setUserInfo(data.user));
           // dispatch(getVend(data.user.vendor_account_initialized));
-          // Set token in Redux and axios defaults
+          // Set token in Redux and store auth data
           const token = data.token;
           dispatch(updateUserToken(token)) 
-          dispatch(fetchTags(token))        
-          storeUserId(""+data.user._id)
-          storeAccountType(""+data.user.user_roles)
-          storeUserToken(token)
+          dispatch(fetchTags(token))
+          
+          // Store all auth data at once using TokenService
+          await tokenService.setAuthData({
+            token: token,
+            userId: ""+data.user._id,
+            accountType: ""+data.user.user_roles
+          });
+          
           await dispatch(fetchData(1, [],token));
           dispatch(setToken(token));
           dispatch(set_acct_type(data.user.user_roles));
-
-          axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+          
           console.log('Token set after login:', token);
 
           // if (data.user.liked_articles != null) {
