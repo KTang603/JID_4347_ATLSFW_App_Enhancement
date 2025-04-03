@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import { AppState } from "react-native";
+import tokenService from "./utils/TokenService"; // Import TokenService
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import {
@@ -17,6 +19,7 @@ import NewsFeedScreen from "./Screens/NewsFeedScreen";
 import HomeScreen from "./Screens/HomeScreen";
 import LoginScreen from "./Screens/LoginScreen";
 import SignUpScreen from "./Screens/SignUpScreen";
+import ShopScreen from "./Screens/ShopScreen";
 import MY_IP_ADDRESS from "./environment_variables.mjs";
 import { Provider, useSelector, useDispatch } from "react-redux";
 import { store } from "./redux/store";
@@ -49,10 +52,49 @@ const ConditionalNavBar = ({ currentScreen }) => {
 const App = () => {
   console.log("found local ip @", MY_IP_ADDRESS);
   const [currentScreen, setCurrentScreen] = useState('Log In');
+  const [appState, setAppState] = useState(AppState.currentState);
+  const navigationRef = useRef(null);
+  
+  // Initialize TokenService when app starts
+  useEffect(() => {
+    // TokenService is automatically initialized when imported
+    console.log("TokenService initialized");
+    
+    // Set up AppState listener to detect when app comes back from background
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+    
+    // Clean up the subscription when component unmounts
+    return () => {
+      subscription.remove();
+    };
+  }, []);
+  
+  // Handle app state changes (background to foreground)
+  const handleAppStateChange = async (nextAppState) => {
+    // App has come back to the foreground
+    if (appState.match(/inactive|background/) && nextAppState === 'active') {
+      console.log('App has come back to the foreground!');
+      
+      // Check if token exists - if it does, the user will stay logged in
+      // If the token doesn't exist (e.g., if the app was killed), the SplashPage
+      // will redirect to the login screen
+      const isAuthenticated = await tokenService.isAuthenticated();
+      console.log('User is authenticated:', isAuthenticated);
+    }
+    
+    setAppState(nextAppState);
+  };
 
   return (
     <Provider store={store}>
       <NavigationContainer
+        ref={(ref) => {
+          // Set navigation reference for TokenService
+          if (ref && navigationRef.current !== ref) {
+            navigationRef.current = ref;
+            tokenService.setNavigationRef(ref);
+          }
+        }}
         onStateChange={(state) => {
           const currentRoute = state?.routes[state?.index]?.name;
           setCurrentScreen(currentRoute || 'Log In');
@@ -87,6 +129,7 @@ const App = () => {
           <Stack.Screen name="Events" component={EventsScreen} />
           <Stack.Screen name="Create Event" component={CreateEvent} />
           <Stack.Screen name="InterestedList" component={InterestedList} />
+          <Stack.Screen name="Shop" component={ShopScreen} />
 
 
           {/* add future screens */}
