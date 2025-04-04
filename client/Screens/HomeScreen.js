@@ -361,7 +361,7 @@ const HomeScreen = () => {
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Participating Brands</Text>
-          <TouchableOpacity onPress={() => navigation.navigate("Shop Now Webview")}>
+          <TouchableOpacity onPress={() => navigation.navigate("Shop")}>
             <Text style={styles.seeAllText}>See All</Text>
           </TouchableOpacity>
         </View>
@@ -369,7 +369,7 @@ const HomeScreen = () => {
           {featuredBrands.length > 0 ? (
             featuredBrands.map(renderBrandItem)
           ) : (
-            <Text style={styles.noDataText}>No brands to display</Text>
+            <Text style={styles.noDataText}>Brands coming soon</Text>
           )}
         </View>
       </View>
