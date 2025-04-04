@@ -1,7 +1,7 @@
 import express from "express";
 import { users_db } from "../db/conn.mjs";
 import { ObjectId } from "mongodb";
-import { verifyToken, requireAdmin } from "../middleware/auth.mjs";
+import { verifyToken, requireAdmin, checkUserStatus } from "../middleware/auth.mjs";
 
 /*
 enum AccountType {
@@ -17,7 +17,7 @@ const router = express.Router();
 router.use(['/authorize', '/deauthorize'], verifyToken, requireAdmin);
 
 // Middleware to ensure only vendors can access their own routes
-router.use(['/discover/create'], verifyToken, async (req, res, next) => {
+router.use(['/discover/create'], verifyToken, checkUserStatus, async (req, res, next) => {
     try {
         // const { vendor_id } = req.params;
         // if (req.user.id !== vendor_id) {
@@ -158,7 +158,7 @@ router.post("/deauthorize", async (req, res) => {
     }
 });
 
-router.get("/discover/:vendor_id", async (req, res) => {
+router.get("/discover/:vendor_id", verifyToken, checkUserStatus, async (req, res) => {
     try {
         const { vendor_id } = req.params;
         const collection = users_db.collection('vendor_info');
@@ -177,7 +177,7 @@ router.get("/discover/:vendor_id", async (req, res) => {
 });
 
 // Get all shops
-router.get("/shop/all", async (req, res) => {
+router.get("/shop/all", verifyToken, checkUserStatus, async (req, res) => {
     try {
         const userDB = users_db.collection('customer_info');
         

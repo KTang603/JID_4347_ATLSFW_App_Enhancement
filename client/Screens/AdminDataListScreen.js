@@ -17,7 +17,7 @@ const AdminDataListScreen = () => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const token = useSelector((store) => store.token?.token);
+  const token = useSelector((store) => store.userInfo?.token);
   
   // State for modals
   const [optionsVisible, setOptionsVisible] = useState(false);
