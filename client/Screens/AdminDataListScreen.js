@@ -17,7 +17,7 @@ const AdminDataListScreen = () => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const token = useSelector((store) => store.userInfo?.token);
+  const token = useSelector((store) => store.token?.token);
   
   // State for modals
   const [optionsVisible, setOptionsVisible] = useState(false);
@@ -57,8 +57,8 @@ const AdminDataListScreen = () => {
       users: "Users List",
       vendors: "Vendor List",
       articles: "Admin Article List",
-      mostLiked: "Most Liked Articles",
-      mostSaved: "Most Saved Articles"
+      mostLiked: "Top 10 Most Liked Articles",
+      mostSaved: "Top 10 Most Saved Articles"
     };
     
     navigation.setOptions({
@@ -165,13 +165,43 @@ const AdminDataListScreen = () => {
       };
       const endpoint = endpoints[listType];
       try {
-       const response = await axios.get(`http://${MY_IP_ADDRESS}:5050${endpoint}`);
+       console.log(`Fetching data from endpoint: http://${MY_IP_ADDRESS}:5050${endpoint}`);
+       console.log(`Token: ${token ? 'Token exists' : 'No token'}`);
+       
+       const response = await axios.get(`http://${MY_IP_ADDRESS}:5050${endpoint}`, {
+         headers: {
+           'Authorization': `Bearer ${token}`
+         }
+       });
         
-         console.log('response----'+JSON.stringify(response));
+       console.log(`List type: ${listType}, Response data:`, JSON.stringify(response.data));
+       
         setLoading(false);
         if (response.status == 200) {
-          responseData = response.data; 
-          setData(response.data); //USERS //VENDORS
+          let responseData = response.data; 
+          
+          // Additional client-side sorting for most liked and most saved
+          if (listType === "mostLiked") {
+            // Ensure like_count is a number, sort in descending order, and limit to 10
+            responseData = responseData
+              .map(item => ({
+                ...item,
+                like_count: typeof item.like_count === 'number' ? item.like_count : 0
+              }))
+              .sort((a, b) => b.like_count - a.like_count) // Descending order
+              .slice(0, 10); // Limit to 10 articles
+          } else if (listType === "mostSaved") {
+            // Ensure save_count is a number, sort in descending order, and limit to 10
+            responseData = responseData
+              .map(item => ({
+                ...item,
+                save_count: typeof item.save_count === 'number' ? item.save_count : 0
+              }))
+              .sort((a, b) => b.save_count - a.save_count) // Descending order
+              .slice(0, 10); // Limit to 10 articles
+          }
+          
+          setData(responseData); //USERS //VENDORS
 
           // let responseData = [];
           // if (Array.isArray(response.data)) {

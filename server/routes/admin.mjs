@@ -198,23 +198,59 @@ router.delete("/shops/:id", verifyToken, requireAdmin, async (req, res) => {
 });
 
 // Get most liked articles
-router.get("/most-liked", verifyToken, requireAdmin, async (req, res) => {
+router.get("/most-liked", async (req, res) => {
   try {
-    const articles = await posts_db.collection("articles").find({})
-      .sort({ like_count: -1 })
-      .limit(10)
-      .toArray();
+    // Get all liked articles
+    const likedArticles = await posts_db.collection("liked_articles").find({}).toArray();
     
-    // Ensure like_count is a number for proper sorting
-    const processedArticles = articles.map(article => ({
-      ...article,
-      like_count: typeof article.like_count === 'number' ? article.like_count : 0
+    // Count likes for each article
+    const articleLikeCounts = {};
+    likedArticles.forEach(like => {
+      const articleId = like.article_id;
+      if (articleLikeCounts[articleId]) {
+        articleLikeCounts[articleId]++;
+      } else {
+        articleLikeCounts[articleId] = 1;
+      }
+    });
+    
+    // Convert to array of { articleId, count } objects
+    const articleLikeCountsArray = Object.entries(articleLikeCounts).map(([articleId, count]) => ({
+      articleId,
+      count
     }));
     
-    // Sort again after ensuring like_count is a number
-    processedArticles.sort((a, b) => b.like_count - a.like_count);
+    // Sort by count in descending order
+    articleLikeCountsArray.sort((a, b) => b.count - a.count);
     
-    res.status(200).json(processedArticles);
+    // Take top 10
+    const top10ArticleIds = articleLikeCountsArray.slice(0, 10).map(item => item.articleId);
+    
+    // Fetch the actual article data for these IDs
+    const articles = [];
+    for (const articleId of top10ArticleIds) {
+      try {
+        // Try to convert to ObjectId if it's a valid ObjectId
+        let query;
+        if (ObjectId.isValid(articleId)) {
+          query = { _id: new ObjectId(articleId) };
+        } else {
+          query = { news_data_article_id: articleId };
+        }
+        
+        const article = await posts_db.collection("articles").findOne(query);
+        if (article) {
+          articles.push({
+            ...article,
+            like_count: articleLikeCounts[articleId]
+          });
+        }
+      } catch (err) {
+        console.error(`Error fetching article ${articleId}:`, err);
+      }
+    }
+    
+    res.status(200).json(articles);
   } catch (error) {
     console.error("Error fetching most liked articles:", error);
     res.status(500).json({ error: "Failed to fetch most liked articles" });
@@ -222,23 +258,59 @@ router.get("/most-liked", verifyToken, requireAdmin, async (req, res) => {
 });
 
 // Get most saved articles
-router.get("/most-saved", verifyToken, requireAdmin, async (req, res) => {
+router.get("/most-saved", async (req, res) => {
   try {
-    const articles = await posts_db.collection("articles").find({})
-      .sort({ save_count: -1 })
-      .limit(10)
-      .toArray();
+    // Get all saved articles
+    const savedArticles = await posts_db.collection("saved_articles").find({}).toArray();
     
-    // Ensure save_count is a number for proper sorting
-    const processedArticles = articles.map(article => ({
-      ...article,
-      save_count: typeof article.save_count === 'number' ? article.save_count : 0
+    // Count saves for each article
+    const articleSaveCounts = {};
+    savedArticles.forEach(save => {
+      const articleId = save.article_id;
+      if (articleSaveCounts[articleId]) {
+        articleSaveCounts[articleId]++;
+      } else {
+        articleSaveCounts[articleId] = 1;
+      }
+    });
+    
+    // Convert to array of { articleId, count } objects
+    const articleSaveCountsArray = Object.entries(articleSaveCounts).map(([articleId, count]) => ({
+      articleId,
+      count
     }));
     
-    // Sort again after ensuring save_count is a number
-    processedArticles.sort((a, b) => b.save_count - a.save_count);
+    // Sort by count in descending order
+    articleSaveCountsArray.sort((a, b) => b.count - a.count);
     
-    res.status(200).json(processedArticles);
+    // Take top 10
+    const top10ArticleIds = articleSaveCountsArray.slice(0, 10).map(item => item.articleId);
+    
+    // Fetch the actual article data for these IDs
+    const articles = [];
+    for (const articleId of top10ArticleIds) {
+      try {
+        // Try to convert to ObjectId if it's a valid ObjectId
+        let query;
+        if (ObjectId.isValid(articleId)) {
+          query = { _id: new ObjectId(articleId) };
+        } else {
+          query = { news_data_article_id: articleId };
+        }
+        
+        const article = await posts_db.collection("articles").findOne(query);
+        if (article) {
+          articles.push({
+            ...article,
+            save_count: articleSaveCounts[articleId]
+          });
+        }
+      } catch (err) {
+        console.error(`Error fetching article ${articleId}:`, err);
+      }
+    }
+    
+    res.status(200).json(articles);
   } catch (error) {
     console.error("Error fetching most saved articles:", error);
     res.status(500).json({ error: "Failed to fetch most saved articles" });
