@@ -8,6 +8,7 @@ const initialState = {
   upcomingEvents: [],
   featuredBrands: [],
   workshops: [],
+  featuredTicketEvent: null,
   loading: false,
   error: null,
   authError: false
@@ -27,7 +28,8 @@ const homeReducer = (state = initialState, action) => {
         loading: false,
         upcomingEvents: action.payload.upcomingEvents,
         featuredBrands: action.payload.featuredBrands,
-        workshops: action.payload.workshops
+        workshops: action.payload.workshops,
+        featuredTicketEvent: action.payload.featuredTicketEvent
       };
     case HOME_DATA_FAILURE:
       return {

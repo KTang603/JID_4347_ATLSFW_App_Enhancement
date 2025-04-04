@@ -59,7 +59,8 @@ export const fetchHomeData = (token, navigation) => async (dispatch) => {
         payload: {
           upcomingEvents: response.data.upcomingEvents || [],
           featuredBrands: mockBrands,
-          workshops: response.data.workshops || []
+          workshops: response.data.workshops || [],
+          featuredTicketEvent: response.data.featuredTicketEvent || null
         }
       });
     }
@@ -99,7 +100,8 @@ export const fetchHomeData = (token, navigation) => async (dispatch) => {
         payload: {
           upcomingEvents: [],
           featuredBrands: mockBrands,
-          workshops: []
+          workshops: [],
+          featuredTicketEvent: null
         }
       });
     }
