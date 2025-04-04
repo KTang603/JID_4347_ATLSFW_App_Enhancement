@@ -76,19 +76,33 @@ router.post("/discover/create/:vendor_id", async (req, res) => {
         const userDB = users_db.collection('customer_info');
         
         const users = await userDB.findOne({_id: new ObjectId(vendor_id)});
-        const discoveryInfo = req.body;
+        
+        // Create shop_info object with the provided data
+        const shopInfo = {
+            brand_name: brand_name,
+            shop_now_link: shop_now_link,
+            url: title,  // Store title as url for image
+            social_link: intro  // Store intro as social_link
+        };
 
-        const userInfo = {...users,discovery_info:{...discoveryInfo}};
-        // Update user document
+        // Update user document with shop_info
         const result = await userDB.updateOne(
             { _id: new ObjectId(vendor_id) },
-            { $set: userInfo }
+            { 
+                $set: { 
+                    shop_info: shopInfo,
+                    user_roles: 2  // Ensure user is marked as a vendor
+                } 
+            }
         );
 
         if(result.matchedCount){
+            // Fetch the updated user to return in the response
+            const updatedUser = await userDB.findOne({_id: new ObjectId(vendor_id)});
+            
             res.status(200).json({
                 success: true,
-                user: userInfo,
+                user: updatedUser,
                 message: "Discovery page created successfully"
               });
         } else{
