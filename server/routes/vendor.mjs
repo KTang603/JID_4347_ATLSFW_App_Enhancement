@@ -162,4 +162,28 @@ router.get("/discover/:vendor_id", async (req, res) => {
     }
 });
 
+// Get all shops
+router.get("/shop/all", async (req, res) => {
+    try {
+        const userDB = users_db.collection('customer_info');
+        
+        // Find all users with user_roles = 2 (vendors) and shop_info
+        const vendors = await userDB.find({ 
+            user_roles: 2,
+            shop_info: { $exists: true } 
+        }).toArray();
+        
+        res.status(200).json({ 
+            success: true, 
+            vendors: vendors 
+        });
+    } catch (err) {
+        console.error('Error fetching shops:', err);
+        res.status(500).json({ 
+            success: false, 
+            message: "Internal Server Error" 
+        });
+    }
+});
+
 export default router;
