@@ -98,26 +98,43 @@ router.get("/all", verifyToken,checkUserStatus, async (req, res) => {
     .limit(3)
     .toArray();
     
-    // Get featured brands
-    const vendors = await users_db.collection("vendor_info").find({})
-      .limit(4)
-      .toArray();
+    // Get 2 random featured brands from customer_info collection
+    let featuredBrands = [];
     
-    const featuredBrands = await Promise.all(
-      vendors.map(async (vendor) => {
-        const userInfo = await users_db.collection("customer_info").findOne({
-          _id: new ObjectId(vendor.vendor_id)
-        });
+    // Find all users with user_roles = 2 (vendors) and shop_info
+    const vendorCount = await users_db.collection("customer_info").countDocuments({ 
+      user_roles: 2,
+      shop_info: { $exists: true } 
+    });
+    
+    if (vendorCount > 0) {
+      // If there are vendors, get up to 2 random ones
+      const limit = Math.min(2, vendorCount);
+      
+      // Use aggregation to get random vendors
+      const vendors = await users_db.collection("customer_info").aggregate([
+        { $match: { 
+          user_roles: 2,
+          shop_info: { $exists: true } 
+        }},
+        { $sample: { size: limit } }
+      ]).toArray();
+      
+      // Format the vendor data for the home screen
+      featuredBrands = vendors.map(vendor => {
+        // Support both new and old field names
+        const imageUrl = vendor.shop_info?.url || vendor.shop_info?.title || null;
+        const socialLink = vendor.shop_info?.social_link || vendor.shop_info?.intro || null;
         
         return {
-          _id: vendor.vendor_id,
-          name: userInfo?.name || "Unknown Vendor",
-          description: vendor.intro || "Sustainable fashion vendor",
-          image: vendor.image || null,
-          shop_now_link: vendor.shop_now_link || null
+          _id: vendor._id.toString(),
+          name: vendor.shop_info?.brand_name || `${vendor.first_name} ${vendor.last_name}`,
+          description: socialLink || "Sustainable fashion vendor",
+          image: imageUrl,
+          shop_now_link: vendor.shop_info?.shop_now_link || null
         };
-      })
-    );
+      });
+    }
     
     // Get workshops
     const workshops = await events_db.collection("events").find({

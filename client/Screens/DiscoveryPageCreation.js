@@ -51,8 +51,8 @@ const DiscoveryPageCreation = () => {
             <View style={styles.container}>
                 <TextInput style={styles.input} placeholder="Brand Name" onChangeText={setBrandName} value={brandName}/>
                 <TextInput style={styles.input} placeholder="Shop Now Link" onChangeText={setShopNowLink} value={shopNowLink}/>
-                <TextInput style={styles.input} placeholder="Vendor Role Title" onChangeText={setTitle} value={title}/>
-                <TextInput style={styles.input} placeholder="Organization Bio" onChangeText={setIntro} value={intro}/>
+                <TextInput style={styles.input} placeholder="Image URL" onChangeText={setTitle} value={title}/>
+                <TextInput style={styles.input} placeholder="Social Media Link" onChangeText={setIntro} value={intro}/>
                 {/* <Button title="Submit Information" onPress={handleSubmit} onFocus={() => Alert.alert("Please check the information above, you cannot change it later!")}/> */}
                <AppPrimaryButton title="Submit Information" handleSubmit={handleSubmit}/>
            

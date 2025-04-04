@@ -43,17 +43,20 @@ const ShopScreen = () => {
 
   const handleShopPress = (shop) => {
     if (shop.shop_info?.shop_now_link) {
-      navigation.navigate('Shop Now Webview', { uri: shop.shop_info.shop_now_link });
+      navigation.navigate('Shop Now Webview', { link: shop.shop_info.shop_now_link });
     } else {
       Alert.alert('No Website', 'This shop does not have a website link.');
     }
   };
 
   const handleInstagramPress = (shop) => {
-    if (shop.shop_info?.intro) {
-      navigation.navigate('Shop Now Webview', { uri: shop.shop_info.intro });
+    if (shop.shop_info?.social_link) {
+      navigation.navigate('Shop Now Webview', { link: shop.shop_info.social_link });
+    } else if (shop.shop_info?.intro) {
+      // Fallback for older data format
+      navigation.navigate('Shop Now Webview', { link: shop.shop_info.intro });
     } else {
-      Alert.alert('No Instagram', 'This shop does not have an Instagram link.');
+      Alert.alert('No Social Media', 'This shop does not have a social media link.');
     }
   };
 
@@ -63,11 +66,16 @@ const ShopScreen = () => {
       onPress={() => handleShopPress(item)}
     >
       <View style={styles.shopContent}>
-        {item.shop_info?.title ? (
+        {/* Shop Image Banner */}
+        {item.shop_info?.url ? (
+          <Image 
+            source={{ uri: item.shop_info.url }} 
+            style={styles.shopImage}
+          />
+        ) : item.shop_info?.title ? (
           <Image 
             source={{ uri: item.shop_info.title }} 
-            style={styles.shopImage} 
-            resizeMode="cover"
+            style={styles.shopImage}
           />
         ) : (
           <View style={styles.placeholderImage}>
@@ -75,25 +83,31 @@ const ShopScreen = () => {
           </View>
         )}
         
+        {/* Shop Info Section */}
         <View style={styles.shopInfo}>
-          <Text style={styles.shopName}>{item.shop_info?.brand_name || 'Unknown Shop'}</Text>
-          <Text style={styles.vendorName}>by {item.first_name} {item.last_name}</Text>
-          
-          <View style={styles.linkContainer}>
-            {item.shop_info?.shop_now_link && (
-              <TouchableOpacity 
-                onPress={() => handleShopPress(item)}
-              >
-                <Text style={styles.linkText}>Visit Website</Text>
-              </TouchableOpacity>
-            )}
+          {/* Header Row with Shop Name and Instagram Link */}
+          <View style={styles.headerRow}>
+            {/* Shop Name - Clickable if shop_now_link exists */}
+            <TouchableOpacity 
+              onPress={() => handleShopPress(item)}
+              disabled={!item.shop_info?.shop_now_link}
+              style={styles.shopNameContainer}
+            >
+              <Text style={[
+                styles.shopName, 
+                item.shop_info?.shop_now_link ? styles.clickableText : null
+              ]}>
+                {item.shop_info?.brand_name || 'Unknown Shop'}
+              </Text>
+            </TouchableOpacity>
             
-            {item.shop_info?.intro && (
+            {/* Social Media Link */}
+            {(item.shop_info?.social_link || item.shop_info?.intro) && (
               <TouchableOpacity 
                 onPress={() => handleInstagramPress(item)}
                 style={styles.instagramButton}
               >
-                <FontAwesome name="instagram" size={20} color="black" />
+                <FontAwesome name="instagram" size={22} color="#C13584" />
               </TouchableOpacity>
             )}
           </View>
@@ -158,81 +172,79 @@ const styles = StyleSheet.create({
   },
   shopCard: {
     backgroundColor: 'white',
-    borderRadius: 8,
-    marginBottom: 16,
+    borderRadius: 12,
+    marginBottom: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 5,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#f0f0f0',
   },
   shopContent: {
-    flexDirection: 'row',
-    padding: 16,
-    alignItems: 'center',
+    flexDirection: 'column',
+    alignItems: 'stretch',
   },
   shopImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 8,
+    width: '100%',
+    height: 160,
+    resizeMode: 'cover',
     backgroundColor: '#f0f0f0',
   },
   placeholderImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 8,
-    backgroundColor: '#02833D',
+    width: '100%',
+    height: 160,
+    backgroundColor: '#e0f2f1',
     justifyContent: 'center',
     alignItems: 'center',
   },
   placeholderText: {
-    fontSize: 24,
+    fontSize: 36,
     fontWeight: 'bold',
-    color: 'white',
+    color: '#02833D',
   },
   shopInfo: {
-    flex: 1,
-    marginLeft: 16,
+    padding: 16,
   },
   shopName: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  vendorName: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 8,
+    color: '#333',
   },
   linkContainer: {
     flexDirection: 'row',
-    marginTop: 8,
+    marginTop: 12,
     alignItems: 'center',
+    justifyContent: 'space-between',
   },
   linkButton: {
-    backgroundColor: '#02833D',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 4,
-    marginRight: 8,
+    backgroundColor: '#e8f5e9',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   linkText: {
-    color: '#0066cc',
-    fontWeight: '500',
-    textDecorationLine: 'underline',
-    marginRight: 12,
+    color: '#02833D',
+    fontWeight: '600',
+    fontSize: 15,
   },
   instagramButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
-    backgroundColor: 'white',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#f8f8f8',
     justifyContent: 'center',
     alignItems: 'center',
-    marginLeft: 8,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   loadingText: {
     marginTop: 8,
@@ -259,6 +271,24 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666',
     textAlign: 'center',
+  },
+  clickableText: {
+    color: '#02833D',
+    textDecorationLine: 'underline',
+  },
+  socialContainer: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 12,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  shopNameContainer: {
+    flex: 1,
+    marginRight: 10,
   },
 });
 
