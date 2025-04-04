@@ -48,12 +48,12 @@ const SettingPage = () => {
               handleSubmit={() => {navigation.navigate("AdminDataList", { listType: "articles" })}} 
             />
             <AppPrimaryButton 
-              title="Most Liked" 
+              title="Top 10 Most Liked" 
               containerStyle={styles.buttonStyle}
               handleSubmit={() => {navigation.navigate("AdminDataList", { listType: "mostLiked" })}} 
             />
             <AppPrimaryButton 
-              title="Most Saved" 
+              title="Top 10 Most Saved" 
               containerStyle={styles.buttonStyle}
               handleSubmit={() => {navigation.navigate("AdminDataList", { listType: "mostSaved" })}} 
             />
