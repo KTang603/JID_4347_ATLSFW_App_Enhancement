@@ -198,14 +198,23 @@ router.delete("/shops/:id", verifyToken, requireAdmin, async (req, res) => {
 });
 
 // Get most liked articles
-router.get("/most-liked", async (req, res) => {
+router.get("/most-liked", verifyToken, requireAdmin, async (req, res) => {
   try {
     const articles = await posts_db.collection("articles").find({})
-      // Old code: .sort({ likes: -1 })
       .sort({ like_count: -1 })
       .limit(10)
       .toArray();
-    res.status(200).json(articles);
+    
+    // Ensure like_count is a number for proper sorting
+    const processedArticles = articles.map(article => ({
+      ...article,
+      like_count: typeof article.like_count === 'number' ? article.like_count : 0
+    }));
+    
+    // Sort again after ensuring like_count is a number
+    processedArticles.sort((a, b) => b.like_count - a.like_count);
+    
+    res.status(200).json(processedArticles);
   } catch (error) {
     console.error("Error fetching most liked articles:", error);
     res.status(500).json({ error: "Failed to fetch most liked articles" });
@@ -213,14 +222,23 @@ router.get("/most-liked", async (req, res) => {
 });
 
 // Get most saved articles
-router.get("/most-saved", async (req, res) => {
+router.get("/most-saved", verifyToken, requireAdmin, async (req, res) => {
   try {
     const articles = await posts_db.collection("articles").find({})
-      // Old code: .sort({ saves: -1 })
       .sort({ save_count: -1 })
       .limit(10)
       .toArray();
-    res.status(200).json(articles);
+    
+    // Ensure save_count is a number for proper sorting
+    const processedArticles = articles.map(article => ({
+      ...article,
+      save_count: typeof article.save_count === 'number' ? article.save_count : 0
+    }));
+    
+    // Sort again after ensuring save_count is a number
+    processedArticles.sort((a, b) => b.save_count - a.save_count);
+    
+    res.status(200).json(processedArticles);
   } catch (error) {
     console.error("Error fetching most saved articles:", error);
     res.status(500).json({ error: "Failed to fetch most saved articles" });
