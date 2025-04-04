@@ -7,6 +7,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { SHOP_ALL_API } from '../utils/ApiUtils';
 import axios from 'axios';
 import MY_IP_ADDRESS from '../environment_variables.mjs';
+import { handleApiError } from '../utils/ApiErrorHandler';
 
 const ShopScreen = () => {
   const [shops, setShops] = useState([]);
@@ -27,7 +28,8 @@ const ShopScreen = () => {
       const response = await fetch(SHOP_ALL_API, {
         method: 'GET',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         }
       });
       
@@ -36,11 +38,20 @@ const ShopScreen = () => {
       if (response.ok) {
         setShops(data.vendors || []);
       } else {
-        setError(data.message || 'Failed to fetch shops');
+        // Check if this is a deactivated account error
+        if (response.status === 403 && data.code === 'ACCOUNT_DEACTIVATED') {
+          await handleApiError({ response: { status: 403, data: { code: 'ACCOUNT_DEACTIVATED' } } }, navigation);
+        } else {
+          setError(data.message || 'Failed to fetch shops');
+        }
       }
     } catch (err) {
       console.error('Error fetching shops:', err);
-      setError('Network error. Please try again later.');
+      // Try to handle the error with the API error handler
+      const errorHandled = await handleApiError(err, navigation);
+      if (!errorHandled) {
+        setError('Network error. Please try again later.');
+      }
     } finally {
       setLoading(false);
     }
@@ -94,7 +105,11 @@ const ShopScreen = () => {
                 Alert.alert('Success', 'Shop deleted successfully');
               }
             } catch (error) {
-              Alert.alert('Error', error.response?.data?.message || 'Failed to delete shop');
+              // Try to handle the error with the API error handler
+              const errorHandled = await handleApiError(error, navigation);
+              if (!errorHandled) {
+                Alert.alert('Error', error.response?.data?.message || 'Failed to delete shop');
+              }
             } finally {
               setLoading(false);
             }
