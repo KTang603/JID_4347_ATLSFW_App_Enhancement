@@ -87,10 +87,11 @@ router.get("/all", verifyToken,checkUserStatus, async (req, res) => {
   try {
     // Get current date
     const currentDate = new Date();
+    const currentDateStr = currentDate.toISOString().split('T')[0]; // Format: YYYY-MM-DD
     
     // Get upcoming events (regular events only)
     const upcomingEvents = await events_db.collection("events").find({
-      event_date: { $gte: currentDate.toISOString().split('T')[0] },
+      event_date: { $gte: currentDateStr },
       event_type: "regular" // Only get regular events
     })
     .sort({ event_date: 1 })
@@ -120,18 +121,32 @@ router.get("/all", verifyToken,checkUserStatus, async (req, res) => {
     
     // Get workshops
     const workshops = await events_db.collection("events").find({
-      event_date: { $gte: currentDate.toISOString().split('T')[0] },
+      event_date: { $gte: currentDateStr },
       event_type: "workshop"
     })
     .sort({ event_date: 1 })
     .limit(2)
     .toArray();
     
+    // Get the latest event with ticket information for the "Get Your Tickets" section
+    // Include both regular and workshop events
+    const featuredTicketEvent = await events_db.collection("events").findOne({
+      event_date: { $gte: currentDateStr },
+      ticket_url: { $exists: true, $ne: "" }, // Must have a ticket URL
+      $or: [
+        { event_type: "regular" },
+        { event_type: "workshop" }
+      ]
+    }, {
+      sort: { event_date: 1 } // Sort by date ascending to get the soonest event
+    });
+    
     // Return all data
     res.status(200).json({
       upcomingEvents,
       featuredBrands,
-      workshops
+      workshops,
+      featuredTicketEvent // This will be null if no event with tickets is found
     });
   } catch (error) {
     console.error("Error fetching home page data:", error);

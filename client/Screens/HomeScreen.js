@@ -23,7 +23,7 @@ const HomeScreen = () => {
   const navigation = useNavigation();
   const dispatch = useDispatch();
   const token = useSelector((store) => store.token.token);
-  const { upcomingEvents, featuredBrands, workshops, loading, authError } = useSelector((store) => store.home);
+  const { upcomingEvents, featuredBrands, workshops, featuredTicketEvent, loading, authError } = useSelector((store) => store.home);
 
   useEffect(() => {
     if (token) {
@@ -328,20 +328,33 @@ const HomeScreen = () => {
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Get Your Tickets</Text>
         </View>
-        <TouchableOpacity 
-          style={styles.ticketCard}
-          onPress={() => navigation.navigate("Shop Now Webview", { url: "https://www.sustainablefw.com/event-details/earth-day-fashion-show-x-atlanta-film-festival" })}
-        >
-          <View style={styles.ticketContent}>
-            <Text style={styles.ticketTitle}>Atlanta Sustainable Fashion Week 2025</Text>
-            <Text style={styles.ticketDescription}>
-              Secure your spot at the event. Early bird tickets available now!
-            </Text>
-            <View style={styles.ticketButton}>
-              <Text style={styles.ticketButtonText}>Purchase Tickets</Text>
+        {featuredTicketEvent ? (
+          <TouchableOpacity 
+            style={styles.ticketCard}
+            onPress={() => navigation.navigate("Shop Now Webview", { link: featuredTicketEvent.ticket_url })}
+          >
+            <View style={styles.ticketContent}>
+              <Text style={styles.ticketTitle}>{featuredTicketEvent.event_title}</Text>
+              <Text style={styles.ticketDescription}>
+                {featuredTicketEvent.event_desc && featuredTicketEvent.event_desc.length > 100 
+                  ? `${featuredTicketEvent.event_desc.substring(0, 100)}...` 
+                  : featuredTicketEvent.event_desc || "Secure your spot at this event. Tickets available now!"}
+              </Text>
+              <View style={styles.ticketButton}>
+                <Text style={styles.ticketButtonText}>Purchase Tickets</Text>
+              </View>
+            </View>
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.ticketCard}>
+            <View style={styles.ticketContent}>
+              <Text style={styles.ticketTitle}>Events Coming Soon</Text>
+              <Text style={styles.ticketDescription}>
+                Check back later for upcoming events and ticket information.
+              </Text>
             </View>
           </View>
-        </TouchableOpacity>
+        )}
       </View>
 
       {/* Participating Brands */}
