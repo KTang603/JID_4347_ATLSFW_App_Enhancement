@@ -3,13 +3,18 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndi
 import { useSelector } from 'react-redux';
 import { useNavigation } from '@react-navigation/native';
 import { FontAwesome } from '@expo/vector-icons';
+import { Ionicons } from "@expo/vector-icons";
 import { SHOP_ALL_API } from '../utils/ApiUtils';
+import axios from 'axios';
+import MY_IP_ADDRESS from '../environment_variables.mjs';
 
 const ShopScreen = () => {
   const [shops, setShops] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const token = useSelector((state) => state.token);
+  const token = useSelector((state) => state.token?.token);
+  const userInfo = useSelector((state) => state.userInfo?.userInfo);
+  const isAdmin = userInfo?.user_roles === 3; // Check if user is admin (role 3)
   const navigation = useNavigation();
 
   useEffect(() => {
@@ -60,11 +65,47 @@ const ShopScreen = () => {
     }
   };
 
+  const handleDeleteShop = (shopId) => {
+    Alert.alert(
+      "Delete Shop",
+      "Are you sure you want to delete this shop? This action cannot be undone.",
+      [
+        {
+          text: "Cancel",
+          style: "cancel"
+        },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              setLoading(true);
+              const response = await axios({
+                method: 'DELETE',
+                url: `http://${MY_IP_ADDRESS}:5050/admin/shops/${shopId}`,
+                headers: {
+                  'Authorization': `Bearer ${token}`
+                }
+              });
+              
+              if (response.status === 200) {
+                // Remove the deleted shop from the shops array
+                setShops(shops.filter(shop => shop._id !== shopId));
+                Alert.alert('Success', 'Shop deleted successfully');
+              }
+            } catch (error) {
+              Alert.alert('Error', error.response?.data?.message || 'Failed to delete shop');
+            } finally {
+              setLoading(false);
+            }
+          }
+        }
+      ]
+    );
+  };
+
   const renderShopItem = ({ item }) => (
-    <TouchableOpacity 
-      style={styles.shopCard}
-      onPress={() => handleShopPress(item)}
-    >
+    <View style={styles.shopCard}>
       <View style={styles.shopContent}>
         {/* Shop Image Banner */}
         {item.shop_info?.url ? (
@@ -101,19 +142,31 @@ const ShopScreen = () => {
               </Text>
             </TouchableOpacity>
             
-            {/* Social Media Link */}
-            {(item.shop_info?.social_link || item.shop_info?.intro) && (
-              <TouchableOpacity 
-                onPress={() => handleInstagramPress(item)}
-                style={styles.instagramButton}
-              >
-                <FontAwesome name="instagram" size={22} color="#C13584" />
-              </TouchableOpacity>
-            )}
+            <View style={styles.actionButtons}>
+              {/* Social Media Link */}
+              {(item.shop_info?.social_link || item.shop_info?.intro) && (
+                <TouchableOpacity 
+                  onPress={() => handleInstagramPress(item)}
+                  style={styles.instagramButton}
+                >
+                  <FontAwesome name="instagram" size={22} color="#C13584" />
+                </TouchableOpacity>
+              )}
+              
+              {/* Delete Button - Only visible to admins */}
+              {isAdmin && (
+                <TouchableOpacity 
+                  onPress={() => handleDeleteShop(item._id)}
+                  style={styles.deleteButton}
+                >
+                  <Ionicons name="trash-outline" size={20} color="#d32f2f" />
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
         </View>
       </View>
-    </TouchableOpacity>
+    </View>
   );
 
   if (loading) {
@@ -289,6 +342,24 @@ const styles = StyleSheet.create({
   shopNameContainer: {
     flex: 1,
     marginRight: 10,
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  deleteButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#f8f8f8',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
 });
 

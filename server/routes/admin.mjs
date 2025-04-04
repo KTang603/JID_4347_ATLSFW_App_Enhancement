@@ -154,6 +154,49 @@ router.delete("/articles/:id", async (req, res) => {
   }
 });
 
+// Delete a shop by ID
+router.delete("/shops/:id", verifyToken, requireAdmin, async (req, res) => {
+  try {
+    const shopId = req.params.id;
+    
+    // Check if the shop exists
+    const shop = await users_db.collection("customer_info").findOne({ 
+      _id: new ObjectId(shopId),
+      user_roles: VENDOR_ROLES
+    });
+    
+    if (!shop) {
+      return res.status(404).json({ error: "Shop not found" });
+    }
+    
+    // Option 1: Delete the shop completely
+    // const result = await users_db.collection("customer_info").deleteOne({ 
+    //   _id: new ObjectId(shopId)
+    // });
+    
+    // Option 2: Deactivate the shop (safer approach)
+    const result = await users_db.collection("customer_info").updateOne(
+      { _id: new ObjectId(shopId) },
+      { 
+        $set: { 
+          user_status: DEACTIVATE_STATUS,
+          deactivated_at: new Date(),
+          deactivated_by: "admin"
+        } 
+      }
+    );
+    
+    if (result.modifiedCount === 0) {
+      return res.status(404).json({ error: "Failed to deactivate shop" });
+    }
+    
+    res.status(200).json({ success: true, message: "Shop deactivated successfully" });
+  } catch (error) {
+    console.error("Error deactivating shop:", error);
+    res.status(500).json({ error: "Failed to deactivate shop" });
+  }
+});
+
 // Get most liked articles
 router.get("/most-liked", async (req, res) => {
   try {
