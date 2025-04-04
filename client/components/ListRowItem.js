@@ -1,14 +1,60 @@
 import { useNavigation } from "@react-navigation/native";
 import React from "react";
-import { TouchableOpacity, Image, View, Text,StyleSheet } from "react-native";
+import { TouchableOpacity, Image, View, Text, StyleSheet, Alert } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome";
+import { Ionicons } from "@expo/vector-icons";
+import { useSelector } from "react-redux";
+import axios from "axios";
+import MY_IP_ADDRESS from "../environment_variables.mjs";
 
-const ListRowItem = ({ item,handleSave,handleLike}) => {
-  const { like_count,tags, save_count,article_title,author_name, is_liked, is_saved,article_preview_image,article_link,_id } = item;
+const ListRowItem = ({ item, handleSave, handleLike }) => {
+  const { like_count, tags, save_count, article_title, author_name, is_liked, is_saved, article_preview_image, article_link, _id } = item;
   const navigate = useNavigation();
+  const userInfo = useSelector((state) => state.userInfo?.userInfo);
+  const token = useSelector((state) => state.token?.token);
+  const isAdmin = userInfo?.user_roles === 3; // Check if user is admin (role 3)
 
   const navigateToContent = (link) => {
     navigate.navigate("Article Webview", { link });
+  };
+
+  const handleDeleteArticle = (articleId) => {
+    Alert.alert(
+      "Delete Article",
+      "Are you sure you want to delete this article? This action cannot be undone.",
+      [
+        {
+          text: "Cancel",
+          style: "cancel"
+        },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const response = await axios({
+                method: 'DELETE',
+                url: `http://${MY_IP_ADDRESS}:5050/admin/articles/${articleId}`,
+                headers: {
+                  'Authorization': `Bearer ${token}`
+                }
+              });
+              
+              if (response.status === 200) {
+                Alert.alert('Success', 'Article deleted successfully');
+                // Refresh the news feed
+                navigate.reset({
+                  index: 0,
+                  routes: [{ name: 'News Feed' }],
+                });
+              }
+            } catch (error) {
+              Alert.alert('Error', error.response?.data?.message || 'Failed to delete article');
+            }
+          }
+        }
+      ]
+    );
   };
 
 
@@ -26,9 +72,19 @@ const ListRowItem = ({ item,handleSave,handleLike}) => {
           />
         )}
         <View style={styles.articleContent}>
-          <Text style={styles.cardTitle}>
-            {article_title || "Untitled Article"}
-          </Text>
+          <View style={styles.titleRow}>
+            <Text style={styles.cardTitle}>
+              {article_title || "Untitled Article"}
+            </Text>
+            {isAdmin && (
+              <TouchableOpacity 
+                onPress={() => handleDeleteArticle(_id)}
+                style={styles.deleteButton}
+              >
+                <Ionicons name="trash-outline" size={20} color="#d32f2f" />
+              </TouchableOpacity>
+            )}
+          </View>
           <View>
             <Text style={styles.cardSubtitle}>
               By {author_name || "Unknown Author"}
@@ -113,6 +169,15 @@ const styles = StyleSheet.create({
     color: "#666",
     marginBottom: 10,
     textDecorationLine: "underline",
+  },
+  titleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 5,
+  },
+  deleteButton: {
+    padding: 5,
   },
   statsContainer: {
     flexDirection: "row",
