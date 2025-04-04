@@ -290,24 +290,33 @@ const EventsScreen = () => {
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
   
+  // Show event details modal
+  const showEventDetails = (event) => {
+    setSelectedEvent(event);
+    setEventDetailsVisible(true);
+  };
+  
+  // Show event options menu (for admin users)
   const showEventOptions = (event, nativeEvent) => {
     setSelectedEvent(event);
     
-    // For non-admin users, show event details directly
-    if (!isAdmin) {
-      setEventDetailsVisible(true);
-      return;
+    // Check if nativeEvent has valid coordinates
+    if (nativeEvent && typeof nativeEvent.pageY === 'number' && typeof nativeEvent.pageX === 'number') {
+      // Get the screen width
+      const screenWidth = Dimensions.get('window').width;
+      
+      // Position the menu with its right edge at the click position, with offsets
+      setMenuPosition({ 
+        top: nativeEvent.pageY - 50, // Offset to move up
+        right: screenWidth - nativeEvent.pageX + 25 // Right edge at click position with offset to the left
+      });
+    } else {
+      // Default position if coordinates are not available
+      setMenuPosition({
+        top: 100,
+        right: 20
+      });
     }
-    
-    // For admin users, show the options menu
-    // Get the screen width
-    const screenWidth = Dimensions.get('window').width;
-    
-    // Position the menu with its right edge at the click position, with offsets
-    setMenuPosition({ 
-      top: nativeEvent.pageY - 50, // Offset to move up
-      right: screenWidth - nativeEvent.pageX + 25 // Right edge at click position with offset to the left
-    });
     
     setOptionsVisible(true);
   };
@@ -415,7 +424,7 @@ const EventsScreen = () => {
     return (
       <TouchableOpacity 
         style={styles.eventCard}
-        onPress={() => showEventOptions(event, {})} // Open details modal on card click
+        onPress={() => showEventDetails(event)} // Open details modal on card click
         activeOpacity={0.8}
       >
         {/* Event Title with Options Menu */}
@@ -424,7 +433,11 @@ const EventsScreen = () => {
           <TouchableOpacity 
             onPress={(e) => {
               e.stopPropagation(); // Prevent card click
-              showEventOptions(event, e.nativeEvent);
+              if (e && e.nativeEvent) {
+                showEventOptions(event, e.nativeEvent);
+              } else {
+                showEventOptions(event, null);
+              }
             }}
             style={styles.optionsButton}
           >
@@ -631,14 +644,7 @@ const EventsScreen = () => {
         onRequestClose={() => setDeleteConfirmVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={[
-            styles.deleteModalContent,
-            { 
-              position: 'absolute',
-              top: menuPosition.top,
-              right: menuPosition.right
-            }
-          ]}>
+          <View style={styles.deleteModalContent}>
             <Text style={styles.modalTitle}>Delete Event</Text>
             <Text style={styles.modalMessage}>
               Are you sure you want to delete this event?
@@ -877,6 +883,8 @@ const styles = StyleSheet.create({
     padding: 20,
     width: 250,
     alignItems: 'flex-start',
+    alignSelf: 'center',
+    marginTop: '50%',
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
