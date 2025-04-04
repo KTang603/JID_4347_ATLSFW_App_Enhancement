@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndi
 import { useSelector } from 'react-redux';
 import { useNavigation } from '@react-navigation/native';
 import { FontAwesome } from '@expo/vector-icons';
-import MY_IP_ADDRESS from '../environment_variables.mjs';
+import { SHOP_ALL_API } from '../utils/ApiUtils';
 
 const ShopScreen = () => {
   const [shops, setShops] = useState([]);
@@ -19,7 +19,7 @@ const ShopScreen = () => {
   const fetchShops = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`http://${MY_IP_ADDRESS}:5050/vendor/shop/all`, {
+      const response = await fetch(SHOP_ALL_API, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json'

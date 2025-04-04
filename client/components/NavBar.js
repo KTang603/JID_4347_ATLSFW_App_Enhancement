@@ -69,10 +69,10 @@ const NavBar = () => {
           </TouchableOpacity>
 
           <TouchableOpacity style={{ alignItems: 'center' }} onPress={() => {
-            // navigation.reset({
-            //   index: 0,
-            //   routes: [{ name: 'Sign Up' }],
-            // });
+            navigation.reset({
+              index: 0,
+              routes: [{ name: 'Shop' }],
+            });
           }}>              
               <Icon name="shopping-cart" size={20} color="white" alignItems="center"/>
               <Text style={styles.whiteText}>Shop</Text>
