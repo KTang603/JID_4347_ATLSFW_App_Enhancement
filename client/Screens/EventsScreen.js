@@ -89,6 +89,7 @@ const EventsScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [eventDetailsVisible, setEventDetailsVisible] = useState(false);
   const [sortOption, setSortOption] = useState("date"); // "date" or "interested"
+  const [currentMonth, setCurrentMonth] = useState(new Date().toISOString().split('T')[0].substring(0, 7)); // Format: YYYY-MM
 
   const navigation = useNavigation();
 
@@ -106,7 +107,24 @@ const EventsScreen = () => {
     // Set today's date as the default selected date
     const today = new Date().toISOString().split('T')[0];
     setSelectedDate(today);
+    
+    // Set current month
+    setCurrentMonth(today.substring(0, 7)); // Format: YYYY-MM
   }, []);
+  
+  // Filter events by current month when events are loaded or month changes
+  useEffect(() => {
+    if (oldEvent.length > 0 && currentMonth) {
+      // If no specific date is selected, show events for the current month
+      if (!selectedDate) {
+        const monthFilteredEvents = oldEvent.filter((event) => {
+          return event.event_date.startsWith(currentMonth);
+        });
+        
+        setEvents(sortEvents(monthFilteredEvents));
+      }
+    }
+  }, [oldEvent, currentMonth, selectedDate]);
   
   // State for event type filter
   const [eventTypeFilter, setEventTypeFilter] = useState("");
@@ -129,10 +147,17 @@ const EventsScreen = () => {
         setSelectedDate(""); // Clear selected date to show all events of this type
         setDateEvents([]); // Reset dateEvents
       } else if (params.showAll) {
-        // Coming from navbar Events tab click - show all events
-        setSelectedDate(""); // Clear selected date to show all events
+        // Coming from navbar Events tab click - show events for current month
+        setSelectedDate(""); // Clear selected date
         setEventTypeFilter(""); // Clear event type filter
         setDateEvents([]); // Reset dateEvents
+        
+        // Filter events for the current month
+        const monthFilteredEvents = oldEvent.filter((event) => {
+          return event.event_date.startsWith(currentMonth);
+        });
+        
+        setEvents(sortEvents(monthFilteredEvents));
       } else if (params.preserveDate && params.selectedDate) {
         // Coming back from InterestedList with a specific date
         setSelectedDate(params.selectedDate);
@@ -366,20 +391,38 @@ const EventsScreen = () => {
     }
   };
   
-  // Handle pull-to-refresh - show all events (clear filters)
+  // Handle pull-to-refresh - show events for current month
   const onRefresh = React.useCallback(() => {
     setRefreshing(true);
-    fetchEvents();
-    // Clear filters
-    setSelectedDate("");
-    setEventTypeFilter("");
-    setDateEvents([]); // Reset dateEvents
-  }, []);
+    fetchEvents().then(() => {
+      // Clear specific date selection but maintain month filter
+      setSelectedDate("");
+      setEventTypeFilter("");
+      setDateEvents([]); // Reset dateEvents
+      
+      // Filter events for the current month
+      if (oldEvent.length > 0 && currentMonth) {
+        const monthFilteredEvents = oldEvent.filter((event) => {
+          return event.event_date.startsWith(currentMonth);
+        });
+        
+        setEvents(sortEvents(monthFilteredEvents));
+      }
+    });
+  }, [currentMonth]);
   
-  // Function to show all events (used when Events tab is clicked)
+  // Function to show events for current month (used when Events tab is clicked)
   const showAllEvents = () => {
-    setEvents(oldEvent);
     setSelectedDate("");
+    
+    // Filter events for the current month
+    if (oldEvent.length > 0 && currentMonth) {
+      const monthFilteredEvents = oldEvent.filter((event) => {
+        return event.event_date.startsWith(currentMonth);
+      });
+      
+      setEvents(sortEvents(monthFilteredEvents));
+    }
   };
 
   const addParticipant = async (eventId) => {
@@ -529,6 +572,9 @@ const EventsScreen = () => {
 
   const _filterEvent = (day) => {
     setSelectedDate(day.dateString);
+    
+    // Always set sort option to "date" when a date is clicked
+    setSortOption("date");
 
     // Filter events for the selected date
     const dateFilteredEvents = oldEvent.filter((event) => {
@@ -538,18 +584,9 @@ const EventsScreen = () => {
     // Store all events for this date before interest filtering
     setDateEvents(dateFilteredEvents);
     
-    // Apply the current sort option to the filtered events
-    let finalEvents = [...dateFilteredEvents];
-    
-    // If interested filter is active, apply it
-    if (sortOption === "interested") {
-      finalEvents = finalEvents.filter(event => 
-        event.participants && event.participants.includes(_id)
-      );
-    }
-    
-    // Sort the events
-    finalEvents = sortEvents(finalEvents);
+    // Since we're setting sort option to "date", we don't need to filter by interest
+    // Just sort the events by date
+    const finalEvents = sortEvents(dateFilteredEvents);
     
     setEvents(finalEvents);
   };
@@ -771,6 +808,25 @@ const EventsScreen = () => {
             onDayPress={(day) => {
               _filterEvent(day);
             }}
+            onMonthChange={(month) => {
+              // Update current month when user navigates between months
+              setCurrentMonth(month.dateString.substring(0, 7)); // Format: YYYY-MM
+              
+              // Clear selected date when month changes
+              if (selectedDate && !selectedDate.startsWith(month.dateString.substring(0, 7))) {
+                setSelectedDate("");
+              }
+              
+              // Filter events for the current month
+              const monthFilteredEvents = oldEvent.filter((event) => {
+                return event.event_date.startsWith(month.dateString.substring(0, 7));
+              });
+              
+              // If no date is selected, show all events for this month
+              if (!selectedDate || !selectedDate.startsWith(month.dateString.substring(0, 7))) {
+                setEvents(sortEvents(monthFilteredEvents));
+              }
+            }}
             markingType="multi-dot" // Enable multi-dot support
             markedDates={_getEventDate()}
             theme={{
@@ -795,8 +851,8 @@ const EventsScreen = () => {
           </View>
         )}
 
-        {/* Toggle Filter - Only for non-admin users */}
-        {(events.length > 0 || (selectedDate && dateEvents.length > 0)) && !isAdmin && (
+        {/* Toggle Filter - For all users except admins */}
+        {!isAdmin && (
           <View style={styles.sortFilterContainer}>
             <View style={styles.sortButtonsContainer}>
               <TouchableOpacity
