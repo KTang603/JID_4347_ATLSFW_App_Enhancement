@@ -28,7 +28,7 @@ class DatabaseConnection {
 
     async connect() {
         if (this.isConnected) {
-            return {third_party_db:this.third_party_db,saved_articles_db: this.saved_articles_db, posts_db: this.posts_db, users_db: this.users_db, news_db: this.news_db,events_db: this.events_db };
+            return {third_party_db:this.third_party_db, saved_articles_db: this.saved_articles_db, posts_db: this.posts_db, users_db: this.users_db, news_db: this.news_db, events_db: this.events_db };
         }
 
         try {
@@ -67,7 +67,7 @@ class DatabaseConnection {
                 await this.connect();
             });
 
-            return {third_party_db: this.third_party_db,saved_articles_db: this.saved_articles_db ,posts_db: this.posts_db, users_db: this.users_db, news_db: this.news_db,events_db: this.events_db };
+            return {third_party_db: this.third_party_db, saved_articles_db: this.saved_articles_db, posts_db: this.posts_db, users_db: this.users_db, news_db: this.news_db, events_db: this.events_db };
         } catch (error) {
             console.error('Error connecting to MongoDB:', error);
             this.isConnected = false;
@@ -100,8 +100,8 @@ class DatabaseConnection {
 const dbConnection = new DatabaseConnection();
 
 // Initialize connection
-const {third_party_db,saved_articles_db ,posts_db, users_db, news_db,events_db } = await dbConnection.connect();
+const {third_party_db, saved_articles_db, posts_db, users_db, news_db, events_db } = await dbConnection.connect();
 
 // Export database instances and connection checker
-export {third_party_db,saved_articles_db, posts_db, users_db, news_db,events_db };
+export {third_party_db, saved_articles_db, posts_db, users_db, news_db, events_db };
 export const checkConnection = () => dbConnection.checkConnection();
