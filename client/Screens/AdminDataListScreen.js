@@ -113,6 +113,45 @@ const AdminDataListScreen = () => {
   setLoading(false)
 }
 
+  const handleDeleteArticle = async (articleId) => {
+    Alert.alert(
+      "Delete Article",
+      "Are you sure you want to delete this article? This action cannot be undone.",
+      [
+        {
+          text: "Cancel",
+          style: "cancel"
+        },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              setLoading(true);
+              const response = await axios({
+                method: 'DELETE',
+                url: `http://${MY_IP_ADDRESS}:5050/admin/articles/${articleId}`,
+                headers: {
+                  'Authorization': `Bearer ${token}`
+                }
+              });
+              
+              if (response.status === 200) {
+                // Remove the deleted article from the data array
+                setData(data.filter(article => article._id !== articleId));
+                Alert.alert('Success', 'Article deleted successfully');
+              }
+            } catch (error) {
+              Alert.alert('Error', error.response?.data?.message || 'Failed to delete article');
+            } finally {
+              setLoading(false);
+            }
+          }
+        }
+      ]
+    );
+  };
+
 
 
   const fetchData = async () => {
@@ -267,6 +306,40 @@ const AdminDataListScreen = () => {
         );
       
       case "articles":
+        return (
+          <View style={styles.card}>
+            <View style={styles.titleRow}>
+              <Text style={styles.cardTitle}>{item.article_title || "Untitled Article"}</Text>
+              <TouchableOpacity 
+                onPress={() => handleDeleteArticle(item._id)}
+                style={styles.deleteButton}
+              >
+                <Ionicons name="trash-outline" size={20} color="#d32f2f" />
+              </TouchableOpacity>
+            </View>
+            {item.article_preview_image && (
+              <Image 
+                source={{ uri: item.article_preview_image }} 
+                style={styles.articleImage}
+                resizeMode="cover"
+              />
+            )}
+            <View style={styles.articleContent}>
+              <Text style={styles.cardSubtitle}>By {item.author_name || "Unknown Author"}</Text>
+              {item.article_description && (
+                <Text style={styles.cardDescription} numberOfLines={2}>{item.article_description}</Text>
+              )}
+              {item.tags && item.tags.length > 0 && (
+                <View style={styles.tagsRow}>
+                  {item.tags.map((tag, index) => (
+                    <Text key={index} style={styles.tag}>{tag}</Text>
+                  ))}
+                </View>
+              )}
+            </View>
+          </View>
+        );
+      
       case "mostLiked":
       case "mostSaved":
         return (
@@ -617,6 +690,9 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   optionsButton: {
+    padding: 5,
+  },
+  deleteButton: {
     padding: 5,
   },
   tagContainer: {

@@ -110,14 +110,47 @@ router.get("/user/:id", async (req, res) => {
 // Get all articles created by admin
 router.get("/articles", async (req, res) => {
   try {
-    // Find articles where author_role is admin (3)
+    // Find articles created by admin (either source is "Manual" or author_name contains "Admin")
     const articles = await posts_db.collection("articles").find({ 
-      author_role: 3  // Admin role
+      $or: [
+        { source: "Manual" },
+        { author_name: { $regex: "Admin", $options: "i" } }
+      ]
     }).toArray();
     res.status(200).json(articles);
   } catch (error) {
     console.error("Error fetching articles:", error);
     res.status(500).json({ error: "Failed to fetch articles" });
+  }
+});
+
+// Delete an article by ID
+router.delete("/articles/:id", async (req, res) => {
+  try {
+    const articleId = req.params.id;
+    
+    // Check if the article exists
+    const article = await posts_db.collection("articles").findOne({ 
+      _id: new ObjectId(articleId)
+    });
+    
+    if (!article) {
+      return res.status(404).json({ error: "Article not found" });
+    }
+    
+    // Delete the article
+    const result = await posts_db.collection("articles").deleteOne({ 
+      _id: new ObjectId(articleId)
+    });
+    
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ error: "Article not found" });
+    }
+    
+    res.status(200).json({ success: true, message: "Article deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting article:", error);
+    res.status(500).json({ error: "Failed to delete article" });
   }
 });
 

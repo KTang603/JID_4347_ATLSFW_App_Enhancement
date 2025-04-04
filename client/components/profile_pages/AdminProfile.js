@@ -73,60 +73,16 @@ const AdminProfile = () => {
   const [editMode, setEditMode] = useState(false);
   const [imageUri, setImageUri] = useState(null);
   const [savedPath, setSavedPath] = useState(null);
-  const [topLiked, setTopLiked] = useState([]); 
-  const [topSaved, setTopSaved] = useState([]);
   const [editedFirstName, setEditedFirstName] = useState(userInfo.first_name);
   const [editedLastName, setEditedLastName] = useState(userInfo.last_name);
   const [editedUsername, setEditedUsername] = useState(userInfo.username);
   const [editedBirthday, setEditedBirthday] = useState(userInfo.birthday);
   const [editedPhoneNumber, setEditedPhoneNumber] = useState(userInfo.phone_number);
-  const [newDomain, setNewDomain] = useState('');
-  const [domains, setDomains] = useState([]);
-  const [newsApiKey, setNewsApiKey] = useState('');
-  const [newArticleTitle, setNewArticleTitle] = useState('');
-  const [newArticleUrl, setNewArticleUrl] = useState('');
   const dispatch = useDispatch();
   const user_id = useSelector((store) => store.user_id.user_id);
   const token = useSelector((store) => store.token.token);
 
-  useEffect(() => {
-    const fetchTopLiked = async () => {
-      try {
-        const response = await makeRequest('get', '/posts/top_liked', null, true, token);
-        if (response.data && Array.isArray(response.data)) {
-          setTopLiked(response.data);
-        }
-      } catch (error) {
-        console.error("Error fetching top liked posts:", error.message);
-      }
-    };
-
-    const fetchTopSaved = async () => {
-      try {
-        const response = await makeRequest('get', '/posts/top_saved', null, true, token);
-        if (response.data && Array.isArray(response.data)) {
-          setTopSaved(response.data);
-        } 
-      } catch (error) {
-        console.error("Error fetching top saved posts:", error.message);
-      }
-    };
-
-    const fetchDomains = async () => {
-      try {
-        const response = await makeRequest('get', '/news/domains', null, true, token);
-        if (Array.isArray(response.data)) {
-          setDomains(response.data);
-        }
-      } catch (error) {
-        console.error("Error fetching domains:", error.message);
-      }
-    };
-
-    fetchTopLiked();
-    fetchTopSaved();
-    fetchDomains();
-  }, [token]);
+  // No useEffect needed for fetching top liked, top saved, or domains data
 
   const saveImageLocally = async (fileUri) => {
     const fileName = fileUri.split('/').pop();
@@ -202,35 +158,7 @@ const AdminProfile = () => {
     }
   };
 
-  const handleAddArticle = async () => {
-    if (!newArticleTitle.trim() || !newArticleUrl.trim()) {
-      Alert.alert('Error', 'Please fill in the article title and URL');
-      return;
-    }
-
-    try {
-      const articleData = {
-        article_title: newArticleTitle,
-        article_preview_image: null,
-        article_link: newArticleUrl,
-        author_id: user_id,
-        author_name: `${userInfo.first_name} ${userInfo.last_name}`,
-        author_pfp_link: 'default_newsapi_avatar.jpg',
-        tags: ['sustainability'],
-        source: 'Manual'
-      };
-      console.log('Sending article data:', articleData);
-      const response = await makeRequest('post', '/posts/create', articleData, true, token);
-
-      if (response.data.success) {
-        setNewArticleTitle('');
-        setNewArticleUrl('');
-        Alert.alert('Success', 'Article added successfully');
-      }
-    } catch (error) {
-      Alert.alert('Error', error.response?.data?.message || 'Failed to add article');
-    }
-  };
+  // handleAddArticle function removed as it's now in NewsApiDetailsScreen
 
   const handleVendorAuth = async () => {
     try {
