@@ -32,33 +32,11 @@ export const fetchHomeData = (token, navigation) => async (dispatch) => {
     });
     
     if (response.status === 200) {
-      // Mock data for featured brands (as in the original HomeScreen)
-      const mockBrands = [
-        {
-          _id: "1",
-          name: "EcoThreads",
-          description: "Sustainable clothing made from recycled materials",
-          image: "https://example.com/brand1.jpg",
-        },
-        {
-          _id: "2",
-          name: "Green Stitch",
-          description: "Handcrafted accessories using eco-friendly materials",
-          image: "https://example.com/brand2.jpg",
-        },
-        {
-          _id: "3",
-          name: "Terra Wear",
-          description: "Biodegradable fashion for conscious consumers",
-          image: "https://example.com/brand3.jpg",
-        },
-      ];
-      
       dispatch({
         type: HOME_DATA_SUCCESS,
         payload: {
           upcomingEvents: response.data.upcomingEvents || [],
-          featuredBrands: mockBrands,
+          featuredBrands: response.data.featuredBrands || [],
           workshops: response.data.workshops || [],
           featuredTicketEvent: response.data.featuredTicketEvent || null
         }
@@ -73,37 +51,8 @@ export const fetchHomeData = (token, navigation) => async (dispatch) => {
         payload: error.message
       });
       
-      // Set mock data for brands as fallback (as in the original HomeScreen)
-      const mockBrands = [
-        {
-          _id: "1",
-          name: "EcoThreads",
-          description: "Sustainable clothing made from recycled materials",
-          image: "https://example.com/brand1.jpg",
-        },
-        {
-          _id: "2",
-          name: "Green Stitch",
-          description: "Handcrafted accessories using eco-friendly materials",
-          image: "https://example.com/brand2.jpg",
-        },
-        {
-          _id: "3",
-          name: "Terra Wear",
-          description: "Biodegradable fashion for conscious consumers",
-          image: "https://example.com/brand3.jpg",
-        },
-      ];
-      
-      dispatch({
-        type: HOME_DATA_SUCCESS,
-        payload: {
-          upcomingEvents: [],
-          featuredBrands: mockBrands,
-          workshops: [],
-          featuredTicketEvent: null
-        }
-      });
+      // Just dispatch the failure, don't use mock data
+      // This will show "Brands coming soon" message in the UI
     }
   }
 };
