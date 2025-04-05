@@ -23,7 +23,6 @@ import ShopScreen from "./Screens/ShopScreen";
 import MY_IP_ADDRESS from "./environment_variables.mjs";
 import { Provider, useSelector, useDispatch } from "react-redux";
 import { store } from "./redux/store";
-import Article from "./components/Article";
 import ArticleContent from "./Screens/ArticleContent";
 import SavedArticles from "./Screens/SavedArticles";
 import AuthorNameScreen from "./Screens/AuthorNameScreen";

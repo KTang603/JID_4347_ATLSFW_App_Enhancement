@@ -13,8 +13,9 @@ const ShopScreen = () => {
   const [shops, setShops] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const token = useSelector((state) => state.token?.token);
   const userInfo = useSelector((state) => state.userInfo?.userInfo);
+  const token = useSelector((state) => state.userInfo?.token);
+
   const isAdmin = userInfo?.user_roles === 3; // Check if user is admin (role 3)
   const navigation = useNavigation();
 
@@ -25,6 +26,9 @@ const ShopScreen = () => {
   const fetchShops = async () => {
     try {
       setLoading(true);
+      // console.log('====================================');
+      // console.log('token-----'+token);
+      // console.log('====================================');
       const response = await fetch(SHOP_ALL_API, {
         method: 'GET',
         headers: {

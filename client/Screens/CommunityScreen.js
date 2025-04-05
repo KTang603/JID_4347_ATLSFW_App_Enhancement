@@ -14,7 +14,7 @@ import MasonryList from "@react-native-seoul/masonry-list";
 import Icon from "react-native-vector-icons/FontAwesome";
 import SignupScreen from "./SignUpScreen";
 import AuthorNameScreen from "./AuthorNameScreen"; // Import the AuthorNameScreen component
-import Article from "../components/Article";
+// import Article from "../components/Article";
 import axios from "axios";
 import MY_IP_ADDRESS from "../environment_variables.mjs";
 import ProfilePage from "./ProfilePage";
@@ -36,7 +36,6 @@ const CommunityScreen = ({ navigation }) => {
   const saved_articles_state = useSelector(
     (store) => store.saved_articles.saved_articles
   );
-  const isLogged = useSelector((store) => store.isLogged.isLogged);
   const token = useSelector((store) => store.token?.token);
   const dispatch = useDispatch();
 

@@ -1,6 +1,5 @@
 import React, { useRef, useState } from 'react';
 import { WebView } from 'react-native-webview';
-import Article from '../components/Article';
 
 const ArticleContent = ({route}) => {
 

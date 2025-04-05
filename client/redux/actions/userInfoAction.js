@@ -1,6 +1,7 @@
 import axios from "axios";
 import { CREATE_DISCOVERY_API, GET_PROFILE_API } from "../../utils/ApiUtils";
 import { getUserId, getUserToken } from "../../utils/StorageUtils";
+import { handleApiError } from "../../utils/ApiErrorHandler";
 
 export const setUserInfo = (userData) => {
   return {
@@ -38,6 +39,7 @@ export const getProfileData =  () => async (dispatch,getState) => {
       dispatch(setUserInfo(response.data))
     }
   } catch (error) {
+    handleApiError(error)
     console.error("Error fetching profile:", error.message);
   }
 };
