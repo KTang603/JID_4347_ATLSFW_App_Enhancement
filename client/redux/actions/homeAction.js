@@ -8,19 +8,8 @@ export const HOME_DATA_SUCCESS = 'HOME_DATA_SUCCESS';
 export const HOME_DATA_FAILURE = 'HOME_DATA_FAILURE';
 
 // Action Creators
-export const fetchHomeData = (token, navigation) => async (dispatch) => {
-  // Check if token exists
-  if (!token) {
-    dispatch({ 
-      type: HOME_DATA_FAILURE, 
-      payload: 'Authentication token not found' 
-    });
-    
-    // Redirect to login
-    navigation.replace("Log In");
-    return;
-  }
-
+export const fetchHomeData = (token) => async (dispatch) => {
+  
   try {
     dispatch({ type: HOME_DATA_REQUEST });
     
@@ -43,7 +32,7 @@ export const fetchHomeData = (token, navigation) => async (dispatch) => {
       });
     }
   } catch (error) {
-    const errorHandled = await handleApiError(error, navigation);
+    const errorHandled = await handleApiError(error);
     
     if (!errorHandled) {
       dispatch({

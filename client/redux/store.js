@@ -33,7 +33,6 @@ import homeReducer from './reducers/homeReducer';
 // 3) in store.js, add reducer to rootReducer
 // 4) in your component, create dispatch and selector hooks to change and get state, respectively
 
-
 const rootReducer = combineReducers({
     isLogged: loginReducer,
     // liked_articles: likeReducer,

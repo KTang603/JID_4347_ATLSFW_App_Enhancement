@@ -1,31 +1,21 @@
 import React, { useState } from 'react';
-import { Text, TextInput, View, StyleSheet, Alert, TouchableOpacity, Platform, Image, ScrollView, ActivityIndicator } from 'react-native';
+import { Text, TextInput, View, StyleSheet, Alert, TouchableOpacity, Image, ScrollView, ActivityIndicator } from 'react-native';
 import axios from 'axios';
 import hashString from '../utils/hashingUtils.mjs';
 import { normalizeEmail } from '../utils/format.mjs';
-import { useSelector, useDispatch } from 'react-redux';
-import { login } from '../redux/actions/loginAction';
-import { setID } from '../redux/actions/idAction';
-import { get_like_list } from '../redux/actions/likeAction';
-import { get_save_list } from '../redux/actions/saveAction';
-import { set_acct_type } from '../redux/actions/accountAction';
+import { useDispatch } from 'react-redux';
 import { setUserInfo, updateUserToken } from '../redux/actions/userInfoAction';
-import { getVend } from '../redux/actions/vendAction';
-import { setToken } from '../redux/actions/tokenAction';
 import {LOGIN_API} from '../utils/ApiUtils.js'
 import {fetchData, fetchTags} from '../redux/actions/NewsAction'
 import tokenService from '../utils/TokenService';
-import { HEADER_LOGO, LOGIN_LOGO } from '../assets';
+import { LOGIN_LOGO } from '../assets';
+import { fetchHomeData } from '../redux/actions/homeAction';
 
 const LoginScreen = ({navigation}) => {
   const [email, setEmail] = useState(__DEV__?'user1@gmail.com':'');
   const [password, setPassword] = useState(__DEV__?'Password123@':'');
   const [isLoading, setIsLoading] = useState(false);
-
   const dispatch = useDispatch();
-  const isLogged = useSelector((store) => store.isLogged.isLogged);
-  const user_id = useSelector((store) => store.user_id.user_id);
-  const account_type = useSelector((store) => store.acct_type.acct_type);
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -58,8 +48,8 @@ const LoginScreen = ({navigation}) => {
       const data = response.data;
       // console.log('data----'+JSON.stringify(data));
       if (data.success) {
-          dispatch(login());
-          dispatch(setID(data.user._id));
+          // dispatch(login());
+          // dispatch(setID(data.user._id));
           dispatch(setUserInfo(data.user));
           // dispatch(getVend(data.user.vendor_account_initialized));
           // Set token in Redux and store auth data
@@ -73,10 +63,10 @@ const LoginScreen = ({navigation}) => {
             userId: ""+data.user._id,
             accountType: ""+data.user.user_roles
           });
-          
+          dispatch(fetchHomeData(token));
           await dispatch(fetchData(1, [],token));
-          dispatch(setToken(token));
-          dispatch(set_acct_type(data.user.user_roles));
+          // dispatch(setToken(token));
+          // dispatch(set_acct_type(data.user.user_roles)); //Need to test once..
           
           console.log('Token set after login:', token);
 

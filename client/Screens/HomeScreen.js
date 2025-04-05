@@ -22,53 +22,47 @@ const HomeScreen = () => {
   const [selectedEvent, setSelectedEvent] = useState(null);
   const navigation = useNavigation();
   const dispatch = useDispatch();
-  const token = useSelector((store) => store.token.token);
-  const { upcomingEvents, featuredBrands, workshops, featuredTicketEvent, loading, authError } = useSelector((store) => store.home);
+  const token = useSelector((store) => store.userInfo.token);
+  const {
+    upcomingEvents,
+    featuredBrands,
+    workshops,
+    featuredTicketEvent,
+    loading,
+    authError,
+  } = useSelector((store) => store.home);
 
-  useEffect(() => {
-    if (token) {
-      dispatch(fetchHomeData(token, navigation));
-    } else {
-      // Redirect to login screen if token is not found
-      navigation.replace("Log In");
-    }
-  }, [token, dispatch, navigation]);
-
-  // Check for authentication errors and redirect to login if needed
-  useEffect(() => {
-    if (authError) {
-      navigation.replace("Log In");
-    }
-  }, [authError, navigation]);
-
+  
   const onRefresh = async () => {
     setRefreshing(true);
-    await dispatch(fetchHomeData(token, navigation));
+    await dispatch(fetchHomeData(token));
     setRefreshing(false);
   };
 
   // Helper function to format time from 24-hour to 12-hour format
   const formatTime = (time) => {
     if (!time) return "";
-    
+
     const [hours, minutes] = time.split(":");
     const hour = parseInt(hours, 10);
     const ampm = hour >= 12 ? "PM" : "AM";
     const hour12 = hour % 12 || 12; // Convert 0 to 12 for 12 AM
-    
+
     return `${hour12}:${minutes} ${ampm}`;
   };
 
   const renderEventItem = (event) => (
-    <TouchableOpacity 
+    <TouchableOpacity
       key={event._id}
       style={styles.eventCard}
       onPress={() => showEventDetails(event)}
     >
       <View style={styles.eventInfo}>
         <View style={styles.titleRow}>
-          <Text style={styles.eventTitle}>{event.event_title || event.title || "Untitled Event"}</Text>
-          <TouchableOpacity 
+          <Text style={styles.eventTitle}>
+            {event.event_title || event.title || "Untitled Event"}
+          </Text>
+          <TouchableOpacity
             onPress={(e) => {
               e.stopPropagation(); // Prevent card click
               showEventDetails(event);
@@ -78,7 +72,7 @@ const HomeScreen = () => {
             <Ionicons name="ellipsis-vertical" size={20} color="#aaa" />
           </TouchableOpacity>
         </View>
-        
+
         {/* Description - make sure we're not displaying URLs */}
         {(event.event_desc || event.description) && (
           <Text style={styles.eventDescription} numberOfLines={2}>
@@ -86,14 +80,17 @@ const HomeScreen = () => {
             {(() => {
               const desc = event.event_desc || event.description;
               // Check if the description is a URL
-              if (desc && (desc.startsWith('http://') || desc.startsWith('https://'))) {
+              if (
+                desc &&
+                (desc.startsWith("http://") || desc.startsWith("https://"))
+              ) {
                 return "Click for event details";
               }
               return desc;
             })()}
           </Text>
         )}
-        
+
         {/* Date and Time - moved to bottom */}
         <Text style={[styles.eventDate, { marginTop: 5 }]}>
           {event.event_date || event.date || "No date"}
@@ -104,10 +101,12 @@ const HomeScreen = () => {
   );
 
   const renderBrandItem = (brand) => (
-    <TouchableOpacity 
+    <TouchableOpacity
       key={brand._id}
       style={styles.brandCard}
-      onPress={() => navigation.navigate("Shop Now Webview", { vendorId: brand._id })}
+      onPress={() =>
+        navigation.navigate("Shop Now Webview", { vendorId: brand._id })
+      }
     >
       <View style={styles.brandImageContainer}>
         {brand.image ? (
@@ -119,20 +118,24 @@ const HomeScreen = () => {
         )}
       </View>
       <Text style={styles.brandName}>{brand.name}</Text>
-      <Text style={styles.brandDescription} numberOfLines={2}>{brand.description}</Text>
+      <Text style={styles.brandDescription} numberOfLines={2}>
+        {brand.description}
+      </Text>
     </TouchableOpacity>
   );
 
   const renderWorkshopItem = (workshop) => (
-    <TouchableOpacity 
+    <TouchableOpacity
       key={workshop._id}
       style={styles.workshopCard}
       onPress={() => showEventDetails(workshop)}
     >
       <View style={styles.workshopHeader}>
         <Ionicons name="construct" size={24} color="#02833D" />
-        <Text style={styles.workshopTitle}>{workshop.event_title || workshop.title || "Untitled Workshop"}</Text>
-        <TouchableOpacity 
+        <Text style={styles.workshopTitle}>
+          {workshop.event_title || workshop.title || "Untitled Workshop"}
+        </Text>
+        <TouchableOpacity
           onPress={(e) => {
             e.stopPropagation(); // Prevent card click
             showEventDetails(workshop);
@@ -142,7 +145,7 @@ const HomeScreen = () => {
           <Ionicons name="ellipsis-vertical" size={20} color="#aaa" />
         </TouchableOpacity>
       </View>
-      
+
       {/* Description */}
       {(workshop.event_desc || workshop.description) && (
         <Text style={styles.eventDescription} numberOfLines={2}>
@@ -150,18 +153,25 @@ const HomeScreen = () => {
           {(() => {
             const desc = workshop.event_desc || workshop.description;
             // Check if the description is a URL
-            if (desc && (desc.startsWith('http://') || desc.startsWith('https://'))) {
+            if (
+              desc &&
+              (desc.startsWith("http://") || desc.startsWith("https://"))
+            ) {
               return "Click for workshop details";
             }
             return desc;
           })()}
         </Text>
       )}
-      
+
       {/* Date and Time - moved to bottom */}
       <Text style={[styles.workshopDate, { marginTop: 5 }]}>
-        {workshop.event_date || workshop.date || "No date"} 
-        {workshop.event_time ? ` • ${formatTime(workshop.event_time)}` : workshop.time ? ` • ${workshop.time}` : ""}
+        {workshop.event_date || workshop.date || "No date"}
+        {workshop.event_time
+          ? ` • ${formatTime(workshop.event_time)}`
+          : workshop.time
+          ? ` • ${workshop.time}`
+          : ""}
       </Text>
     </TouchableOpacity>
   );
@@ -178,36 +188,59 @@ const HomeScreen = () => {
   // Helper function to format event date and time
   const formatEventDateTime = (dateStr, startTime, endTime) => {
     if (!dateStr) return "";
-    
+
     // Parse the date - ensure we're using the correct date by handling timezone issues
     // Format: YYYY-MM-DD (e.g., 2025-03-29)
-    const [year, month, day] = dateStr.split('-').map(num => parseInt(num, 10));
-    
+    const [year, month, day] = dateStr
+      .split("-")
+      .map((num) => parseInt(num, 10));
+
     // Create date using UTC to avoid timezone issues (months are 0-indexed in JS)
     const date = new Date(Date.UTC(year, month - 1, day));
-    
+
     // Get day of week
-    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const days = [
+      "Sunday",
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+    ];
     const dayOfWeek = days[date.getUTCDay()];
-    
+
     // Get month
-    const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    const months = [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
+    ];
     const monthName = months[date.getUTCMonth()];
-    
+
     // Format date - use UTC methods to avoid timezone issues
     const dayOfMonth = date.getUTCDate();
-    
+
     // Format the full date and time string
     let formattedDateTime = `${dayOfWeek}, ${monthName} ${dayOfMonth}`;
-    
+
     if (startTime) {
       formattedDateTime += ` · ${formatTime(startTime)}`;
-      
+
       if (endTime) {
         formattedDateTime += ` - ${formatTime(endTime)}`;
       }
     }
-    
+
     return formattedDateTime;
   };
 
@@ -217,11 +250,44 @@ const HomeScreen = () => {
     setEventDetailsVisible(true);
   };
 
+  
+    /* Upcoming Events Section */
+  const UpComingEvents = () => {
+    return (
+      <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Upcoming Events</Text>
+          <TouchableOpacity
+            onPress={() =>
+              navigation.navigate("Events", {
+                filterType: "regular",
+                showAll: true,
+              })
+            }
+          >
+            <Text style={styles.seeAllText}>See All</Text>
+          </TouchableOpacity>
+        </View>
+        <View style={styles.eventsContainer}>
+          {upcomingEvents.length > 0 ? (
+            upcomingEvents.map(renderEventItem)
+          ) : (
+            <Text style={styles.noDataText}>Events Coming Soon!</Text>
+          )}
+        </View>
+      </View>
+    );
+  };
+
   return (
-    <ScrollView 
+    <ScrollView
       style={styles.container}
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={["#02833D"]} />
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          colors={["#02833D"]}
+        />
       }
     >
       {/* Event Details Modal */}
@@ -236,32 +302,42 @@ const HomeScreen = () => {
             {selectedEvent && (
               <>
                 <View style={styles.eventDetailsHeader}>
-                  <Text style={styles.eventDetailsTitle}>{selectedEvent.event_title || selectedEvent.title || "Untitled Event"}</Text>
-                  <TouchableOpacity 
+                  <Text style={styles.eventDetailsTitle}>
+                    {selectedEvent.event_title ||
+                      selectedEvent.title ||
+                      "Untitled Event"}
+                  </Text>
+                  <TouchableOpacity
                     onPress={() => setEventDetailsVisible(false)}
                     style={styles.closeButton}
                   >
                     <Ionicons name="close" size={24} color="#666" />
                   </TouchableOpacity>
                 </View>
-                
+
                 <ScrollView style={styles.eventDetailsScrollView}>
                   {/* Date and Time */}
                   <View style={styles.eventDetailSection}>
                     <Text style={styles.eventDetailLabel}>Date & Time</Text>
-                      <Text style={styles.eventDetailText}>
-                        {formatEventDateTime(selectedEvent.event_date, selectedEvent.event_time, selectedEvent.event_end_time)}
-                      </Text>
+                    <Text style={styles.eventDetailText}>
+                      {formatEventDateTime(
+                        selectedEvent.event_date,
+                        selectedEvent.event_time,
+                        selectedEvent.event_end_time
+                      )}
+                    </Text>
                   </View>
-                  
+
                   {/* Location */}
                   <View style={styles.eventDetailSection}>
                     <Text style={styles.eventDetailLabel}>Location</Text>
                     <Text style={styles.eventDetailText}>
-                      {selectedEvent.event_location || selectedEvent.location || "No location provided"}
+                      {selectedEvent.event_location ||
+                        selectedEvent.location ||
+                        "No location provided"}
                     </Text>
                   </View>
-                  
+
                   {/* Description */}
                   {(selectedEvent.event_desc || selectedEvent.description) && (
                     <View style={styles.eventDetailSection}>
@@ -271,13 +347,15 @@ const HomeScreen = () => {
                       </Text>
                     </View>
                   )}
-                  
+
                   {/* Links */}
                   {selectedEvent.event_link && (
                     <View style={styles.eventDetailSection}>
                       <Text style={styles.eventDetailLabel}>Event Link</Text>
                       <TouchableOpacity
-                        onPress={() => Linking.openURL(selectedEvent.event_link)}
+                        onPress={() =>
+                          Linking.openURL(selectedEvent.event_link)
+                        }
                       >
                         <Text style={styles.eventDetailLink}>
                           Open Event Link
@@ -285,17 +363,17 @@ const HomeScreen = () => {
                       </TouchableOpacity>
                     </View>
                   )}
-                  
+
                   {/* Ticket URL if available */}
                   {selectedEvent.ticket_url && (
                     <View style={styles.eventDetailSection}>
                       <Text style={styles.eventDetailLabel}>Tickets</Text>
                       <TouchableOpacity
-                        onPress={() => Linking.openURL(selectedEvent.ticket_url)}
+                        onPress={() =>
+                          Linking.openURL(selectedEvent.ticket_url)
+                        }
                       >
-                        <Text style={styles.eventDetailLink}>
-                          Get Tickets
-                        </Text>
+                        <Text style={styles.eventDetailLink}>Get Tickets</Text>
                       </TouchableOpacity>
                     </View>
                   )}
@@ -305,23 +383,7 @@ const HomeScreen = () => {
           </View>
         </View>
       </Modal>
-
-      {/* Upcoming Events Section */}
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Upcoming Events</Text>
-          <TouchableOpacity onPress={() => navigation.navigate("Events", { filterType: "regular", showAll: true })}>
-            <Text style={styles.seeAllText}>See All</Text>
-          </TouchableOpacity>
-        </View>
-        <View style={styles.eventsContainer}>
-          {upcomingEvents.length > 0 ? (
-            upcomingEvents.map(renderEventItem)
-          ) : (
-            <Text style={styles.noDataText}>Events Coming Soon!</Text>
-          )}
-        </View>
-      </View>
+      <UpComingEvents />
 
       {/* Ticket Information */}
       <View style={styles.section}>
@@ -329,16 +391,24 @@ const HomeScreen = () => {
           <Text style={styles.sectionTitle}>Get Your Tickets</Text>
         </View>
         {featuredTicketEvent ? (
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.ticketCard}
-            onPress={() => navigation.navigate("Shop Now Webview", { link: featuredTicketEvent.ticket_url })}
+            onPress={() =>
+              navigation.navigate("Shop Now Webview", {
+                link: featuredTicketEvent.ticket_url,
+              })
+            }
           >
             <View style={styles.ticketContent}>
-              <Text style={styles.ticketTitle}>{featuredTicketEvent.event_title}</Text>
+              <Text style={styles.ticketTitle}>
+                {featuredTicketEvent.event_title}
+              </Text>
               <Text style={styles.ticketDescription}>
-                {featuredTicketEvent.event_desc && featuredTicketEvent.event_desc.length > 100 
-                  ? `${featuredTicketEvent.event_desc.substring(0, 100)}...` 
-                  : featuredTicketEvent.event_desc || "Secure your spot at this event. Tickets available now!"}
+                {featuredTicketEvent.event_desc &&
+                featuredTicketEvent.event_desc.length > 100
+                  ? `${featuredTicketEvent.event_desc.substring(0, 100)}...`
+                  : featuredTicketEvent.event_desc ||
+                    "Secure your spot at this event. Tickets available now!"}
               </Text>
               <View style={styles.ticketButton}>
                 <Text style={styles.ticketButtonText}>Purchase Tickets</Text>
@@ -378,7 +448,14 @@ const HomeScreen = () => {
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Workshops & Repair Cafe</Text>
-          <TouchableOpacity onPress={() => navigation.navigate("Events", { filterType: "workshop", showAll: true })}>
+          <TouchableOpacity
+            onPress={() =>
+              navigation.navigate("Events", {
+                filterType: "workshop",
+                showAll: true,
+              })
+            }
+          >
             <Text style={styles.seeAllText}>See All</Text>
           </TouchableOpacity>
         </View>
@@ -386,7 +463,9 @@ const HomeScreen = () => {
           {workshops.length > 0 ? (
             workshops.map(renderWorkshopItem)
           ) : (
-            <Text style={styles.noDataText}>No workshops scheduled at this time</Text>
+            <Text style={styles.noDataText}>
+              No workshops scheduled at this time
+            </Text>
           )}
         </View>
       </View>
@@ -505,9 +584,9 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
   titleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 5,
   },
   optionsButton: {
@@ -627,15 +706,15 @@ const styles = StyleSheet.create({
   // Modal styles
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   eventDetailsModalContent: {
-    backgroundColor: 'white',
+    backgroundColor: "white",
     borderRadius: 10,
-    width: '90%',
-    maxHeight: '80%',
+    width: "90%",
+    maxHeight: "80%",
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
@@ -646,17 +725,17 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   eventDetailsHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: "#f0f0f0",
     padding: 15,
   },
   eventDetailsTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
+    fontWeight: "bold",
+    color: "#333",
     flex: 1,
     paddingRight: 10,
   },
@@ -671,18 +750,18 @@ const styles = StyleSheet.create({
   },
   eventDetailLabel: {
     fontSize: 14,
-    fontWeight: 'bold',
-    color: '#666',
+    fontWeight: "bold",
+    color: "#666",
     marginBottom: 5,
   },
   eventDetailText: {
     fontSize: 14,
-    color: '#333',
+    color: "#333",
     lineHeight: 20,
   },
   eventDetailLink: {
     fontSize: 14,
-    color: '#0066cc',
+    color: "#0066cc",
     marginTop: 5,
   },
 });
