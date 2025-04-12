@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndicator, Alert } from 'react-native';
 import { useSelector } from 'react-redux';
 import { useNavigation } from '@react-navigation/native';
@@ -9,34 +9,124 @@ import axios from 'axios';
 import MY_IP_ADDRESS from '../environment_variables.mjs';
 import { handleApiError } from '../utils/ApiErrorHandler';
 
+// Extracted component for Shop Item
+const ShopItem = ({ shop, isAdmin, onShopPress, onInstagramPress, onDeleteShop }) => (
+  <View style={styles.shopCard}>
+    <View style={styles.shopContent}>
+      {/* Shop Image Banner */}
+      {shop.shop_info?.url ? (
+        <Image 
+          source={{ uri: shop.shop_info.url }} 
+          style={styles.shopImage}
+        />
+      ) : shop.shop_info?.title ? (
+        <Image 
+          source={{ uri: shop.shop_info.title }} 
+          style={styles.shopImage}
+        />
+      ) : (
+        <View style={styles.placeholderImage}>
+          <Text style={styles.placeholderText}>{shop.shop_info?.brand_name?.charAt(0) || '?'}</Text>
+        </View>
+      )}
+      
+      {/* Shop Info Section */}
+      <View style={styles.shopInfo}>
+        {/* Header Row with Shop Name and Instagram Link */}
+        <View style={styles.headerRow}>
+          {/* Shop Name - Clickable if shop_now_link exists */}
+          <TouchableOpacity 
+            onPress={() => onShopPress(shop)}
+            disabled={!shop.shop_info?.shop_now_link}
+            style={styles.shopNameContainer}
+          >
+            <Text style={[
+              styles.shopName, 
+              shop.shop_info?.shop_now_link ? styles.clickableText : null
+            ]}>
+              {shop.shop_info?.brand_name || 'Unknown Shop'}
+            </Text>
+          </TouchableOpacity>
+          
+          <View style={styles.actionButtons}>
+            {/* Social Media Link */}
+            {(shop.shop_info?.social_link || shop.shop_info?.intro) && (
+              <TouchableOpacity 
+                onPress={() => onInstagramPress(shop)}
+                style={styles.instagramButton}
+              >
+                <FontAwesome name="instagram" size={22} color="#C13584" />
+              </TouchableOpacity>
+            )}
+            
+            {/* Delete Button - Only visible to admins */}
+            {isAdmin && (
+              <TouchableOpacity 
+                onPress={() => onDeleteShop(shop._id)}
+                style={styles.deleteButton}
+              >
+                <Ionicons name="trash-outline" size={20} color="#d32f2f" />
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+      </View>
+    </View>
+  </View>
+);
+
+// API service to centralize API calls
+const shopService = {
+  getAll: async (token) => {
+    const response = await fetch(SHOP_ALL_API, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    return response;
+  },
+  
+  deleteShop: async (shopId, token) => {
+    return axios({
+      method: 'DELETE',
+      url: `http://${MY_IP_ADDRESS}:5050/admin/shops/${shopId}`,
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+  }
+};
+
+// Utility function for handling shop links
+const getShopLinks = (shop) => {
+  return {
+    hasShopLink: !!shop.shop_info?.shop_now_link,
+    shopLink: shop.shop_info?.shop_now_link,
+    hasSocialLink: !!(shop.shop_info?.social_link || shop.shop_info?.intro),
+    socialLink: shop.shop_info?.social_link || shop.shop_info?.intro
+  };
+};
+
 const ShopScreen = () => {
   const [shops, setShops] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  
   const userInfo = useSelector((state) => state.userInfo?.userInfo);
   const token = useSelector((state) => state.userInfo?.token);
-
   const isAdmin = userInfo?.user_roles === 3; // Check if user is admin (role 3)
+  
   const navigation = useNavigation();
 
-  useEffect(() => {
-    fetchShops();
-  }, []);
-
-  const fetchShops = async () => {
+  // Fetch shops with error handling
+  const fetchShops = useCallback(async () => {
     try {
       setLoading(true);
-      // console.log('====================================');
-      // console.log('token-----'+token);
-      // console.log('====================================');
-      const response = await fetch(SHOP_ALL_API, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      setError(null);
       
+      const response = await shopService.getAll(token);
       const data = await response.json();
       
       if (response.ok) {
@@ -59,28 +149,34 @@ const ShopScreen = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [token, navigation]);
 
-  const handleShopPress = (shop) => {
-    if (shop.shop_info?.shop_now_link) {
-      navigation.navigate('Shop Now Webview', { link: shop.shop_info.shop_now_link });
+  useEffect(() => {
+    fetchShops();
+  }, [fetchShops]);
+
+  // Handlers for user actions
+  const handleShopPress = useCallback((shop) => {
+    const { hasShopLink, shopLink } = getShopLinks(shop);
+    
+    if (hasShopLink) {
+      navigation.navigate('Shop Now Webview', { link: shopLink });
     } else {
       Alert.alert('No Website', 'This shop does not have a website link.');
     }
-  };
+  }, [navigation]);
 
-  const handleInstagramPress = (shop) => {
-    if (shop.shop_info?.social_link) {
-      navigation.navigate('Shop Now Webview', { link: shop.shop_info.social_link });
-    } else if (shop.shop_info?.intro) {
-      // Fallback for older data format
-      navigation.navigate('Shop Now Webview', { link: shop.shop_info.intro });
+  const handleInstagramPress = useCallback((shop) => {
+    const { hasSocialLink, socialLink } = getShopLinks(shop);
+    
+    if (hasSocialLink) {
+      navigation.navigate('Shop Now Webview', { link: socialLink });
     } else {
       Alert.alert('No Social Media', 'This shop does not have a social media link.');
     }
-  };
+  }, [navigation]);
 
-  const handleDeleteShop = (shopId) => {
+  const handleDeleteShop = useCallback((shopId) => {
     Alert.alert(
       "Delete Shop",
       "Are you sure you want to delete this shop? This action cannot be undone.",
@@ -95,17 +191,11 @@ const ShopScreen = () => {
           onPress: async () => {
             try {
               setLoading(true);
-              const response = await axios({
-                method: 'DELETE',
-                url: `http://${MY_IP_ADDRESS}:5050/admin/shops/${shopId}`,
-                headers: {
-                  'Authorization': `Bearer ${token}`
-                }
-              });
+              const response = await shopService.deleteShop(shopId, token);
               
               if (response.status === 200) {
                 // Remove the deleted shop from the shops array
-                setShops(shops.filter(shop => shop._id !== shopId));
+                setShops(prevShops => prevShops.filter(shop => shop._id !== shopId));
                 Alert.alert('Success', 'Shop deleted successfully');
               }
             } catch (error) {
@@ -121,73 +211,9 @@ const ShopScreen = () => {
         }
       ]
     );
-  };
+  }, [token, navigation]);
 
-  const renderShopItem = ({ item }) => (
-    <View style={styles.shopCard}>
-      <View style={styles.shopContent}>
-        {/* Shop Image Banner */}
-        {item.shop_info?.url ? (
-          <Image 
-            source={{ uri: item.shop_info.url }} 
-            style={styles.shopImage}
-          />
-        ) : item.shop_info?.title ? (
-          <Image 
-            source={{ uri: item.shop_info.title }} 
-            style={styles.shopImage}
-          />
-        ) : (
-          <View style={styles.placeholderImage}>
-            <Text style={styles.placeholderText}>{item.shop_info?.brand_name?.charAt(0) || '?'}</Text>
-          </View>
-        )}
-        
-        {/* Shop Info Section */}
-        <View style={styles.shopInfo}>
-          {/* Header Row with Shop Name and Instagram Link */}
-          <View style={styles.headerRow}>
-            {/* Shop Name - Clickable if shop_now_link exists */}
-            <TouchableOpacity 
-              onPress={() => handleShopPress(item)}
-              disabled={!item.shop_info?.shop_now_link}
-              style={styles.shopNameContainer}
-            >
-              <Text style={[
-                styles.shopName, 
-                item.shop_info?.shop_now_link ? styles.clickableText : null
-              ]}>
-                {item.shop_info?.brand_name || 'Unknown Shop'}
-              </Text>
-            </TouchableOpacity>
-            
-            <View style={styles.actionButtons}>
-              {/* Social Media Link */}
-              {(item.shop_info?.social_link || item.shop_info?.intro) && (
-                <TouchableOpacity 
-                  onPress={() => handleInstagramPress(item)}
-                  style={styles.instagramButton}
-                >
-                  <FontAwesome name="instagram" size={22} color="#C13584" />
-                </TouchableOpacity>
-              )}
-              
-              {/* Delete Button - Only visible to admins */}
-              {isAdmin && (
-                <TouchableOpacity 
-                  onPress={() => handleDeleteShop(item._id)}
-                  style={styles.deleteButton}
-                >
-                  <Ionicons name="trash-outline" size={20} color="#d32f2f" />
-                </TouchableOpacity>
-              )}
-            </View>
-          </View>
-        </View>
-      </View>
-    </View>
-  );
-
+  // Render functions conditionally
   if (loading) {
     return (
       <View style={styles.centerContainer}>
@@ -220,7 +246,15 @@ const ShopScreen = () => {
     <View style={styles.container}>
       <FlatList
         data={shops}
-        renderItem={renderShopItem}
+        renderItem={({ item }) => (
+          <ShopItem 
+            shop={item}
+            isAdmin={isAdmin}
+            onShopPress={handleShopPress}
+            onInstagramPress={handleInstagramPress}
+            onDeleteShop={handleDeleteShop}
+          />
+        )}
         keyExtractor={(item) => item._id}
         contentContainerStyle={styles.listContainer}
       />
