@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Calendar } from "react-native-calendars";
+import { useNavigation, useRoute, useFocusEffect } from "@react-navigation/native";
 import {
   View,
   Text,
@@ -11,356 +12,298 @@ import {
   Dimensions,
   RefreshControl,
   Modal,
-  FlatList,
+  ActivityIndicator,
+  Platform,
 } from "react-native";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import AppPrimaryButton from "../components/AppPrimaryButton";
 import { ACCOUNT_TYPE_ADMIN } from "../Screens/ProfilePage";
-import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
-import axios from "axios";
 import {
   addParticipantRequest,
   getAllEvent,
 } from "../redux/actions/eventAction";
 import MY_IP_ADDRESS from "../environment_variables.mjs";
 
-const EventsScreen = () => {
-  // Helper function to format date and time
-  const formatEventDateTime = (dateStr, startTime, endTime) => {
-    if (!dateStr) return "";
-    
-    // Parse the date - ensure we're using the correct date by handling timezone issues
-    // Format: YYYY-MM-DD (e.g., 2025-03-29)
-    const [year, month, day] = dateStr.split('-').map(num => parseInt(num, 10));
-    
-    // Create date using UTC to avoid timezone issues (months are 0-indexed in JS)
-    const date = new Date(Date.UTC(year, month - 1, day));
-    
-    // Get day of week
-    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    const dayOfWeek = days[date.getUTCDay()];
-    
-    // Get month
-    const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-    const monthName = months[date.getUTCMonth()];
-    
-    // Format date - use UTC methods to avoid timezone issues
-    const dayOfMonth = date.getUTCDate();
-    
-    // Format time (convert 24h to 12h with am/pm)
-    const formatTime = (timeStr) => {
-      if (!timeStr) return "";
-      
-      const [hours, minutes] = timeStr.split(':');
-      const hour = parseInt(hours, 10);
-      const minute = parseInt(minutes, 10);
-      
-      const period = hour >= 12 ? 'pm' : 'am';
-      const hour12 = hour % 12 || 12; // Convert 0 to 12
-      
-      // If minutes is 00, just show the hour
-      if (minute === 0) {
-        return `${hour12}${period}`;
-      }
-      
-      return `${hour12}:${minutes.padStart(2, '0')}${period}`;
-    };
-    
-    // Format the full date and time string
-    let formattedDateTime = `${dayOfWeek}, ${monthName} ${dayOfMonth}`;
-    
-    if (startTime) {
-      formattedDateTime += ` · ${formatTime(startTime)}`;
-      
-      if (endTime) {
-        formattedDateTime += ` - ${formatTime(endTime)}`;
-      }
+// Constants moved to the top for better readability
+const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const SCREEN_WIDTH = Dimensions.get("window").width;
+const SCREEN_HEIGHT = Dimensions.get("window").height;
+
+// Utility functions moved outside component for better performance
+const formatTime = (timeStr) => {
+  if (!timeStr) return "";
+  const [hours, minutes] = timeStr.split(':');
+  const hour = parseInt(hours, 10);
+  const minute = parseInt(minutes, 10);
+  const period = hour >= 12 ? 'pm' : 'am';
+  const hour12 = hour % 12 || 12;
+  return minute === 0 ? `${hour12}${period}` : `${hour12}:${minutes.padStart(2, '0')}${period}`;
+};
+
+const formatDate = (dateStr) => {
+  if (!dateStr) return "";
+  const [year, month, day] = dateStr.split('-').map(num => parseInt(num, 10));
+  const date = new Date(Date.UTC(year, month - 1, day));
+  const dayOfWeek = DAYS[date.getUTCDay()];
+  const monthName = MONTHS[date.getUTCMonth()];
+  const dayOfMonth = date.getUTCDate();
+  return `${dayOfWeek}, ${monthName} ${dayOfMonth}`;
+};
+
+// Event card component with optimized rendering
+const EventCard = React.memo(({ 
+  event, 
+  onCardPress, 
+  onOptionsPress,
+  isUserInterested,
+  isAdmin 
+}) => {
+  const eventType = event.event_type || "regular";
+
+  const handleOptionsPress = (e) => {
+    e.stopPropagation();
+    if (e && e.nativeEvent) {
+      onOptionsPress(event, e.nativeEvent);
+    } else {
+      onOptionsPress(event, null);
     }
-    
-    return formattedDateTime;
   };
 
-  // State management
-  const [selectedDate, setSelectedDate] = useState("");
-  const [events, setEvents] = useState([]);
-  const [oldEvent, setOldEvent] = useState([]);
-  const [dateEvents, setDateEvents] = useState([]); // Events for selected date before interest filtering
-  const [refreshing, setRefreshing] = useState(false);
-  const [eventDetailsVisible, setEventDetailsVisible] = useState(false);
-  const [sortOption, setSortOption] = useState("date"); // "date" or "interested"
-  const [currentMonth, setCurrentMonth] = useState(new Date().toISOString().split('T')[0].substring(0, 7)); // Format: YYYY-MM
+  // Format date and time
+  const formattedDate = formatDate(event.event_date);
+  const formattedTimeRange = event.event_time 
+    ? `${formatTime(event.event_time)}${event.event_end_time ? ` - ${formatTime(event.event_end_time)}` : ''}`
+    : '';
 
+  return (
+    <TouchableOpacity 
+      style={styles.eventCard}
+      onPress={() => onCardPress(event)}
+      activeOpacity={0.8}
+    >
+      <View style={styles.titleRow}>
+        <Text style={styles.eventTitle}>{event.event_title}</Text>
+        <TouchableOpacity 
+          onPress={handleOptionsPress}
+          style={styles.optionsButton}
+          hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
+        >
+          <Ionicons name="ellipsis-vertical" size={20} color="#aaa" />
+        </TouchableOpacity>
+      </View>
+      
+      {event.event_date && (
+        <Text style={styles.eventTime}>
+          <Ionicons name="calendar-outline" size={14} color="#666" />
+          {" "}{formattedDate}
+          {formattedTimeRange ? ` · ${formattedTimeRange}` : ''}
+        </Text>
+      )}
+      
+      <Text style={styles.eventLocation}>
+        <Ionicons name="location-outline" size={14} color="#666" />
+        {" "}{event.event_location}
+      </Text>
+
+      <View style={styles.tagsRow}>
+        <Text style={[styles.tag, { backgroundColor: eventType === "workshop" ? "#e0f2f1" : "#f0f8ff" }]}>
+          {eventType === "workshop" ? "Workshop" : "Event"}
+        </Text>
+        {isUserInterested && !isAdmin && (
+          <Text style={[styles.tag, { backgroundColor: "#ffebee", color: "#d32f2f" }]}>
+            Interested
+          </Text>
+        )}
+      </View>
+    </TouchableOpacity>
+  );
+}, (prevProps, nextProps) => {
+  // Improved memoization logic
+  return (
+    prevProps.event._id === nextProps.event._id &&
+    prevProps.event.event_title === nextProps.event.event_title &&
+    prevProps.event.event_date === nextProps.event.event_date &&
+    prevProps.event.event_time === nextProps.event.event_time &&
+    prevProps.event.event_location === nextProps.event.event_location &&
+    prevProps.event.event_type === nextProps.event.event_type &&
+    prevProps.isUserInterested === nextProps.isUserInterested
+  );
+});
+
+// EventDetails component extracted for better organization
+const EventDetails = ({ 
+  event, 
+  isAdmin, 
+  userId, 
+  onClose, 
+  onAddParticipant,
+  isUserInterested 
+}) => {
+  if (!event) return null;
+
+  const formattedDate = formatDate(event.event_date);
+  const formattedTimeRange = event.event_time 
+    ? `${formatTime(event.event_time)}${event.event_end_time ? ` - ${formatTime(event.event_end_time)}` : ''}`
+    : '';
+    
+  return (
+    <View style={styles.eventDetailsModalContent}>
+      <View style={styles.eventDetailsHeader}>
+        <Text style={styles.eventDetailsTitle}>{event.event_title}</Text>
+        <TouchableOpacity 
+          onPress={onClose}
+          style={styles.closeButton}
+          hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
+        >
+          <Ionicons name="close" size={24} color="#666" />
+        </TouchableOpacity>
+      </View>
+      
+      <ScrollView style={styles.eventDetailsScrollView}>
+        <View style={styles.eventDetailSection}>
+          <Text style={styles.eventDetailLabel}>Date & Time</Text>
+          <Text style={styles.eventDetailText}>
+            {formattedDate}
+            {formattedTimeRange ? ` · ${formattedTimeRange}` : ''}
+          </Text>
+        </View>
+        
+        <View style={styles.eventDetailSection}>
+          <Text style={styles.eventDetailLabel}>Location</Text>
+          <Text style={styles.eventDetailText}>{event.event_location}</Text>
+        </View>
+        
+        <View style={styles.eventDetailSection}>
+          <Text style={styles.eventDetailLabel}>Description</Text>
+          <Text style={styles.eventDetailText}>{event.event_desc}</Text>
+        </View>
+        
+        {event.event_link && (
+          <View style={styles.eventDetailSection}>
+            <Text style={styles.eventDetailLabel}>Event Link</Text>
+            <TouchableOpacity 
+              onPress={() => Linking.openURL(event.event_link)}
+              style={styles.linkButton}
+            >
+              <Text style={styles.eventDetailLink}>Open Event Link</Text>
+              <Ionicons name="open-outline" size={16} color="#0066cc" />
+            </TouchableOpacity>
+          </View>
+        )}
+        
+        {!isAdmin && (
+          <View style={styles.eventDetailSection}>
+            {isUserInterested ? (
+              <View style={styles.thankYouContainer}>
+                <Text style={styles.thankYouText}>Thank you for your interest!</Text>
+              </View>
+            ) : (
+              <AppPrimaryButton 
+                title="Interested?" 
+                handleSubmit={() => onAddParticipant(event._id)}
+              />
+            )}
+          </View>
+        )}
+      </ScrollView>
+    </View>
+  );
+};
+
+const EventsScreen = () => {
+  // Improved state management - grouped related states
   const navigation = useNavigation();
-
-  // Get user info from Redux store to check if admin
+  const route = useRoute();
+  const dispatch = useDispatch();
+  const { eventType } = route.params || {};
+  
+  // Calendar states
+  const [selectedDate, setSelectedDate] = useState("");
+  const [currentMonth, setCurrentMonth] = useState(new Date().toISOString().split('T')[0].substring(0, 7));
+  
+  // Event data states
+  const [events, setEvents] = useState([]);
+  const [refreshing, setRefreshing] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [sortOption, setSortOption] = useState("date");
+  const [eventTypeFilter, setEventTypeFilter] = useState(eventType || "");
+  
+  // Modal states
+  const [eventDetailsVisible, setEventDetailsVisible] = useState(false);
+  const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
+  const [optionsVisible, setOptionsVisible] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState(null);
+  const [menuPosition, setMenuPosition] = useState({ top: 0, right: 0 });
+  
+  // User data from Redux
   const userInfo = useSelector((state) => state.userInfo?.userInfo);
   const token = useSelector((state) => state.userInfo?.token);
   const { _id } = userInfo;
+  const isAdmin = userInfo?.user_roles === ACCOUNT_TYPE_ADMIN;
 
-  const isAdmin = userInfo?.user_roles == ACCOUNT_TYPE_ADMIN;
-
-  // Fetch events when screen loads or returns to focus
-  useEffect(() => {
-    fetchEvents();
+  // Optimized event handlers
+  const fetchEvents = useCallback(async (showLoading = false) => {
+    if (showLoading) setRefreshing(true);
     
-    // Set today's date as the default selected date
-    const today = new Date().toISOString().split('T')[0];
-    setSelectedDate(today);
-    
-    // Set current month
-    setCurrentMonth(today.substring(0, 7)); // Format: YYYY-MM
-  }, []);
-  
-  // Filter events by current month when events are loaded or month changes
-  useEffect(() => {
-    if (oldEvent.length > 0 && currentMonth) {
-      // If no specific date is selected, show events for the current month
-      if (!selectedDate) {
-        const monthFilteredEvents = oldEvent.filter((event) => {
-          return event.event_date.startsWith(currentMonth);
-        });
-        
-        setEvents(sortEvents(monthFilteredEvents));
-      }
-    }
-  }, [oldEvent, currentMonth, selectedDate]);
-  
-  // State for event type filter
-  const [eventTypeFilter, setEventTypeFilter] = useState("");
-  
-  // Add a listener for when the screen comes into focus
-  useEffect(() => {
-    const unsubscribe = navigation.addListener('focus', () => {
-      // Refresh events when the screen is focused
-      fetchEvents();
-      
-      // Get current route and its params
-      const routes = navigation.getState()?.routes;
-      const currentRoute = routes[routes.length - 1];
-      const params = currentRoute?.params || {};
-      
-      // Handle different navigation scenarios
-      if (params.filterType) {
-        // If filterType is provided, apply it and clear date filter
-        setEventTypeFilter(params.filterType);
-        setSelectedDate(""); // Clear selected date to show all events of this type
-        setDateEvents([]); // Reset dateEvents
-      } else if (params.showAll) {
-        // Coming from navbar Events tab click - show events for current month
-        setSelectedDate(""); // Clear selected date
-        setEventTypeFilter(""); // Clear event type filter
-        setDateEvents([]); // Reset dateEvents
-        
-        // Filter events for the current month
-        const monthFilteredEvents = oldEvent.filter((event) => {
-          return event.event_date.startsWith(currentMonth);
-        });
-        
-        setEvents(sortEvents(monthFilteredEvents));
-      } else if (params.preserveDate && params.selectedDate) {
-        // Coming back from InterestedList with a specific date
-        setSelectedDate(params.selectedDate);
-        
-        // Filter events for the selected date to update dateEvents
-        const dateFilteredEvents = oldEvent.filter((event) => {
-          return event.event_date == params.selectedDate;
-        });
-        setDateEvents(dateFilteredEvents);
-      }
-      
-      // Clear the params after handling them to avoid reapplying on future focus events
-      if (params.showAll || params.preserveDate || params.filterType || params.selectedDate) {
-        navigation.setParams({ 
-          showAll: undefined, 
-          preserveDate: undefined, 
-          selectedDate: undefined,
-          filterType: undefined
-        });
-      }
-    });
-    
-    // Cleanup the listener when the component is unmounted
-    return unsubscribe;
-  }, [navigation, oldEvent]);
-  
-  // Sort events based on the selected sort option
-  const sortEvents = (eventsToSort) => {
-    if (sortOption === "date") {
-      // Sort by date (and time if available)
-      return [...eventsToSort].sort((a, b) => {
-        // First compare dates
-        const dateA = new Date(a.event_date).getTime();
-        const dateB = new Date(b.event_date).getTime();
-        
-        if (dateA !== dateB) {
-          return dateA - dateB; // Sort by date if dates are different
-        }
-        
-        // If dates are the same, sort by time if available
-        if (a.event_time && b.event_time) {
-          return a.event_time.localeCompare(b.event_time);
-        }
-        
-        return 0; // Keep original order if no time available
-      });
-    } else if (sortOption === "interested") {
-      // Sort by interested status first, then by date
-      return [...eventsToSort].sort((a, b) => {
-        const isInterestedA = a.participants && a.participants.includes(_id);
-        const isInterestedB = b.participants && b.participants.includes(_id);
-        
-        // First prioritize events the user is interested in
-        if (isInterestedA && !isInterestedB) return -1;
-        if (!isInterestedA && isInterestedB) return 1;
-        
-        // If both have same interested status, sort by date
-        const dateA = new Date(a.event_date).getTime();
-        const dateB = new Date(b.event_date).getTime();
-        
-        if (dateA !== dateB) {
-          return dateA - dateB;
-        }
-        
-        // If dates are the same, sort by time if available
-        if (a.event_time && b.event_time) {
-          return a.event_time.localeCompare(b.event_time);
-        }
-        
-        return 0;
-      });
-    }
-    
-    // Default to date sorting
-    return eventsToSort;
-  };
-
-  // Filter events when selectedDate, eventTypeFilter, or sortOption changes
-  useEffect(() => {
-    if (oldEvent.length > 0) {
-      let filteredEvents = [...oldEvent];
-      
-      // Apply date filter if a date is selected
-      if (selectedDate) {
-        filteredEvents = filteredEvents.filter(event => 
-          event.event_date === selectedDate
-        );
-      }
-      
-      // Apply event type filter if specified
-      if (eventTypeFilter) {
-        filteredEvents = filteredEvents.filter(event => {
-          const eventType = event.event_type || "regular"; // Default to "regular" if not specified
-          return eventType === eventTypeFilter;
-        });
-      }
-      
-      // Filter for "interested" events if that option is selected
-      if (sortOption === "interested") {
-        filteredEvents = filteredEvents.filter(event => 
-          event.participants && event.participants.includes(_id)
-        );
-      }
-      
-      // Apply sorting based on selected option (date sorting for both options)
-      filteredEvents = filteredEvents.sort((a, b) => {
-        // First compare dates
-        const dateA = new Date(a.event_date).getTime();
-        const dateB = new Date(b.event_date).getTime();
-        
-        if (dateA !== dateB) {
-          return dateA - dateB; // Sort by date if dates are different
-        }
-        
-        // If dates are the same, sort by time if available
-        if (a.event_time && b.event_time) {
-          return a.event_time.localeCompare(b.event_time);
-        }
-        
-        return 0; // Keep original order if no time available
-      });
-      
-      setEvents(filteredEvents);
-    }
-  }, [oldEvent, selectedDate, eventTypeFilter, sortOption]);
-
-  // Fetch events from API and sort by date
-  const fetchEvents = async () => {
     try {
-      const response = await getAllEvent({ token,navigation });
-      
-      // Sort events by date in ascending order
-      const sortedEvents = [...response.data.event].sort((a, b) => {
-        // Convert dates to timestamps for comparison
-        const dateA = new Date(a.event_date).getTime();
-        const dateB = new Date(b.event_date).getTime();
-        return dateA - dateB; // Ascending order
-      });
-      
-      setEvents(sortedEvents);
-      setOldEvent(sortedEvents);
+      const response = await getAllEvent({ token, navigation });
+      setEvents(response.data.event);
     } catch (error) {
-      console.error("Error in fetchEvents:", error);
+      console.error("Error loading events:", error);
       Alert.alert("Error", "Failed to load events");
-      setEvents([]);
     } finally {
       setRefreshing(false);
+      setInitialLoading(false);
     }
-  };
-  
-  // Event actions
-  const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
-  const [eventToDelete, setEventToDelete] = useState(null);
-  const [optionsVisible, setOptionsVisible] = useState(false);
-  const [selectedEvent, setSelectedEvent] = useState(null);
-  const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
-  
-  // Show event details modal
-  const showEventDetails = (event) => {
+  }, [token, navigation]);
+
+  const onRefresh = useCallback(() => {
+    setEventTypeFilter("");
+    fetchEvents(true);
+  }, [fetchEvents]);
+
+  const handleDayPress = useCallback((day) => {
+    setSelectedDate(previous => previous === day.dateString ? "" : day.dateString);
+  }, []);
+
+  const handleMonthChange = useCallback((month) => {
+    const newMonth = month.dateString.substring(0, 7);
+    setCurrentMonth(newMonth);
+    setSelectedDate("");
+  }, []);
+
+  const showEventDetails = useCallback((event) => {
     setSelectedEvent(event);
     setEventDetailsVisible(true);
-  };
-  
-  // Show event options menu (for admin users)
-  const showEventOptions = (event, nativeEvent) => {
+  }, []);
+
+  const closeEventDetails = useCallback(() => {
+    setEventDetailsVisible(false);
+  }, []);
+
+  const showEventOptions = useCallback((event, nativeEvent) => {
     setSelectedEvent(event);
     
-    // Check if nativeEvent has valid coordinates
+    // Calculate menu position using safe values
+    const position = { top: 100, right: 20 };
+    
     if (nativeEvent && typeof nativeEvent.pageY === 'number' && typeof nativeEvent.pageX === 'number') {
-      // Get the screen width
-      const screenWidth = Dimensions.get('window').width;
-      
-      // Position the menu with its right edge at the click position, with offsets
-      setMenuPosition({ 
-        top: nativeEvent.pageY - 50, // Offset to move up
-        right: screenWidth - nativeEvent.pageX + 25 // Right edge at click position with offset to the left
-      });
-    } else {
-      // Default position if coordinates are not available
-      setMenuPosition({
-        top: 100,
-        right: 20
-      });
+      const screenWidth = SCREEN_WIDTH;
+      position.top = Math.max(0, nativeEvent.pageY - 50);
+      position.right = Math.max(0, screenWidth - nativeEvent.pageX + 25);
     }
     
+    setMenuPosition(position);
     setOptionsVisible(true);
-  };
-  
-  const confirmDeleteEvent = () => {
-    setOptionsVisible(false);
-    setEventToDelete(selectedEvent);
-    
-    // Use setTimeout to ensure the delete confirmation modal appears after the options modal is closed
-    setTimeout(() => {
-      setDeleteConfirmVisible(true);
-    }, 100);
-  };
-  
-  const deleteEvent = async () => {
-    if (!eventToDelete) return;
+  }, []);
+
+  const handleDelete = useCallback(async () => {
+    if (!selectedEvent) return;
     
     try {
-      const response = await fetch(`http://${MY_IP_ADDRESS}:5050/events/delete/${eventToDelete._id}`, {
+      const response = await fetch(`http://${MY_IP_ADDRESS}:5050/events/delete/${selectedEvent._id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -368,18 +311,11 @@ const EventsScreen = () => {
         }
       });
       
-      const data = await response.json();
-      
       if (response.ok) {
-        // Remove the deleted event from the state
-        const updatedEvents = events.filter(event => event._id !== eventToDelete._id);
-        setEvents(updatedEvents);
-        
-        const updatedOldEvents = oldEvent.filter(event => event._id !== eventToDelete._id);
-        setOldEvent(updatedOldEvents);
-        
+        setEvents(prev => prev.filter(event => event._id !== selectedEvent._id));
         Alert.alert("Success", "Event deleted successfully");
       } else {
+        const data = await response.json();
         Alert.alert("Error", data.message || "Failed to delete event");
       }
     } catch (error) {
@@ -387,213 +323,178 @@ const EventsScreen = () => {
       Alert.alert("Error", "Failed to delete event");
     } finally {
       setDeleteConfirmVisible(false);
-      setEventToDelete(null);
+      setOptionsVisible(false);
+      setSelectedEvent(null);
     }
-  };
-  
-  // Handle pull-to-refresh - show events for current month
-  const onRefresh = React.useCallback(() => {
-    setRefreshing(true);
-    fetchEvents().then(() => {
-      // Clear specific date selection but maintain month filter
-      setSelectedDate("");
-      setEventTypeFilter("");
-      setDateEvents([]); // Reset dateEvents
-      
-      // Filter events for the current month
-      if (oldEvent.length > 0 && currentMonth) {
-        const monthFilteredEvents = oldEvent.filter((event) => {
-          return event.event_date.startsWith(currentMonth);
-        });
-        
-        setEvents(sortEvents(monthFilteredEvents));
-      }
-    });
-  }, [currentMonth]);
-  
-  // Function to show events for current month (used when Events tab is clicked)
-  const showAllEvents = () => {
-    setSelectedDate("");
-    
-    // Filter events for the current month
-    if (oldEvent.length > 0 && currentMonth) {
-      const monthFilteredEvents = oldEvent.filter((event) => {
-        return event.event_date.startsWith(currentMonth);
+  }, [selectedEvent, token]);
+
+  const addParticipant = useCallback(async (eventId) => {
+    try {
+      const response = await addParticipantRequest({
+        userId: _id,
+        token,
+        eventId,
       });
       
-      setEvents(sortEvents(monthFilteredEvents));
+      if (response.status === 200) {
+        Alert.alert("Success", "You are now interested in this event");
+        
+        // Update events list with optimistic update
+        setEvents(prev => 
+          prev.map(event => 
+            event._id === eventId 
+              ? { ...event, participants: [...(event.participants || []), _id] }
+              : event
+          )
+        );
+      }
+    } catch (error) {
+      console.error("Error adding participant:", error);
+      Alert.alert("Error", "Failed to register interest");
     }
-  };
+  }, [_id, token]);
 
-  const addParticipant = async (eventId) => {
-    const response = await addParticipantRequest({
-      userId: _id,
-      token,
-      eventId,
-    });
-    if (response.status == 200) {
-      Alert.alert("Action !!", response.data);
+  // Reset filters when directly accessing the Events tab
+  useFocusEffect(
+    useCallback(() => {
+      if (!route.params) {
+        setEventTypeFilter("");
+      }
+    }, [route.params])
+  );
+
+  // Initial load with cleanup
+  useEffect(() => {
+    let mounted = true;
+    
+    const initializeEvents = async () => {
+      const today = new Date().toISOString().split('T')[0];
+      const thisMonth = today.substring(0, 7);
       
-      // Update the selectedEvent to show the "Thank you" message immediately
-      if (selectedEvent && selectedEvent._id === eventId) {
-        // Create a copy of the selected event
-        const updatedEvent = { ...selectedEvent };
-        
-        // Add the user to participants if not already there
-        if (!updatedEvent.participants) {
-          updatedEvent.participants = [_id];
-        } else if (!updatedEvent.participants.includes(_id)) {
-          updatedEvent.participants = [...updatedEvent.participants, _id];
-        }
-        
-        // Update the selected event state
-        setSelectedEvent(updatedEvent);
+      if (mounted) {
+        setCurrentMonth(thisMonth);
       }
       
-      // Refresh all events
-      fetchEvents();
-    }
-  };
+      try {
+        await fetchEvents();
+      } catch (error) {
+        if (mounted) {
+          console.error("Error in initial load:", error);
+        }
+      }
+    };
 
-  // Component to display individual event details
-  const EventCard = ({ event, index }) => {
-    const isParticipated = event.participants
-      ? event.participants.includes(_id)
-      : false;
+    initializeEvents();
     
-    // Determine event type - default to "regular" if not specified
-    const eventType = event.event_type || "regular";
+    return () => {
+      mounted = false;
+    };
+  }, [fetchEvents]);
 
-    return (
-      <TouchableOpacity 
-        style={styles.eventCard}
-        onPress={() => showEventDetails(event)} // Open details modal on card click
-        activeOpacity={0.8}
-      >
-        {/* Event Title with Options Menu */}
-        <View style={styles.titleRow}>
-          <Text style={styles.eventTitle}>{event.event_title}</Text>
-          <TouchableOpacity 
-            onPress={(e) => {
-              e.stopPropagation(); // Prevent card click
-              if (e && e.nativeEvent) {
-                showEventOptions(event, e.nativeEvent);
-              } else {
-                showEventOptions(event, null);
-              }
-            }}
-            style={styles.optionsButton}
-          >
-            <Ionicons name="ellipsis-vertical" size={20} color="#aaa" />
-          </TouchableOpacity>
-        </View>
-        
-        {/* Event Date and Time */}
-        {event.event_date && (
-          <Text style={styles.eventTime}>
-            <Ionicons name="calendar-outline" size={14} color="#666" />
-            {" "}{formatEventDateTime(event.event_date, event.event_time, event.event_end_time)}
-          </Text>
-        )}
-        
-        {/* Event Location */}
-        <Text style={styles.eventLocation}>
-          <Ionicons name="location-outline" size={14} color="#666" />
-          {" "}{event.event_location}
-        </Text>
+  // Memoized filtered events based on date and event type
+  const filteredEvents = useMemo(() => {
+    return events.filter(event => {
+      // Apply date filter
+      if (selectedDate && event.event_date !== selectedDate) return false;
 
-        {/* Event Type Tag */}
-        <View style={styles.tagsRow}>
-          <Text style={styles.tag}>
-            {eventType === "workshop" ? "Workshop" : "Event"}
-          </Text>
-        </View>
-      </TouchableOpacity>
-    );
-  };
+      // Apply month filter if no specific date is selected
+      if (!selectedDate && currentMonth && event.event_date) {
+        const eventMonth = event.event_date.substring(0, 7); // YYYY-MM format
+        if (eventMonth !== currentMonth) return false;
+      }
+      
+      // Apply type filter
+      if (eventTypeFilter && (event.event_type || "regular") !== eventTypeFilter) return false;
+      
+      // Apply interest filter
+      if (sortOption === "interested" && !event.participants?.includes(_id)) return false;
+      
+      return true;
+    });
+  }, [events, selectedDate, currentMonth, eventTypeFilter, sortOption, _id]);
 
-  const _getEventDate = () => {
-    let eventDate = {};
+  // Memoized sorted events
+  const sortedEvents = useMemo(() => {
+    return [...filteredEvents].sort((a, b) => {
+      // First sort by date
+      const dateA = new Date(a.event_date || "2099-12-31").getTime();
+      const dateB = new Date(b.event_date || "2099-12-31").getTime();
+      
+      if (dateA !== dateB) return dateA - dateB;
+      
+      // Then by time
+      if (a.event_time && b.event_time) {
+        return a.event_time.localeCompare(b.event_time);
+      }
+      
+      return 0;
+    });
+  }, [filteredEvents]);
+
+  // Memoized calendar date markings
+  const eventDateMarkings = useMemo(() => {
+    const markings = {};
     
-    // Process each event
-    oldEvent.forEach((event) => {
+    events.forEach(event => {
       const date = event.event_date;
+      if (!date) return;
       
-      // For admin users, check if any user is interested
-      // For regular users, check if the current user is interested
-      const hasParticipants = event.participants && event.participants.length > 0;
-      const isInterested = isAdmin 
-        ? hasParticipants 
-        : (event.participants && event.participants.includes(_id));
+      const hasParticipants = event.participants?.length > 0;
+      const isInterested = event.participants?.includes(_id);
       
-      if (!eventDate[date]) {
-        // Initialize with dots array for multi-dot support
-        eventDate[date] = {
+      if (!markings[date]) {
+        markings[date] = {
           marked: true,
-          dots: [
-            { key: 'event', color: '#097969' } // Green dot for all events
-          ]
+          dots: [{ key: 'event', color: '#097969' }]
         };
       }
       
-      // If user is interested in this event (or any user for admin), add a red dot
-      if (isInterested) {
-        // Check if we already have dots for this date
-        if (eventDate[date].dots) {
-          // Add red dot if not already added
-          const hasRedDot = eventDate[date].dots.some(dot => dot.key === 'interested');
-          if (!hasRedDot) {
-            eventDate[date].dots.push({ key: 'interested', color: '#e74c3c' }); // Red dot
-          }
-        }
+      if (isInterested && !markings[date].dots.some(dot => dot.key === 'interested')) {
+        markings[date].dots.push({ key: 'interested', color: '#e74c3c' });
       }
     });
-    
-    // Handle selected date
+
+    // Add selected date properties
     if (selectedDate) {
-      if (eventDate[selectedDate]) {
-        // If the selected date already has dots, keep them and add selected property
-        eventDate[selectedDate] = {
-          ...eventDate[selectedDate],
-          selected: true,
-          selectedColor: '#097969',
-        };
-      } else {
-        // If the selected date has no dots, just mark it as selected
-        eventDate[selectedDate] = {
-          selected: true,
-          selectedColor: '#097969',
-        };
+      markings[selectedDate] = {
+        ...(markings[selectedDate] || {}),
+        selected: true,
+        selectedColor: '#097969',
+      };
+    }
+
+    return markings;
+  }, [events, selectedDate, _id]);
+
+  // Memoized empty state message based on filters
+  const emptyStateMessage = useMemo(() => {
+    if (sortOption === "interested") {
+      if (selectedDate) {
+        return "You're not interested in any events on this date";
       }
+      return "You haven't shown interest in any events";
     }
     
-    return eventDate;
-  };
+    if (selectedDate) {
+      return "No events for selected date";
+    }
+    
+    return "No events match your current filters";
+  }, [sortOption, selectedDate]);
 
-  const _filterEvent = (day) => {
-    setSelectedDate(day.dateString);
-    
-    // Always set sort option to "date" when a date is clicked
-    setSortOption("date");
-
-    // Filter events for the selected date
-    const dateFilteredEvents = oldEvent.filter((event) => {
-      return event.event_date == day.dateString;
-    });
-    
-    // Store all events for this date before interest filtering
-    setDateEvents(dateFilteredEvents);
-    
-    // Since we're setting sort option to "date", we don't need to filter by interest
-    // Just sort the events by date
-    const finalEvents = sortEvents(dateFilteredEvents);
-    
-    setEvents(finalEvents);
-  };
+  // Loading state
+  if (initialLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#097969" />
+        <Text style={styles.loadingText}>Loading events...</Text>
+      </View>
+    );
+  }
 
   return (
     <ScrollView 
-      style={{ backgroundColor: "white" }}
+      style={styles.scrollContainer}
       refreshControl={
         <RefreshControl
           refreshing={refreshing}
@@ -603,76 +504,6 @@ const EventsScreen = () => {
         />
       }
     >
-      {/* Options Modal */}
-      <Modal
-        animationType="fade"
-        transparent={true}
-        visible={optionsVisible}
-        onRequestClose={() => setOptionsVisible(false)}
-      >
-        <TouchableOpacity 
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setOptionsVisible(false)}
-        >
-          <View style={[
-            styles.optionsModalContent,
-            { top: menuPosition.top, right: menuPosition.right }
-          ]}>
-            {/* Event Details option for all users */}
-            <TouchableOpacity 
-              style={styles.optionItem}
-              onPress={() => {
-                setOptionsVisible(false);
-                setEventDetailsVisible(true);
-              }}
-            >
-              <Ionicons name="information-circle-outline" size={20} color="#333" />
-              <Text style={styles.optionText}>Event Details</Text>
-            </TouchableOpacity>
-            
-            {/* Admin-only options */}
-            {isAdmin && (
-              <>
-                <TouchableOpacity 
-                  style={styles.optionItem}
-                  onPress={() => {
-                    setOptionsVisible(false);
-                    navigation.navigate("InterestedList", { event: selectedEvent });
-                  }}
-                >
-                  <Ionicons name="people-outline" size={20} color="#333" />
-                  <Text style={styles.optionText}>Interested List</Text>
-                </TouchableOpacity>
-                
-                <TouchableOpacity 
-                  style={styles.optionItem}
-                  onPress={() => {
-                    setOptionsVisible(false);
-                    // Navigate to CreateEvent screen with event data for updating
-                    navigation.navigate("Create Event", { 
-                      eventToUpdate: selectedEvent,
-                      isUpdating: true 
-                    });
-                  }}
-                >
-                  <Ionicons name="create-outline" size={20} color="#333" />
-                  <Text style={styles.optionText}>Update Event</Text>
-                </TouchableOpacity>
-                
-                <TouchableOpacity 
-                  style={styles.optionItem}
-                  onPress={confirmDeleteEvent}
-                >
-                  <Ionicons name="trash-outline" size={20} color="#333" />
-                  <Text style={styles.optionText}>Delete Event</Text>
-                </TouchableOpacity>
-              </>
-            )}
-          </View>
-        </TouchableOpacity>
-      </Modal>
-      
       {/* Delete Confirmation Modal */}
       <Modal
         animationType="fade"
@@ -695,7 +526,7 @@ const EventsScreen = () => {
               </TouchableOpacity>
               <TouchableOpacity 
                 style={[styles.modalButton, styles.deleteConfirmButton]}
-                onPress={deleteEvent}
+                onPress={handleDelete}
               >
                 <Text style={styles.deleteButtonText}>Delete</Text>
               </TouchableOpacity>
@@ -703,155 +534,120 @@ const EventsScreen = () => {
           </View>
         </View>
       </Modal>
-      
+
+      {/* Options Modal */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={optionsVisible}
+        onRequestClose={() => setOptionsVisible(false)}
+      >
+        <TouchableOpacity 
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setOptionsVisible(false)}
+        >
+          <View style={[styles.optionsModalContent, { top: menuPosition.top, right: menuPosition.right }]}>
+            <TouchableOpacity 
+              style={styles.optionItem}
+              onPress={() => {
+                setOptionsVisible(false);
+                setEventDetailsVisible(true);
+              }}
+            >
+              <Ionicons name="information-circle-outline" size={20} color="#333" />
+              <Text style={styles.optionText}>Event Details</Text>
+            </TouchableOpacity>
+            
+            {isAdmin && (
+              <>
+                <TouchableOpacity 
+                  style={styles.optionItem}
+                  onPress={() => {
+                    setOptionsVisible(false);
+                    navigation.navigate("InterestedList", { event: selectedEvent });
+                  }}
+                >
+                  <Ionicons name="people-outline" size={20} color="#333" />
+                  <Text style={styles.optionText}>Interested List</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={styles.optionItem}
+                  onPress={() => {
+                    setOptionsVisible(false);
+                    navigation.navigate("Create Event", { 
+                      eventToUpdate: selectedEvent,
+                      isUpdating: true 
+                    });
+                  }}
+                >
+                  <Ionicons name="create-outline" size={20} color="#333" />
+                  <Text style={styles.optionText}>Update Event</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={styles.optionItem}
+                  onPress={() => {
+                    setOptionsVisible(false);
+                    setDeleteConfirmVisible(true);
+                  }}
+                >
+                  <Ionicons name="trash-outline" size={20} color="#e74c3c" />
+                  <Text style={[styles.optionText, { color: '#e74c3c' }]}>Delete Event</Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
       {/* Event Details Modal */}
       <Modal
         animationType="slide"
         transparent={true}
         visible={eventDetailsVisible}
-        onRequestClose={() => setEventDetailsVisible(false)}
+        onRequestClose={closeEventDetails}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.eventDetailsModalContent}>
-            {selectedEvent && (
-              <>
-                <View style={styles.eventDetailsHeader}>
-                  <Text style={styles.eventDetailsTitle}>{selectedEvent.event_title}</Text>
-                  <TouchableOpacity 
-                    onPress={() => setEventDetailsVisible(false)}
-                    style={styles.closeButton}
-                  >
-                    <Ionicons name="close" size={24} color="#666" />
-                  </TouchableOpacity>
-                </View>
-                
-                <ScrollView style={styles.eventDetailsScrollView}>
-                  {/* Date and Time */}
-                  <View style={styles.eventDetailSection}>
-                    <Text style={styles.eventDetailLabel}>Date & Time</Text>
-                      <Text style={styles.eventDetailText}>
-                        {formatEventDateTime(selectedEvent.event_date, selectedEvent.event_time, selectedEvent.event_end_time)}
-                      </Text>
-                  </View>
-                  
-                  {/* Location */}
-                  <View style={styles.eventDetailSection}>
-                    <Text style={styles.eventDetailLabel}>Location</Text>
-                    <Text style={styles.eventDetailText}>
-                      {selectedEvent.event_location}
-                    </Text>
-                  </View>
-                  
-                  {/* Description */}
-                  <View style={styles.eventDetailSection}>
-                    <Text style={styles.eventDetailLabel}>Description</Text>
-                    <Text style={styles.eventDetailText}>
-                      {selectedEvent.event_desc}
-                    </Text>
-                  </View>
-                  
-                  {/* Links */}
-                  <View style={styles.eventDetailSection}>
-                    <Text style={styles.eventDetailLabel}>Event Link</Text>
-                    <TouchableOpacity
-                      onPress={() => Linking.openURL(selectedEvent.event_link)}
-                    >
-                      <Text style={styles.eventDetailLink}>
-                        Open Event Link
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                  
-                  {/* Ticket URL if available */}
-                  {selectedEvent.ticket_url && (
-                    <View style={styles.eventDetailSection}>
-                      <Text style={styles.eventDetailLabel}>Tickets</Text>
-                      <TouchableOpacity
-                        onPress={() => Linking.openURL(selectedEvent.ticket_url)}
-                      >
-                        <Text style={styles.eventDetailLink}>
-                          Get Tickets
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
-                  )}
-                  
-                  {/* Interested Button or Thank You Message - Only for non-admin users */}
-                  {!isAdmin && (
-                    <View style={styles.eventDetailSection}>
-                      {selectedEvent.participants && selectedEvent.participants.includes(_id) ? (
-                        <View style={styles.thankYouContainer}>
-                          <Text style={styles.thankYouText}>Thank you for your interest!</Text>
-                        </View>
-                      ) : (
-                        <AppPrimaryButton 
-                          title="Interested?" 
-                          handleSubmit={() => addParticipant(selectedEvent._id)}
-                        />
-                      )}
-                    </View>
-                  )}
-                </ScrollView>
-              </>
-            )}
-          </View>
+          {selectedEvent && (
+            <EventDetails 
+              event={selectedEvent}
+              isAdmin={isAdmin}
+              userId={_id}
+              onClose={closeEventDetails}
+              onAddParticipant={addParticipant}
+              isUserInterested={selectedEvent.participants?.includes(_id)}
+            />
+          )}
         </View>
       </Modal>
+
       <View style={styles.container}>
-        {/* Calendar Component */}
         <View style={styles.calendarContainer}>
           <Calendar
-            style={{
-              width: Dimensions.get("screen").width,
-              alignSelf: "center",
-            }}
-            onDayPress={(day) => {
-              _filterEvent(day);
-            }}
-            onMonthChange={(month) => {
-              // Update current month when user navigates between months
-              setCurrentMonth(month.dateString.substring(0, 7)); // Format: YYYY-MM
-              
-              // Clear selected date when month changes
-              if (selectedDate && !selectedDate.startsWith(month.dateString.substring(0, 7))) {
-                setSelectedDate("");
-              }
-              
-              // Filter events for the current month
-              const monthFilteredEvents = oldEvent.filter((event) => {
-                return event.event_date.startsWith(month.dateString.substring(0, 7));
-              });
-              
-              // If no date is selected, show all events for this month
-              if (!selectedDate || !selectedDate.startsWith(month.dateString.substring(0, 7))) {
-                setEvents(sortEvents(monthFilteredEvents));
-              }
-            }}
-            markingType="multi-dot" // Enable multi-dot support
-            markedDates={_getEventDate()}
+            style={styles.calendar}
+            onDayPress={handleDayPress}
+            onMonthChange={handleMonthChange}
+            markingType="multi-dot"
+            markedDates={eventDateMarkings}
             theme={{
               textDayFontSize: 16,
-              todayTextColor: "#097969", // Set today's date text color to green
-              arrowColor: "#097969", // Set month navigation arrows to green
+              todayTextColor: "#097969",
+              arrowColor: "#097969",
             }}
           />
         </View>
 
-        {/* Add Event Button (Admin Only) */}
         {isAdmin && (
           <View style={styles.addEventButtonContainer}>
-            <View style={{ width: "90%" }}>
-              <AppPrimaryButton
-                title={"Add Event"}
-                handleSubmit={() => {
-                  navigation.navigate("Create Event");
-                }}
-              />
-            </View>
+            <AppPrimaryButton
+              title="Add Event"
+              handleSubmit={() => navigation.navigate("Create Event")}
+            />
           </View>
         )}
 
-        {/* Toggle Filter - For all users except admins */}
         {!isAdmin && (
           <View style={styles.sortFilterContainer}>
             <View style={styles.sortButtonsContainer}>
@@ -862,12 +658,10 @@ const EventsScreen = () => {
                 ]}
                 onPress={() => setSortOption("date")}
               >
-                <Text
-                  style={[
-                    styles.sortButtonText,
-                    sortOption === "date" && styles.sortButtonTextActive
-                  ]}
-                >
+                <Text style={[
+                  styles.sortButtonText,
+                  sortOption === "date" && styles.sortButtonTextActive
+                ]}>
                   Date
                 </Text>
               </TouchableOpacity>
@@ -879,12 +673,10 @@ const EventsScreen = () => {
                 ]}
                 onPress={() => setSortOption("interested")}
               >
-                <Text
-                  style={[
-                    styles.sortButtonText,
-                    sortOption === "interested" && styles.sortButtonTextActive
-                  ]}
-                >
+                <Text style={[
+                  styles.sortButtonText,
+                  sortOption === "interested" && styles.sortButtonTextActive
+                ]}>
                   Interested
                 </Text>
               </TouchableOpacity>
@@ -893,16 +685,23 @@ const EventsScreen = () => {
         )}
 
         <View style={styles.eventsListContainer}>
-          {events.length == 0 ? (
-            selectedDate && dateEvents.length == 0 ? (
-              <Text> No event for selected date</Text>
+          {refreshing ? null : (
+            sortedEvents.length === 0 ? (
+              <View style={styles.emptyStateContainer}>
+                <Text style={styles.noEventsText}>{emptyStateMessage}</Text>
+              </View>
             ) : (
-              <Text> No events match your current filters</Text>
+              sortedEvents.map((event, index) => (
+                <EventCard 
+                  key={event._id || index}
+                  event={event}
+                  onCardPress={showEventDetails}
+                  onOptionsPress={showEventOptions}
+                  isUserInterested={event.participants?.includes(_id)}
+                  isAdmin={isAdmin}
+                />
+              ))
             )
-          ) : (
-            events.map((event, index) => (
-              <EventCard key={index} event={event} index={index} />
-            ))
           )}
         </View>
       </View>
@@ -911,121 +710,26 @@ const EventsScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  // Modal styles
-  modalOverlay: {
+  scrollContainer: {
+    backgroundColor: "white",
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
   },
-  modalContent: {
+  loadingContainer: {
+    flex: 1,
     backgroundColor: 'white',
-    borderRadius: 10,
-    padding: 20,
-    width: '80%',
+    justifyContent: 'center',
     alignItems: 'center',
-    alignSelf: 'center',
-    marginTop: '50%',
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+    height: Dimensions.get('window').height,
   },
-  deleteModalContent: {
-    backgroundColor: 'white',
-    borderRadius: 10,
-    padding: 20,
-    width: 250,
-    alignItems: 'flex-start',
-    alignSelf: 'center',
-    marginTop: '50%',
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 15,
-  },
-  modalMessage: {
-    fontSize: 14,
-    textAlign: 'center',
-    marginBottom: 20,
+  loadingText: {
+    marginTop: 10,
     color: '#666',
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-  },
-  modalButton: {
-    padding: 10,
-    borderRadius: 5,
-    width: '45%',
-    alignItems: 'center',
-  },
-  cancelButton: {
-    backgroundColor: '#f0f0f0',
-  },
-  deleteConfirmButton: {
-    backgroundColor: '#e74c3c',
-  },
-  cancelButtonText: {
-    color: '#333',
-  },
-  deleteButtonText: {
-    color: 'white',
-    fontWeight: 'bold',
-  },
-  // Title row with delete button
-  titleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  optionsButton: {
-    padding: 5,
-  },
-  optionsModalContent: {
-    position: 'absolute',
-    backgroundColor: 'white',
-    borderRadius: 10,
-    padding: 10,
-    width: 200,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-    zIndex: 1000,
-  },
-  optionItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  optionText: {
-    marginLeft: 10,
     fontSize: 16,
-    color: '#333',
   },
   container: {
     backgroundColor: "white",
     paddingBottom: 20,
+    flex: 1,
   },
   calendarContainer: {
     width: "100%",
@@ -1049,10 +753,7 @@ const styles = StyleSheet.create({
     marginVertical: 8,
     marginHorizontal: 16,
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
@@ -1060,17 +761,35 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#e0e0e0",
   },
+  titleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
   eventTitle: {
     fontSize: 14,
     fontWeight: "bold",
     color: "#333",
     flex: 1,
   },
+  optionsButton: {
+    padding: 5,
+  },
+  eventTime: {
+    fontSize: 14,
+    color: "#666",
+    marginBottom: 8,
+  },
+  eventLocation: {
+    fontSize: 14,
+    color: "#666",
+    marginBottom: 8,
+  },
   tagsRow: {
     flexDirection: "row",
     flexWrap: "wrap",
     marginTop: 5,
-    marginBottom: 5,
   },
   tag: {
     backgroundColor: "#e0f2f1",
@@ -1080,64 +799,86 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     fontSize: 12,
     marginRight: 5,
-    marginTop: 5,
   },
-  locationContainer: {
-    marginBottom: 8,
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
   },
-  eventLocation: {
-    fontSize: 14,
-    color: "#666",
-    marginBottom: 8,
+  optionsModalContent: {
+    position: 'absolute',
+    backgroundColor: 'white',
+    borderRadius: 10,
+    padding: 10,
+    width: 200,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
-  eventTime: {
-    fontSize: 14,
-    color: "#666",
-    marginBottom: 8,
-  },
-  eventDescription: {
-    fontSize: 14,
-    color: "#444",
-    marginBottom: 10,
-    lineHeight: 20,
-  },
-  linkContainer: {},
-  eventLink: {
-    color: "#0066cc",
-    fontSize: 14,
-    padding: 2,
-  },
-  noEventsText: {
-    fontSize: 14,
-    color: "#666",
-    fontStyle: "italic",
-    textAlign: "center",
+  deleteModalContent: {
+    backgroundColor: 'white',
+    borderRadius: 10,
     padding: 20,
+    width: 280,
+    alignSelf: 'center',
+    marginTop: '50%',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
-  selectDateText: {
-    fontSize: 14,
-    color: "#666",
-    fontStyle: "italic",
-    textAlign: "center",
-    padding: 20,
+  optionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
   },
-  // Status row for event type and interested status
-  statusRow: {
+  optionText: {
+    marginLeft: 10,
+    fontSize: 16,
+    color: '#333',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 15,
+    color: '#333',
+  },
+  modalMessage: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  modalButtons: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+  },
+  modalButton: {
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    minWidth: 100,
     alignItems: 'center',
-    marginTop: 5,
   },
-  interestedTag: {
-    backgroundColor: '#e6f7ff',
-    color: '#0066cc',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 4,
-    fontSize: 12,
-    marginTop: 5,
+  cancelButton: {
+    backgroundColor: '#f0f0f0',
   },
-  // Event Details Modal styles
+  deleteConfirmButton: {
+    backgroundColor: '#e74c3c',
+  },
+  cancelButtonText: {
+    color: '#333',
+    fontSize: 16,
+  },
+  deleteButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '500',
+  },
   eventDetailsModalContent: {
     backgroundColor: 'white',
     borderRadius: 10,
@@ -1146,10 +887,7 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     marginTop: '20%',
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
@@ -1167,16 +905,16 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#333',
     flex: 1,
-    paddingRight: 10,
   },
   closeButton: {
     padding: 5,
   },
   eventDetailsScrollView: {
-    padding: 15,
+    paddingVertical: 10,
   },
   eventDetailSection: {
     marginBottom: 20,
+    paddingHorizontal: 15,
   },
   eventDetailLabel: {
     fontSize: 14,
@@ -1194,20 +932,24 @@ const styles = StyleSheet.create({
     color: '#0066cc',
     marginTop: 5,
   },
-  // Thank you message styles
   thankYouContainer: {
     backgroundColor: '#e6f7ff',
     borderRadius: 5,
     padding: 15,
     alignItems: 'center',
-    justifyContent: 'center',
   },
   thankYouText: {
     color: '#0066cc',
     fontSize: 16,
     fontWeight: '500',
   },
-  // Sort filter styles
+  noEventsText: {
+    fontSize: 14,
+    color: "#666",
+    fontStyle: "italic",
+    textAlign: "center",
+    padding: 20,
+  },
   sortFilterContainer: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -1218,7 +960,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#e0e0e0', // Light gray border for subtlety
+    borderColor: '#e0e0e0',
     padding: 0,
     width: 160,
     height: 36,
@@ -1232,17 +974,31 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
   },
   sortButtonActive: {
-    backgroundColor: '#f0f8f6', // Very light green background
+    backgroundColor: '#f0f8f6',
   },
   sortButtonText: {
     fontSize: 13,
     fontWeight: '500',
-    color: '#666', // Gray text for inactive state
+    color: '#666',
   },
   sortButtonTextActive: {
-    color: '#097969', // Green text for active state
+    color: '#097969',
     fontWeight: '600',
   },
+  emptyStateContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+    marginTop: 20,
+    width: '90%',
+  },
+  noEventsText: {
+    fontSize: 14,
+    color: "#666",
+    fontStyle: "italic",
+    textAlign: "center",
+    lineHeight: 20,
+  }
 });
 
-export default EventsScreen;
+export default React.memo(EventsScreen);
