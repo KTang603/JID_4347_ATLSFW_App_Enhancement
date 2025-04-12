@@ -711,7 +711,7 @@ const EventsScreen = () => {
 
 const styles = StyleSheet.create({
   scrollContainer: {
-    backgroundColor: "white",
+    backgroundColor: "#f8f8f8",
     flex: 1,
   },
   loadingContainer: {
