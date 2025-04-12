@@ -491,7 +491,7 @@ const HomeScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: "#f8f8f8",
   },
   loadingContainer: {
     flex: 1,

@@ -190,7 +190,7 @@ const NewsFeedScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "white",
+    backgroundColor: "#f8f8f8",
   },
   filterBadge: {
     position: "absolute",

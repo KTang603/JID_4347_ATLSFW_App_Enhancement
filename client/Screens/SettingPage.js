@@ -79,7 +79,7 @@ const SettingPage = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'white',
+    backgroundColor: '#f8f8f8',
   },
   buttonContainer: {
     padding: 16,
