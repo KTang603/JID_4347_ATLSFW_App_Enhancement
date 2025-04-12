@@ -258,11 +258,7 @@ const HomeScreen = () => {
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Upcoming Events</Text>
           <TouchableOpacity
-            onPress={() =>
-              navigation.navigate("Events", {
-                filterType: "regular",
-                showAll: true,
-              })
+            onPress={() => navigation.navigate("Events", { eventType: "regular"}) 
             }
           >
             <Text style={styles.seeAllText}>See All</Text>
@@ -449,12 +445,8 @@ const HomeScreen = () => {
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Workshops & Repair Cafe</Text>
           <TouchableOpacity
-            onPress={() =>
-              navigation.navigate("Events", {
-                filterType: "workshop",
-                showAll: true,
-              })
-            }
+              onPress={() => navigation.navigate("Events", { eventType: "workshop" })
+              }
           >
             <Text style={styles.seeAllText}>See All</Text>
           </TouchableOpacity>
