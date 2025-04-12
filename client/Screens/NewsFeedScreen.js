@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -6,7 +6,6 @@ import {
   Modal,
   StyleSheet,
   FlatList,
-  Image,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome";
 import { useSelector, useDispatch } from "react-redux";
@@ -16,15 +15,14 @@ import ListRowItem from "../components/ListRowItem";
 
 const NewsFeedScreen = ({ navigation }) => {
   const [showFilterModal, setShowFilterModal] = useState(false);
-  const newsData = useSelector((state) => state.news);
-  const { articles, isProgress, tags, pagination } = newsData;
-  const [inputTag, setInputTag] = useState([]);
+  const [selectedTags, setSelectedTags] = useState([]);
+  
   const dispatch = useDispatch();
+  const { articles, isProgress, tags, pagination } = useSelector((state) => state.news);
   const token = useSelector((state) => state.userInfo?.token);
-  const userInfo = useSelector((state) => state.userInfo?.userInfo);
-  const { _id } = userInfo;
+  const { _id: userId } = useSelector((state) => state.userInfo?.userInfo || {});
 
-  // Set the header right button when component mounts
+  // Set header right button with filter icon
   useEffect(() => {
     navigation.setOptions({
       headerRight: () => (
@@ -33,279 +31,102 @@ const NewsFeedScreen = ({ navigation }) => {
           style={{ marginRight: 10 }}
         >
           <Icon name="filter" size={24} color="white" />
-          {inputTag.length > 0 && (
+          {selectedTags.length > 0 && (
             <View style={styles.filterBadge}>
-              <Text style={styles.filterBadgeText}>{inputTag.length}</Text>
+              <Text style={styles.filterBadgeText}>{selectedTags.length}</Text>
             </View>
           )}
         </TouchableOpacity>
       ),
     });
-  }, [navigation, inputTag]);
+  }, [navigation, selectedTags]);
 
-  // Fetch data when the screen loads, added to logout user if deactivated.
+  // Initial data fetch
   useEffect(() => {
-    // Check if user is logged in
     if (token) {
-      // Fetch data when the screen loads
-      onRefresh();
+      fetchArticles();
     }
-  }, []);
+  }, [token]);
 
-  // const fetchUserLikedAndSavedArticles = async () => {
-  //   try {
-  //     if (!token) {
-  //       console.log('No token available for fetching user articles');
-  //       return;
-  //     }
+  // Memoized callbacks
+  const fetchArticles = useCallback(() => {
+    dispatch(fetchData(1, selectedTags, token, navigation));
+  }, [dispatch, selectedTags, token, navigation]);
 
-  //     console.log('Fetching user articles...');
-
-  //     const response = await axios.get(
-  //       `http://${MY_IP_ADDRESS}:5050/user/articles`,
-  //       {
-  //         headers: {
-  //           'Authorization': `Bearer ${token}`,
-  //           'Content-Type': 'application/json'
-  //         }
-  //       }
-  //     );
-
-  //     if (response.data && response.data.success) {
-  //       const likedArticles = Array.isArray(response.data.liked_articles)
-  //         ? response.data.liked_articles.map(id => id?.toString()).filter(Boolean)
-  //         : [];
-  //       const savedArticles = Array.isArray(response.data.saved_articles)
-  //         ? response.data.saved_articles.map(id => id?.toString()).filter(Boolean)
-  //         : [];
-
-  //       dispatch({ type: 'GET_LIKE_LIST', payload: likedArticles });
-  //       dispatch({ type: 'GET_SAVE_LIST', payload: savedArticles });
-  //     } else {
-  //       console.error("Invalid response format:", response.data);
-  //     }
-  //   } catch (error) {
-  //     if (error.response?.status === 401) {
-  //       console.log('Token expired or invalid, redirecting to login');
-  //       navigation.navigate('Log In');
-  //     } else {
-  //       console.error("Error fetching user articles:", error.message);
-  //     }
-  //   }
-  // };
-
-  const filterArticles = async () => {
-    console.log('inputTag----'+inputTag);
-    dispatch(fetchData(1, inputTag, token,navigation));
-    setShowFilterModal(false);
-  };
-
-  const handleTagPress = (tag) => {
-    if (inputTag.includes(tag)) {
-      setInputTag((prevTags) => prevTags.filter((t) => t !== tag));
-    } else {
-      setInputTag((prevTags) => [...prevTags, tag]);
-    }
-  };
-
-  const navigateToContent = (link) => {
-    navigation.navigate("Article Webview", { link });
-  };
-
-  const navigateToAuthor = (id) => {
-    navigation.navigate("Author", { id });
-  };
-
-  // const handleLike = async (article) => {
-  //   try {
-  //     const response = await axios.post(
-  //       ARTICLE_LIKE_API,
-  //       { user_id: _id, article_id: article._id },
-  //       {
-  //         headers: {
-  //           Authorization: `Bearer ${token}`,
-  //           "Content-Type": "application/json",
-  //         },
-  //       }
-  //     );
-  //     if (response.data.status) {
-  //        dispatch(updateNewsLike(article._id))
-  //     }
-  //   } catch (error) {
-  //     console.error("Error updating like status:", error);
-  //     if (error.response) {
-  //       console.error("Response data:", error.response.data);
-  //       console.error("Response status:", error.response.status);
-  //     }
-  //   }
-  // };
-
-
-
-  const _likeCallback = (id) => {
-    dispatch(handleLike({ token, articles_id: id, user_id: _id }));
-  };
-
-  const _saveCallback = (id) => {
-    dispatch(handleSave({ token, articles_id: id, user_id: _id }));
-  };
-
-
-
-
-  // const handleSave = async (article) => {    
-  //   try {
-  //     const response = await axios.post(
-  //       ARTICLE_SAVE_API,
-  //       { user_id: _id, article_id: article._id },
-  //       {
-  //         headers: {
-  //           Authorization: `Bearer ${token}`,
-  //           "Content-Type": "application/json",
-  //         },
-  //       }
-  //     );
-  //     if (response.data.status) {
-  //        dispatch(updatNewsSave(article._id))
-  //     }
-  //   } catch (error) {
-  //     console.error("Error updating like status:", error);
-  //     if (error.response) {
-  //       console.error("Response data:", error.response.data);
-  //       console.error("Response status:", error.response.status);
-  //     }
-  //   }
-  // };
-
-  const renderArticleItem = ({ item }) => {
-    const { like_count, save_count, is_liked, is_saved } = item;
-
-    return (
-      <View style={styles.card}>
-        <TouchableOpacity
-          onPress={() => navigateToContent(item.article_link)}
-          activeOpacity={0.8}
-        >
-          {item.article_preview_image && (
-            <Image
-              source={{ uri: item.article_preview_image }}
-              style={styles.articleImage}
-              resizeMode="cover"
-            />
-          )}
-          <View style={styles.articleContent}>
-            <Text style={styles.cardTitle}>
-              {item.article_title || "Untitled Article"}
-            </Text>
-            <TouchableOpacity 
-            // onPress={() => navigateToAuthor(item.author_id)}
-            >
-              <Text style={styles.cardSubtitle}>
-                By {item.author_name || "Unknown Author"}
-              </Text>
-            </TouchableOpacity>
-            <View style={styles.statsContainer}>
-              <TouchableOpacity
-                style={styles.statItem}
-                onPress={(e) => {
-                  // e.stopPropagation();
-                  handleLike(item);
-                }}
-                activeOpacity={0.6}
-              >
-                <Icon
-                  name={is_liked ? "heart" : "heart-o"}
-                  size={16}
-                  color={is_liked ? "#e74c3c" : "#666"}
-                />
-                <Text style={styles.statsText}>{like_count}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.statItem}
-                onPress={(e) => {
-                  handleSave(item);
-                }}
-                activeOpacity={0.6}
-              >
-                <Icon
-                  name={is_saved ? "bookmark" : "bookmark-o"}
-                  size={16}
-                  color={is_saved ? "#f39c12" : "#666"}
-                />
-                <Text style={styles.statsText}>{save_count}</Text>
-              </TouchableOpacity>
-            </View>
-            {item.tags && item.tags.length > 0 && (
-              <View style={styles.tagsRow}>
-                {item.tags.slice(0, 3).map((tag, index) => (
-                  <Text key={index} style={styles.tag}>
-                    {tag}
-                  </Text>
-                ))}
-                {item.tags.length > 3 && (
-                  <Text style={styles.tag}>+{item.tags.length - 3}</Text>
-                )}
-              </View>
-            )}
-          </View>
-        </TouchableOpacity>
-      </View>
-    );
-  };
-
-  // Render empty state when no articles are found
-  const renderEmptyState = () => {
-    return (
-      <View style={styles.emptyContainer}>
-        <Text style={styles.emptyText}>No articles found</Text>
-        {inputTag.length > 0 && (
-          <TouchableOpacity
-            style={styles.clearFiltersButton}
-            onPress={() => {
-              setInputTag([]);
-              dispatch(fetchData(1, [], token,navigation));
-            }}
-          >
-            <Text style={styles.clearFiltersText}>Clear filters</Text>
-          </TouchableOpacity>
-        )}
-      </View>
-    );
-  };
-
-  const onRefresh = () => {
-    dispatch(fetchData(1, [], token,navigation));
-  };
-
-  const loadNextPage = async () => {
+  const loadNextPage = useCallback(() => {
     const { page, pages } = pagination;
     if (page < pages) {
-      await dispatch(fetchData(page + 1, inputTag, token,navigation));
+      dispatch(fetchData(page + 1, selectedTags, token, navigation));
     }
-  };
+  }, [dispatch, pagination, selectedTags, token, navigation]);
+
+  const handleLikeCallback = useCallback((articleId) => {
+    dispatch(handleLike({ token, articles_id: articleId, user_id: userId }));
+  }, [dispatch, token, userId]);
+
+  const handleSaveCallback = useCallback((articleId) => {
+    dispatch(handleSave({ token, articles_id: articleId, user_id: userId }));
+  }, [dispatch, token, userId]);
+
+  const handleTagPress = useCallback((tag) => {
+    setSelectedTags(prev => 
+      prev.includes(tag) 
+        ? prev.filter(t => t !== tag) 
+        : [...prev, tag]
+    );
+  }, []);
+
+  const applyFilters = useCallback(() => {
+    fetchArticles();
+    setShowFilterModal(false);
+  }, [fetchArticles]);
+
+  const clearFilters = useCallback(() => {
+    setSelectedTags([]);
+    dispatch(fetchData(1, [], token, navigation));
+  }, [dispatch, token, navigation]);
+
+  const navigateToContent = useCallback((link) => {
+    navigation.navigate("Article Webview", { link });
+  }, [navigation]);
+
+  // Empty state component
+  const EmptyState = () => (
+    <View style={styles.emptyContainer}>
+      <Text style={styles.emptyText}>No articles found</Text>
+      {selectedTags.length > 0 && (
+        <TouchableOpacity
+          style={styles.clearFiltersButton}
+          onPress={clearFilters}
+        >
+          <Text style={styles.clearFiltersText}>Clear filters</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
 
   return (
     <View style={styles.container}>
       <FlatList
         data={articles}
         refreshing={false}
-        onRefresh={onRefresh}
+        onRefresh={fetchArticles}
         renderItem={({ item }) => (
           <ListRowItem
             item={item}
-            handleLike={_likeCallback}
-            handleSave={_saveCallback}
+            handleLike={handleLikeCallback}
+            handleSave={handleSaveCallback}
+            onPressItem={() => navigateToContent(item.article_link)}
           />
         )}
-        // renderItem={ListRowItem()}
         keyExtractor={(item) => item._id?.toString() || item.article_link}
         contentContainerStyle={styles.listContainer}
-        onEndReached={() => {
-          loadNextPage();
-        }}
+        onEndReached={loadNextPage}
         onEndReachedThreshold={0.5}
-        ListEmptyComponent={renderEmptyState}
+        ListEmptyComponent={EmptyState}
       />
+      
+      {/* Filter Modal */}
       <Modal
         animationType="slide"
         transparent={true}
@@ -321,26 +142,28 @@ const NewsFeedScreen = ({ navigation }) => {
               <Icon name="times" size={20} color="black" />
             </TouchableOpacity>
             <Text style={styles.modalTitle}>Filter Articles</Text>
+            
             <View style={styles.selectedTagsContainer}>
               <Text style={styles.selectedTagsLabel}>
-                {inputTag.length > 0 ? "Selected tags:" : "No tags selected"}
+                {selectedTags.length > 0 ? "Selected tags:" : "No tags selected"}
               </Text>
-              <Text style={styles.selectedTags}>{inputTag.join(", ")}</Text>
+              <Text style={styles.selectedTags}>{selectedTags.join(", ")}</Text>
             </View>
+            
             <View style={styles.tagsGrid}>
               {tags.map((tag) => {
-                const isExist = inputTag.includes(tag);
+                const isSelected = selectedTags.includes(tag);
                 return (
                   <TouchableOpacity
                     key={tag}
                     onPress={() => handleTagPress(tag)}
                     style={[
                       styles.tagButton,
-                      isExist && styles.tagButtonSelected,
+                      isSelected && styles.tagButtonSelected,
                     ]}
                   >
                     <Text
-                      style={isExist ? styles.tagTextSelected : styles.tagText}
+                      style={isSelected ? styles.tagTextSelected : styles.tagText}
                     >
                       {tag}
                     </Text>
@@ -348,11 +171,10 @@ const NewsFeedScreen = ({ navigation }) => {
                 );
               })}
             </View>
+            
             <TouchableOpacity
               style={styles.applyButton}
-              onPress={() => {
-                filterArticles();
-              }}
+              onPress={applyFilters}
             >
               <Text style={styles.applyButtonText}>Apply Filters</Text>
             </TouchableOpacity>
@@ -388,66 +210,6 @@ const styles = StyleSheet.create({
   },
   listContainer: {
     padding: 10,
-  },
-  card: {
-    backgroundColor: "white",
-    borderRadius: 8,
-    marginBottom: 15,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 1,
-    elevation: 2,
-    overflow: "hidden",
-  },
-  articleImage: {
-    width: "100%",
-    height: 180,
-  },
-  articleContent: {
-    padding: 15,
-  },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: "bold",
-    marginBottom: 5,
-    color: "#333",
-  },
-  cardSubtitle: {
-    fontSize: 14,
-    color: "#666",
-    marginBottom: 10,
-    textDecorationLine: "underline",
-  },
-  statsContainer: {
-    flexDirection: "row",
-    marginTop: 5,
-    marginBottom: 10,
-  },
-  statItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginRight: 15,
-  },
-  statsText: {
-    fontSize: 14,
-    color: "#666",
-    marginLeft: 5,
-  },
-  tagsRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    marginTop: 5,
-  },
-  tag: {
-    backgroundColor: "#e0f2f1",
-    color: "#00796b",
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 4,
-    fontSize: 12,
-    marginRight: 5,
-    marginTop: 5,
   },
   emptyContainer: {
     flex: 1,
