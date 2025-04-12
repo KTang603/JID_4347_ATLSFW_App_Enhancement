@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -16,6 +16,306 @@ import { Ionicons } from "@expo/vector-icons";
 import { useSelector, useDispatch } from "react-redux";
 import { fetchHomeData } from "../redux/actions/homeAction";
 
+// Extracted Modal Component
+const EventDetailsModal = ({ visible, event, onClose }) => {
+  if (!event) return null;
+  
+  return (
+    <Modal
+      animationType="slide"
+      transparent={true}
+      visible={visible}
+      onRequestClose={onClose}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.eventDetailsModalContent}>
+          <View style={styles.eventDetailsHeader}>
+            <Text style={styles.eventDetailsTitle}>
+              {getEventTitle(event)}
+            </Text>
+            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+              <Ionicons name="close" size={24} color="#666" />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={styles.eventDetailsScrollView}>
+            {/* Date and Time */}
+            <ModalSection 
+              label="Date & Time" 
+              content={formatEventDateTime(
+                event.event_date,
+                event.event_time,
+                event.event_end_time
+              )} 
+            />
+
+            {/* Location */}
+            <ModalSection 
+              label="Location" 
+              content={event.event_location || event.location || "No location provided"} 
+            />
+
+            {/* Description */}
+            {(event.event_desc || event.description) && (
+              <ModalSection 
+                label="Description" 
+                content={event.event_desc || event.description} 
+              />
+            )}
+
+            {/* Links */}
+            {event.event_link && (
+              <ModalSection 
+                label="Event Link" 
+                isLink={true}
+                url={event.event_link}
+                linkText="Open Event Link"
+              />
+            )}
+
+            {/* Ticket URL if available */}
+            {event.ticket_url && (
+              <ModalSection 
+                label="Tickets" 
+                isLink={true}
+                url={event.ticket_url}
+                linkText="Get Tickets"
+              />
+            )}
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
+  );
+};
+
+  // Modal Section Component
+const ModalSection = ({ label, content, isLink = false, url, linkText }) => (
+  <View style={styles.eventDetailSection}>
+    <Text style={styles.eventDetailLabel}>{label}</Text>
+    {isLink ? (
+      <TouchableOpacity onPress={() => Linking.openURL(url)}>
+        <Text style={styles.eventDetailLink}>{linkText}</Text>
+      </TouchableOpacity>
+    ) : (
+      <Text style={styles.eventDetailText}>{content}</Text>
+    )}
+  </View>
+);
+
+// Helper functions
+const getEventTitle = (event) => 
+  event.event_title || event.title || "Untitled Event";
+
+const getEventDescription = (event) => {
+  const desc = event.event_desc || event.description;
+  // Check if the description is a URL
+  if (desc && (desc.startsWith("http://") || desc.startsWith("https://"))) {
+    return "Click for event details";
+  }
+  return desc;
+};
+
+const formatTime = (time) => {
+  if (!time) return "";
+
+  const [hours, minutes] = time.split(":");
+  const hour = parseInt(hours, 10);
+  const ampm = hour >= 12 ? "pm" : "am";
+  const hour12 = hour % 12 || 12; // Convert 0 to 12 for 12 AM
+
+  // If minutes is "00", only show the hour
+  return minutes === "00" ? `${hour12}${ampm}` : `${hour12}:${minutes}${ampm}`;
+};
+
+const formatEventDateTime = (dateStr, startTime, endTime) => {
+  if (!dateStr) return "";
+
+  // Parse the date - ensure we're using the correct date by handling timezone issues
+  // Format: YYYY-MM-DD (e.g., 2025-03-29)
+  const [year, month, day] = dateStr
+    .split("-")
+    .map((num) => parseInt(num, 10));
+
+  // Create date using UTC to avoid timezone issues (months are 0-indexed in JS)
+  const date = new Date(Date.UTC(year, month - 1, day));
+
+  // Get day of week
+  const days = [
+    "Sunday",
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+  ];
+  const dayOfWeek = days[date.getUTCDay()];
+
+  // Get month
+  const months = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+  ];
+  const monthName = months[date.getUTCMonth()];
+
+  // Format date - use UTC methods to avoid timezone issues
+  const dayOfMonth = date.getUTCDate();
+
+  // Format the full date and time string
+  let formattedDateTime = `${dayOfWeek}, ${monthName} ${dayOfMonth}`;
+
+  if (startTime) {
+    formattedDateTime += ` · ${formatTime(startTime)}`;
+
+    if (endTime) {
+      formattedDateTime += ` - ${formatTime(endTime)}`;
+    }
+  }
+
+  return formattedDateTime;
+};
+
+// Generic Card Component
+const Card = ({ item, type, onPress, optionsPress }) => {
+  const renderContent = () => {
+    switch (type) {
+      case 'event':
+        return (
+          <View style={styles.eventInfo}>
+            <View style={styles.titleRow}>
+              <Text style={styles.eventTitle}>{getEventTitle(item)}</Text>
+              {optionsPress && (
+                <TouchableOpacity
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    optionsPress(item);
+                  }}
+                  style={styles.optionsButton}
+                >
+                  <Ionicons name="ellipsis-vertical" size={20} color="#aaa" />
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {(item.event_desc || item.description) && (
+              <Text style={styles.eventDescription} numberOfLines={2}>
+                {getEventDescription(item)}
+              </Text>
+            )}
+
+            <Text style={[styles.eventDate, { marginTop: 5 }]}>
+              {formatEventDateTime(
+                item.event_date || item.date,
+                item.event_time,
+                item.event_end_time
+              )}
+            </Text>
+          </View>
+        );
+      
+      case 'brand':
+        return (
+          <>
+            <View style={styles.brandImageContainer}>
+              {item.image ? (
+                <Image source={{ uri: item.image }} style={styles.brandImage} />
+              ) : (
+                <View style={[styles.brandImage, styles.placeholderImage]}>
+                  <Ionicons name="shirt" size={30} color="#02833D" />
+                </View>
+              )}
+            </View>
+            <Text style={styles.brandName}>{item.name}</Text>
+            <Text style={styles.brandDescription} numberOfLines={2}>
+              {item.description}
+            </Text>
+          </>
+        );
+      
+      case 'workshop':
+        return (
+          <>
+            <View style={styles.workshopHeader}>
+              <Ionicons name="construct" size={24} color="#02833D" />
+              <Text style={styles.workshopTitle}>{getEventTitle(item)}</Text>
+              {optionsPress && (
+                <TouchableOpacity
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    optionsPress(item);
+                  }}
+                  style={styles.optionsButton}
+                >
+                  <Ionicons name="ellipsis-vertical" size={20} color="#aaa" />
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {(item.event_desc || item.description) && (
+              <Text style={styles.eventDescription} numberOfLines={2}>
+                {getEventDescription(item)}
+              </Text>
+            )}
+
+            <Text style={[styles.workshopDate, { marginTop: 5 }]}>
+              {formatEventDateTime(
+                item.event_date || item.date,
+                item.event_time || item.time,
+                item.event_end_time
+              )}
+            </Text>
+          </>
+        );
+      
+      default:
+        return null;
+    }
+  };
+
+  // Select the appropriate style based on card type
+  const cardStyle = {
+    event: styles.eventCard,
+    brand: styles.brandCard,
+    workshop: styles.workshopCard,
+  };
+
+  return (
+    <TouchableOpacity 
+      key={item._id} 
+      style={cardStyle[type]} 
+      onPress={() => onPress(item)}
+    >
+      {renderContent()}
+    </TouchableOpacity>
+  );
+};
+
+// Section Component
+const Section = ({ title, onSeeAll, children, noDataMessage }) => (
+  <View style={styles.section}>
+    <View style={styles.sectionHeader}>
+      <Text style={styles.sectionTitle}>{title}</Text>
+      {onSeeAll && (
+        <TouchableOpacity onPress={onSeeAll}>
+          <Text style={styles.seeAllText}>See All</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+    {children || <Text style={styles.noDataText}>{noDataMessage}</Text>}
+  </View>
+);
+
 const HomeScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [eventDetailsVisible, setEventDetailsVisible] = useState(false);
@@ -29,153 +329,20 @@ const HomeScreen = () => {
     workshops,
     featuredTicketEvent,
     loading,
-    authError,
   } = useSelector((store) => store.home);
 
-  
   const onRefresh = async () => {
     setRefreshing(true);
     await dispatch(fetchHomeData(token));
     setRefreshing(false);
   };
 
-  // Helper function to format time from 24-hour to 12-hour format
-  const formatTime = (time) => {
-    if (!time) return "";
-
-    const [hours, minutes] = time.split(":");
-    const hour = parseInt(hours, 10);
-    const ampm = hour >= 12 ? "PM" : "AM";
-    const hour12 = hour % 12 || 12; // Convert 0 to 12 for 12 AM
-
-    return `${hour12}:${minutes} ${ampm}`;
+  const showEventDetails = (event) => {
+    setSelectedEvent(event);
+    setEventDetailsVisible(true);
   };
 
-  const renderEventItem = (event) => (
-    <TouchableOpacity
-      key={event._id}
-      style={styles.eventCard}
-      onPress={() => showEventDetails(event)}
-    >
-      <View style={styles.eventInfo}>
-        <View style={styles.titleRow}>
-          <Text style={styles.eventTitle}>
-            {event.event_title || event.title || "Untitled Event"}
-          </Text>
-          <TouchableOpacity
-            onPress={(e) => {
-              e.stopPropagation(); // Prevent card click
-              showEventDetails(event);
-            }}
-            style={styles.optionsButton}
-          >
-            <Ionicons name="ellipsis-vertical" size={20} color="#aaa" />
-          </TouchableOpacity>
-        </View>
-
-        {/* Description - make sure we're not displaying URLs */}
-        {(event.event_desc || event.description) && (
-          <Text style={styles.eventDescription} numberOfLines={2}>
-            {/* Filter out URLs from description */}
-            {(() => {
-              const desc = event.event_desc || event.description;
-              // Check if the description is a URL
-              if (
-                desc &&
-                (desc.startsWith("http://") || desc.startsWith("https://"))
-              ) {
-                return "Click for event details";
-              }
-              return desc;
-            })()}
-          </Text>
-        )}
-
-        {/* Date and Time - moved to bottom */}
-        <Text style={[styles.eventDate, { marginTop: 5 }]}>
-          {event.event_date || event.date || "No date"}
-          {event.event_time ? ` • ${formatTime(event.event_time)}` : ""}
-        </Text>
-      </View>
-    </TouchableOpacity>
-  );
-
-  const renderBrandItem = (brand) => (
-    <TouchableOpacity
-      key={brand._id}
-      style={styles.brandCard}
-      onPress={() =>
-        navigation.navigate("Shop Now Webview", { vendorId: brand._id })
-      }
-    >
-      <View style={styles.brandImageContainer}>
-        {brand.image ? (
-          <Image source={{ uri: brand.image }} style={styles.brandImage} />
-        ) : (
-          <View style={[styles.brandImage, styles.placeholderImage]}>
-            <Ionicons name="shirt" size={30} color="#02833D" />
-          </View>
-        )}
-      </View>
-      <Text style={styles.brandName}>{brand.name}</Text>
-      <Text style={styles.brandDescription} numberOfLines={2}>
-        {brand.description}
-      </Text>
-    </TouchableOpacity>
-  );
-
-  const renderWorkshopItem = (workshop) => (
-    <TouchableOpacity
-      key={workshop._id}
-      style={styles.workshopCard}
-      onPress={() => showEventDetails(workshop)}
-    >
-      <View style={styles.workshopHeader}>
-        <Ionicons name="construct" size={24} color="#02833D" />
-        <Text style={styles.workshopTitle}>
-          {workshop.event_title || workshop.title || "Untitled Workshop"}
-        </Text>
-        <TouchableOpacity
-          onPress={(e) => {
-            e.stopPropagation(); // Prevent card click
-            showEventDetails(workshop);
-          }}
-          style={styles.optionsButton}
-        >
-          <Ionicons name="ellipsis-vertical" size={20} color="#aaa" />
-        </TouchableOpacity>
-      </View>
-
-      {/* Description */}
-      {(workshop.event_desc || workshop.description) && (
-        <Text style={styles.eventDescription} numberOfLines={2}>
-          {/* Filter out URLs from description */}
-          {(() => {
-            const desc = workshop.event_desc || workshop.description;
-            // Check if the description is a URL
-            if (
-              desc &&
-              (desc.startsWith("http://") || desc.startsWith("https://"))
-            ) {
-              return "Click for workshop details";
-            }
-            return desc;
-          })()}
-        </Text>
-      )}
-
-      {/* Date and Time - moved to bottom */}
-      <Text style={[styles.workshopDate, { marginTop: 5 }]}>
-        {workshop.event_date || workshop.date || "No date"}
-        {workshop.event_time
-          ? ` • ${formatTime(workshop.event_time)}`
-          : workshop.time
-          ? ` • ${workshop.time}`
-          : ""}
-      </Text>
-    </TouchableOpacity>
-  );
-
+  // Loading State
   if (loading && !refreshing) {
     return (
       <View style={styles.loadingContainer}>
@@ -184,96 +351,6 @@ const HomeScreen = () => {
       </View>
     );
   }
-
-  // Helper function to format event date and time
-  const formatEventDateTime = (dateStr, startTime, endTime) => {
-    if (!dateStr) return "";
-
-    // Parse the date - ensure we're using the correct date by handling timezone issues
-    // Format: YYYY-MM-DD (e.g., 2025-03-29)
-    const [year, month, day] = dateStr
-      .split("-")
-      .map((num) => parseInt(num, 10));
-
-    // Create date using UTC to avoid timezone issues (months are 0-indexed in JS)
-    const date = new Date(Date.UTC(year, month - 1, day));
-
-    // Get day of week
-    const days = [
-      "Sunday",
-      "Monday",
-      "Tuesday",
-      "Wednesday",
-      "Thursday",
-      "Friday",
-      "Saturday",
-    ];
-    const dayOfWeek = days[date.getUTCDay()];
-
-    // Get month
-    const months = [
-      "January",
-      "February",
-      "March",
-      "April",
-      "May",
-      "June",
-      "July",
-      "August",
-      "September",
-      "October",
-      "November",
-      "December",
-    ];
-    const monthName = months[date.getUTCMonth()];
-
-    // Format date - use UTC methods to avoid timezone issues
-    const dayOfMonth = date.getUTCDate();
-
-    // Format the full date and time string
-    let formattedDateTime = `${dayOfWeek}, ${monthName} ${dayOfMonth}`;
-
-    if (startTime) {
-      formattedDateTime += ` · ${formatTime(startTime)}`;
-
-      if (endTime) {
-        formattedDateTime += ` - ${formatTime(endTime)}`;
-      }
-    }
-
-    return formattedDateTime;
-  };
-
-  // Function to show event details modal
-  const showEventDetails = (event) => {
-    setSelectedEvent(event);
-    setEventDetailsVisible(true);
-  };
-
-  
-    /* Upcoming Events Section */
-  const UpComingEvents = () => {
-    return (
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Upcoming Events</Text>
-          <TouchableOpacity
-            onPress={() => navigation.navigate("Events", { eventType: "regular"}) 
-            }
-          >
-            <Text style={styles.seeAllText}>See All</Text>
-          </TouchableOpacity>
-        </View>
-        <View style={styles.eventsContainer}>
-          {upcomingEvents.length > 0 ? (
-            upcomingEvents.map(renderEventItem)
-          ) : (
-            <Text style={styles.noDataText}>Events Coming Soon!</Text>
-          )}
-        </View>
-      </View>
-    );
-  };
 
   return (
     <ScrollView
@@ -287,124 +364,68 @@ const HomeScreen = () => {
       }
     >
       {/* Event Details Modal */}
-      <Modal
-        animationType="slide"
-        transparent={true}
+      <EventDetailsModal 
         visible={eventDetailsVisible}
-        onRequestClose={() => setEventDetailsVisible(false)}
+        event={selectedEvent}
+        onClose={() => setEventDetailsVisible(false)}
+      />
+
+      {/* Upcoming Events Section */}
+      <Section 
+        title="Upcoming Events"
+        onSeeAll={() => navigation.navigate("Events", { eventType: "regular" })}
+        noDataMessage="Events Coming Soon!"
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.eventDetailsModalContent}>
-            {selectedEvent && (
-              <>
-                <View style={styles.eventDetailsHeader}>
-                  <Text style={styles.eventDetailsTitle}>
-                    {selectedEvent.event_title ||
-                      selectedEvent.title ||
-                      "Untitled Event"}
-                  </Text>
-                  <TouchableOpacity
-                    onPress={() => setEventDetailsVisible(false)}
-                    style={styles.closeButton}
-                  >
-                    <Ionicons name="close" size={24} color="#666" />
-                  </TouchableOpacity>
-                </View>
-
-                <ScrollView style={styles.eventDetailsScrollView}>
-                  {/* Date and Time */}
-                  <View style={styles.eventDetailSection}>
-                    <Text style={styles.eventDetailLabel}>Date & Time</Text>
-                    <Text style={styles.eventDetailText}>
-                      {formatEventDateTime(
-                        selectedEvent.event_date,
-                        selectedEvent.event_time,
-                        selectedEvent.event_end_time
-                      )}
-                    </Text>
-                  </View>
-
-                  {/* Location */}
-                  <View style={styles.eventDetailSection}>
-                    <Text style={styles.eventDetailLabel}>Location</Text>
-                    <Text style={styles.eventDetailText}>
-                      {selectedEvent.event_location ||
-                        selectedEvent.location ||
-                        "No location provided"}
-                    </Text>
-                  </View>
-
-                  {/* Description */}
-                  {(selectedEvent.event_desc || selectedEvent.description) && (
-                    <View style={styles.eventDetailSection}>
-                      <Text style={styles.eventDetailLabel}>Description</Text>
-                      <Text style={styles.eventDetailText}>
-                        {selectedEvent.event_desc || selectedEvent.description}
-                      </Text>
-                    </View>
-                  )}
-
-                  {/* Links */}
-                  {selectedEvent.event_link && (
-                    <View style={styles.eventDetailSection}>
-                      <Text style={styles.eventDetailLabel}>Event Link</Text>
-                      <TouchableOpacity
-                        onPress={() =>
-                          Linking.openURL(selectedEvent.event_link)
-                        }
-                      >
-                        <Text style={styles.eventDetailLink}>
-                          Open Event Link
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
-                  )}
-
-                  {/* Ticket URL if available */}
-                  {selectedEvent.ticket_url && (
-                    <View style={styles.eventDetailSection}>
-                      <Text style={styles.eventDetailLabel}>Tickets</Text>
-                      <TouchableOpacity
-                        onPress={() =>
-                          Linking.openURL(selectedEvent.ticket_url)
-                        }
-                      >
-                        <Text style={styles.eventDetailLink}>Get Tickets</Text>
-                      </TouchableOpacity>
-                    </View>
-                  )}
-                </ScrollView>
-              </>
-            )}
+        {upcomingEvents.length > 0 && (
+          <View style={styles.eventsContainer}>
+            {upcomingEvents.map(event => (
+              <Card 
+                key={event._id}
+                item={event} 
+                type="event" 
+                onPress={showEventDetails}
+                optionsPress={showEventDetails}
+              />
+            ))}
           </View>
-        </View>
-      </Modal>
-      <UpComingEvents />
+        )}
+      </Section>
 
       {/* Ticket Information */}
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Get Your Tickets</Text>
-        </View>
+      <Section title="Get Your Tickets">
         {featuredTicketEvent ? (
           <TouchableOpacity
             style={styles.ticketCard}
-            onPress={() =>
-              navigation.navigate("Shop Now Webview", {
-                link: featuredTicketEvent.ticket_url,
-              })
-            }
+            onPress={() => showEventDetails(featuredTicketEvent)}
           >
             <View style={styles.ticketContent}>
-              <Text style={styles.ticketTitle}>
-                {featuredTicketEvent.event_title}
-              </Text>
+              <View style={styles.titleRow}>
+                <Text style={styles.ticketTitle}>
+                  {featuredTicketEvent.event_title}
+                </Text>
+                <TouchableOpacity
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    showEventDetails(featuredTicketEvent);
+                  }}
+                  style={styles.optionsButton}
+                >
+                  <Ionicons name="ellipsis-vertical" size={20} color="#aaa" />
+                </TouchableOpacity>
+              </View>
               <Text style={styles.ticketDescription}>
                 {featuredTicketEvent.event_desc &&
                 featuredTicketEvent.event_desc.length > 100
                   ? `${featuredTicketEvent.event_desc.substring(0, 100)}...`
                   : featuredTicketEvent.event_desc ||
                     "Secure your spot at this event. Tickets available now!"}
+              </Text>
+              <Text style={[styles.eventDate, { marginTop: 5, marginBottom: 10 }]}>
+                {formatEventDateTime(
+                  featuredTicketEvent.event_date || featuredTicketEvent.date,
+                  featuredTicketEvent.event_time,
+                  featuredTicketEvent.event_end_time
+                )}
               </Text>
               <View style={styles.ticketButton}>
                 <Text style={styles.ticketButtonText}>Purchase Tickets</Text>
@@ -421,46 +442,48 @@ const HomeScreen = () => {
             </View>
           </View>
         )}
-      </View>
+      </Section>
 
       {/* Participating Brands */}
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Participating Brands</Text>
-          <TouchableOpacity onPress={() => navigation.navigate("Shop")}>
-            <Text style={styles.seeAllText}>See All</Text>
-          </TouchableOpacity>
-        </View>
-        <View style={styles.brandsContainer}>
-          {featuredBrands.length > 0 ? (
-            featuredBrands.map(renderBrandItem)
-          ) : (
-            <Text style={styles.noDataText}>Brands coming soon</Text>
-          )}
-        </View>
-      </View>
+      <Section 
+        title="Participating Brands"
+        onSeeAll={() => navigation.navigate("Shop")}
+        noDataMessage="Brands coming soon"
+      >
+        {featuredBrands.length > 0 && (
+          <View style={styles.brandsContainer}>
+            {featuredBrands.map(brand => (
+              <Card 
+                key={brand._id}
+                item={brand} 
+                type="brand" 
+                onPress={() => navigation.navigate("Shop Now Webview", { vendorId: brand._id })}
+              />
+            ))}
+          </View>
+        )}
+      </Section>
 
       {/* Workshops & Repair Cafe */}
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Workshops & Repair Cafe</Text>
-          <TouchableOpacity
-              onPress={() => navigation.navigate("Events", { eventType: "workshop" })
-              }
-          >
-            <Text style={styles.seeAllText}>See All</Text>
-          </TouchableOpacity>
-        </View>
-        <View style={styles.workshopsContainer}>
-          {workshops.length > 0 ? (
-            workshops.map(renderWorkshopItem)
-          ) : (
-            <Text style={styles.noDataText}>
-              No workshops scheduled at this time
-            </Text>
-          )}
-        </View>
-      </View>
+      <Section 
+        title="Workshops & Repair Cafe"
+        onSeeAll={() => navigation.navigate("Events", { eventType: "workshop" })}
+        noDataMessage="No workshops scheduled at this time"
+      >
+        {workshops.length > 0 && (
+          <View style={styles.workshopsContainer}>
+            {workshops.map(workshop => (
+              <Card 
+                key={workshop._id}
+                item={workshop} 
+                type="workshop" 
+                onPress={showEventDetails}
+                optionsPress={showEventDetails}
+              />
+            ))}
+          </View>
+        )}
+      </Section>
     </ScrollView>
   );
 };
@@ -480,30 +503,6 @@ const styles = StyleSheet.create({
     marginTop: 10,
     color: "#02833D",
     fontSize: 16,
-  },
-  banner: {
-    backgroundColor: "#02833D",
-    padding: 20,
-    alignItems: "center",
-  },
-  bannerLogo: {
-    width: 100,
-    height: 100,
-    resizeMode: "contain",
-    marginBottom: 10,
-  },
-  bannerTitle: {
-    color: "#fff",
-    fontSize: 22,
-    fontWeight: "bold",
-    textAlign: "center",
-    marginBottom: 5,
-  },
-  bannerSubtitle: {
-    color: "#fff",
-    fontSize: 14,
-    textAlign: "center",
-    opacity: 0.8,
   },
   section: {
     padding: 15,
