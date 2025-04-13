@@ -13,11 +13,11 @@ import { handleApiError } from '../../utils/ApiErrorHandler';
 
 const UserProfile = () => {
   const [selectedTab, setSelectedTab] = useState('contact');
-  const [selectedInterests, setSelectedInterests] = useState([]);
   const [editMode, setEditMode] = useState(false);
   const [imageUri, setImageUri] = useState(null);
   const [savedPath, setSavedPath] = useState(null);
   const userInfo = useSelector((store) => store.userInfo.userInfo);
+  const [selectedInterests, setSelectedInterests] = useState(userInfo.user_interests || []);
   const token = useSelector((store) => store.token.token);
   const navigation = useNavigation();
 
@@ -28,12 +28,52 @@ const UserProfile = () => {
   const [editedPhoneNumber, setEditedPhoneNumber] = useState(userInfo["phone_number"]);
   const dispatch = useDispatch();
 
+  const updateInterests = async (interests) => {
+    const userId = await getUserId();
+    try {
+      // Send just the interests data to your backend
+      const response = await axios({
+        method: 'PATCH',
+        url: "http://" + MY_IP_ADDRESS + ":5050/user/edit/",
+        params: {
+          user_id: userId
+        },
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        data: {
+          user_interests: interests
+        }
+      });
+
+      if (response.status == 200) {
+        // Update Redux store with new interests
+        dispatch(
+          setUserInfo({
+            ...userInfo,
+            user_interests: interests
+          })
+        );
+      }
+    } catch (error) {
+      // Use the handleApiError function to handle deactivated user accounts
+      const errorHandled = await handleApiError(error, navigation);
+      
+      // If the error wasn't handled as a deactivated account, show a generic error message
+      if (!errorHandled) {
+        Alert.alert("Error", "Failed to update interests");
+      }
+    }
+  };
+
   const toggleInterest = interest => {
-    setSelectedInterests(prevSelectedInterests =>
-      prevSelectedInterests.includes(interest)
-        ? prevSelectedInterests.filter(i => i !== interest)
-        : [...prevSelectedInterests, interest],
-    );
+    const newInterests = selectedInterests.includes(interest)
+      ? selectedInterests.filter(i => i !== interest)
+      : [...selectedInterests, interest];
+    
+    setSelectedInterests(newInterests);
+    updateInterests(newInterests);
   };
 
 
@@ -65,6 +105,7 @@ const UserProfile = () => {
         username: editedUsername,
         birthday: editedBirthday,
         phone_number: editedPhoneNumber,
+        user_interests: selectedInterests,
       };
       
       try {
@@ -243,7 +284,7 @@ const UserProfile = () => {
   </View>
   }
 
-  const interestsList = ['Events', 'Tips/Tricks (DIY)', 'News', 'Shopping'];
+  const interestsList = ['Events', 'Tips/Tricks (DIY)', 'News', 'Shopping', 'Subscribe to our newsletter'];
 
   return (
     <View style={styles.container}>
@@ -437,7 +478,7 @@ const styles = StyleSheet.create({
     height: 12,
     width: 12,
     borderRadius: 1,
-    backgroundColor: '#000',
+    backgroundColor: '#02833D',
   },
   interestText: {
     fontSize: 15,
