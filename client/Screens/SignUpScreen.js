@@ -5,7 +5,6 @@ import {
   View,
   StyleSheet,
   Alert,
-  Switch,
   TouchableOpacity,
   ScrollView,
 } from "react-native";
@@ -27,7 +26,6 @@ const SignUpScreen = ({ navigation }) => {
   const [phoneNum, setPhoneNum] = useState("");
   const [birthday, setBirthday] = useState("");
   const [gender, setGender] = useState("");
-  const [agreeSubscribe, setAgreeSubscribe] = useState(false);
 
 
   const handleSignUp = async () => {
@@ -82,7 +80,6 @@ const SignUpScreen = ({ navigation }) => {
           setPhoneNum('');
           setBirthday('');
           setGender('');
-          setAgreeSubscribe(false)
         } else {
           Alert.alert("Error", data.message, [{ text: "Try Again" }]);
         }
@@ -152,18 +149,6 @@ const SignUpScreen = ({ navigation }) => {
           onChangeText={setGender}
           style={styles.input}
         />
-        <View style={styles.switchContainer}>
-          <Text>Subscribe to our newsletter? </Text>
-          <Switch
-            trackColor={{ false: "#767577", true: "#81b0ff" }}
-            thumbColor={agreeSubscribe ? "#f5dd4b" : "#f4f3f4"}
-            ios_backgroundColor="#3e3e3e"
-            onValueChange={() =>
-              setAgreeSubscribe((previousState) => !previousState)
-            }
-            value={agreeSubscribe}
-          />
-        </View>
         <AppPrimaryButton title={"Sign Up"} handleSubmit={handleSignUp} />
 
         <TouchableOpacity
@@ -190,11 +175,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     borderColor: "black",
-  },
-  switchContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginVertical: 5,
   },
   signUpSection: {
     marginTop: 14,
