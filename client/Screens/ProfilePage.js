@@ -55,34 +55,10 @@ const ProfilePage = ({ navigation }) => {
     }
   };
 
-  // Render admin settings if user is an admin
-  const renderAdminSettings = () => {
-    if (accountType !== ACCOUNT_TYPE_ADMIN) return null;
-    
-    return (
-      <TouchableOpacity
-        style={styles.settingItem}
-        onPress={() => navigation.navigate("AdminDataList", { listType: "users" })}
-      >
-        <View style={styles.settingItemContent}>
-          <Icon
-            name="users"
-            size={24}
-            color="#333"
-            style={styles.settingIcon}
-          />
-          <Text style={styles.settingText}>Manage Users</Text>
-        </View>
-        <Icon name="chevron-right" size={24} color="#999" />
-      </TouchableOpacity>
-    );
-  };
-
   return (
     <View style={styles.container}>
       <ScrollView style={styles.contentContainer}>
         {renderProfile()}
-        {renderAdminSettings()}
       </ScrollView>
     </View>
   );
