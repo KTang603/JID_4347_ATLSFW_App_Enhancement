@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import {
   View,
   Text,
@@ -116,21 +116,35 @@ const getEventDescription = (event) => {
   return desc;
 };
 
+// Date formatters with memoization
+const formatTimeCache = {};
 const formatTime = (time) => {
   if (!time) return "";
-
+  
+  // Use cache to avoid redundant calculations
+  if (formatTimeCache[time]) return formatTimeCache[time];
+  
   const [hours, minutes] = time.split(":");
   const hour = parseInt(hours, 10);
   const ampm = hour >= 12 ? "pm" : "am";
   const hour12 = hour % 12 || 12; // Convert 0 to 12 for 12 AM
 
   // If minutes is "00", only show the hour
-  return minutes === "00" ? `${hour12}${ampm}` : `${hour12}:${minutes}${ampm}`;
+  const result = minutes === "00" ? `${hour12}${ampm}` : `${hour12}:${minutes}${ampm}`;
+  formatTimeCache[time] = result;
+  return result;
 };
 
+const formatDateTimeCache = {};
 const formatEventDateTime = (dateStr, startTime, endTime) => {
   if (!dateStr) return "";
-
+  
+  // Create a cache key from the arguments
+  const cacheKey = `${dateStr}-${startTime || ""}-${endTime || ""}`;
+  
+  // Return cached result if available
+  if (formatDateTimeCache[cacheKey]) return formatDateTimeCache[cacheKey];
+  
   // Parse the date - ensure we're using the correct date by handling timezone issues
   // Format: YYYY-MM-DD (e.g., 2025-03-29)
   const [year, month, day] = dateStr
@@ -182,107 +196,14 @@ const formatEventDateTime = (dateStr, startTime, endTime) => {
       formattedDateTime += ` - ${formatTime(endTime)}`;
     }
   }
-
+  
+  // Cache the result
+  formatDateTimeCache[cacheKey] = formattedDateTime;
   return formattedDateTime;
 };
 
-// Generic Card Component
+// Generic Card Component - Optimize with separate render functions by type
 const Card = ({ item, type, onPress, optionsPress }) => {
-  const renderContent = () => {
-    switch (type) {
-      case 'event':
-        return (
-          <View style={styles.eventInfo}>
-            <View style={styles.titleRow}>
-              <Text style={styles.eventTitle}>{getEventTitle(item)}</Text>
-              {optionsPress && (
-                <TouchableOpacity
-                  onPress={(e) => {
-                    e.stopPropagation();
-                    optionsPress(item);
-                  }}
-                  style={styles.optionsButton}
-                >
-                  <Ionicons name="ellipsis-vertical" size={20} color="#aaa" />
-                </TouchableOpacity>
-              )}
-            </View>
-
-            {(item.event_desc || item.description) && (
-              <Text style={styles.eventDescription} numberOfLines={2}>
-                {getEventDescription(item)}
-              </Text>
-            )}
-
-            <Text style={[styles.eventDate, { marginTop: 5 }]}>
-              {formatEventDateTime(
-                item.event_date || item.date,
-                item.event_time,
-                item.event_end_time
-              )}
-            </Text>
-          </View>
-        );
-      
-      case 'brand':
-        return (
-          <>
-            <View style={styles.brandImageContainer}>
-              {item.image ? (
-                <Image source={{ uri: item.image }} style={styles.brandImage} />
-              ) : (
-                <View style={[styles.brandImage, styles.placeholderImage]}>
-                  <Ionicons name="shirt" size={30} color="#02833D" />
-                </View>
-              )}
-            </View>
-            <Text style={styles.brandName}>{item.name}</Text>
-            <Text style={styles.brandDescription} numberOfLines={2}>
-              {item.description}
-            </Text>
-          </>
-        );
-      
-      case 'workshop':
-        return (
-          <>
-            <View style={styles.workshopHeader}>
-              <Ionicons name="construct" size={24} color="#02833D" />
-              <Text style={styles.workshopTitle}>{getEventTitle(item)}</Text>
-              {optionsPress && (
-                <TouchableOpacity
-                  onPress={(e) => {
-                    e.stopPropagation();
-                    optionsPress(item);
-                  }}
-                  style={styles.optionsButton}
-                >
-                  <Ionicons name="ellipsis-vertical" size={20} color="#aaa" />
-                </TouchableOpacity>
-              )}
-            </View>
-
-            {(item.event_desc || item.description) && (
-              <Text style={styles.eventDescription} numberOfLines={2}>
-                {getEventDescription(item)}
-              </Text>
-            )}
-
-            <Text style={[styles.workshopDate, { marginTop: 5 }]}>
-              {formatEventDateTime(
-                item.event_date || item.date,
-                item.event_time || item.time,
-                item.event_end_time
-              )}
-            </Text>
-          </>
-        );
-      
-      default:
-        return null;
-    }
-  };
-
   // Select the appropriate style based on card type
   const cardStyle = {
     event: styles.eventCard,
@@ -290,15 +211,113 @@ const Card = ({ item, type, onPress, optionsPress }) => {
     workshop: styles.workshopCard,
   };
 
-  return (
-    <TouchableOpacity 
-      key={item._id} 
-      style={cardStyle[type]} 
-      onPress={() => onPress(item)}
-    >
-      {renderContent()}
-    </TouchableOpacity>
-  );
+  // Use separate render functions by type for clarity and performance
+  if (type === 'event') {
+    return (
+      <TouchableOpacity 
+        key={item._id} 
+        style={cardStyle[type]} 
+        onPress={() => onPress(item)}
+      >
+        <View style={styles.eventInfo}>
+          <View style={styles.titleRow}>
+            <Text style={styles.eventTitle}>{getEventTitle(item)}</Text>
+            {optionsPress && (
+              <TouchableOpacity
+                onPress={(e) => {
+                  e.stopPropagation();
+                  optionsPress(item);
+                }}
+                style={styles.optionsButton}
+              >
+                <Ionicons name="ellipsis-vertical" size={20} color="#aaa" />
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {(item.event_desc || item.description) && (
+            <Text style={styles.eventDescription} numberOfLines={2}>
+              {getEventDescription(item)}
+            </Text>
+          )}
+
+          <Text style={[styles.eventDate, { marginTop: 5 }]}>
+            {formatEventDateTime(
+              item.event_date || item.date,
+              item.event_time,
+              item.event_end_time
+            )}
+          </Text>
+        </View>
+      </TouchableOpacity>
+    );
+  }
+  
+  if (type === 'brand') {
+    return (
+      <TouchableOpacity 
+        key={item._id} 
+        style={cardStyle[type]} 
+        onPress={() => onPress(item)}
+      >
+        <View style={styles.brandImageContainer}>
+          {item.image ? (
+            <Image source={{ uri: item.image }} style={styles.brandImage} />
+          ) : (
+            <View style={[styles.brandImage, styles.placeholderImage]}>
+              <Ionicons name="shirt" size={30} color="#02833D" />
+            </View>
+          )}
+        </View>
+        <Text style={styles.brandName}>{item.name}</Text>
+        <Text style={styles.brandDescription} numberOfLines={2}>
+          {item.description}
+        </Text>
+      </TouchableOpacity>
+    );
+  }
+  
+  if (type === 'workshop') {
+    return (
+      <TouchableOpacity 
+        key={item._id} 
+        style={cardStyle[type]} 
+        onPress={() => onPress(item)}
+      >
+        <View style={styles.workshopHeader}>
+          <Ionicons name="construct" size={24} color="#02833D" />
+          <Text style={styles.workshopTitle}>{getEventTitle(item)}</Text>
+          {optionsPress && (
+            <TouchableOpacity
+              onPress={(e) => {
+                e.stopPropagation();
+                optionsPress(item);
+              }}
+              style={styles.optionsButton}
+            >
+              <Ionicons name="ellipsis-vertical" size={20} color="#aaa" />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {(item.event_desc || item.description) && (
+          <Text style={styles.eventDescription} numberOfLines={2}>
+            {getEventDescription(item)}
+          </Text>
+        )}
+
+        <Text style={[styles.workshopDate, { marginTop: 5 }]}>
+          {formatEventDateTime(
+            item.event_date || item.date,
+            item.event_time || item.time,
+            item.event_end_time
+          )}
+        </Text>
+      </TouchableOpacity>
+    );
+  }
+  
+  return null;
 };
 
 // Section Component
@@ -331,16 +350,60 @@ const HomeScreen = () => {
     loading,
   } = useSelector((store) => store.home);
 
-  const onRefresh = async () => {
+  // Filter events to only show those happening today or in the future
+  const filterCurrentAndFutureEvents = useCallback((events) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Set to beginning of day
+    
+    return events.filter(event => {
+      if (!event.event_date && !event.date) return false;
+      
+      const dateStr = event.event_date || event.date;
+      const [year, month, day] = dateStr.split("-").map(num => parseInt(num, 10));
+      const eventDate = new Date(year, month - 1, day);
+      eventDate.setHours(0, 0, 0, 0); // Set to beginning of day
+      
+      return eventDate >= today;
+    }).sort((a, b) => {
+      // Sort by date (ascending)
+      const dateA = a.event_date || a.date;
+      const dateB = b.event_date || b.date;
+      
+      return new Date(dateA) - new Date(dateB);
+    }).slice(0, 2); // Take only the first 2 upcoming events
+  }, []);
+  
+  // Get random brands
+  const getRandomBrands = useCallback((brands, count = 2) => {
+    if (brands.length <= count) return brands;
+    
+    const shuffled = [...brands].sort(() => 0.5 - Math.random());
+    return shuffled.slice(0, count);
+  }, []);
+  
+  // Memoize filtered lists to prevent recalculation on every render
+  const filteredEvents = useMemo(() => 
+    filterCurrentAndFutureEvents(upcomingEvents),
+  [upcomingEvents, filterCurrentAndFutureEvents]);
+  
+  const filteredWorkshops = useMemo(() => 
+    filterCurrentAndFutureEvents(workshops),
+  [workshops, filterCurrentAndFutureEvents]);
+  
+  const randomBrands = useMemo(() => 
+    getRandomBrands(featuredBrands),
+  [featuredBrands, getRandomBrands]);
+
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await dispatch(fetchHomeData(token));
     setRefreshing(false);
-  };
-
-  const showEventDetails = (event) => {
+  }, [dispatch, token]);
+  
+  const showEventDetails = useCallback((event) => {
     setSelectedEvent(event);
     setEventDetailsVisible(true);
-  };
+  }, []);
 
   // Loading State
   if (loading && !refreshing) {
@@ -376,9 +439,9 @@ const HomeScreen = () => {
         onSeeAll={() => navigation.navigate("Events", { eventType: "regular" })}
         noDataMessage="Events Coming Soon!"
       >
-        {upcomingEvents.length > 0 && (
+        {filteredEvents.length > 0 && (
           <View style={styles.eventsContainer}>
-            {upcomingEvents.map(event => (
+            {filteredEvents.map(event => (
               <Card 
                 key={event._id}
                 item={event} 
@@ -450,9 +513,9 @@ const HomeScreen = () => {
         onSeeAll={() => navigation.navigate("Shop")}
         noDataMessage="Brands coming soon"
       >
-        {featuredBrands.length > 0 && (
+        {randomBrands.length > 0 && (
           <View style={styles.brandsContainer}>
-            {featuredBrands.map(brand => (
+            {randomBrands.map(brand => (
               <Card 
                 key={brand._id}
                 item={brand} 
@@ -470,9 +533,9 @@ const HomeScreen = () => {
         onSeeAll={() => navigation.navigate("Events", { eventType: "workshop" })}
         noDataMessage="No workshops scheduled at this time"
       >
-        {workshops.length > 0 && (
+        {filteredWorkshops.length > 0 && (
           <View style={styles.workshopsContainer}>
-            {workshops.map(workshop => (
+            {filteredWorkshops.map(workshop => (
               <Card 
                 key={workshop._id}
                 item={workshop} 
@@ -491,7 +554,7 @@ const HomeScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f8f8f8",
+    backgroundColor: "#f5f5f5",
   },
   loadingContainer: {
     flex: 1,

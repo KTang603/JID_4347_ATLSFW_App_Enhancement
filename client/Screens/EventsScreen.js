@@ -241,7 +241,7 @@ const EventsScreen = () => {
   const userInfo = useSelector((state) => state.userInfo?.userInfo);
   const token = useSelector((state) => state.userInfo?.token);
   const { _id } = userInfo;
-  const isAdmin = userInfo?.user_roles === ACCOUNT_TYPE_ADMIN;
+  const isAdmin = userInfo?.user_roles === Number(ACCOUNT_TYPE_ADMIN);
 
   // Optimized event handlers
   const fetchEvents = useCallback(async (showLoading = false) => {
@@ -440,7 +440,7 @@ const EventsScreen = () => {
       if (!date) return;
       
       const hasParticipants = event.participants?.length > 0;
-      const isInterested = event.participants?.includes(_id);
+      const isInterested = isAdmin ? hasParticipants : event.participants?.includes(_id);
       
       if (!markings[date]) {
         markings[date] = {
@@ -481,6 +481,12 @@ const EventsScreen = () => {
     
     return "No events match your current filters";
   }, [sortOption, selectedDate]);
+
+  // Add the debug code here, just before the loading check
+  console.log("User roles:", userInfo?.user_roles);
+  console.log("ACCOUNT_TYPE_ADMIN:", ACCOUNT_TYPE_ADMIN);
+  console.log("isAdmin status:", isAdmin);
+  console.log("User info:", userInfo);
 
   // Loading state
   if (initialLoading) {
@@ -736,8 +742,8 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
   },
   addEventButtonContainer: {
-    width: "100%",
-    alignItems: "center",
+    width: "80%",
+    alignSelf: "center",
     marginVertical: 10,
     backgroundColor: "white",
   },
