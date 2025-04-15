@@ -6,15 +6,24 @@ import { setUserInfo, updateDispcoveryInfo } from '../redux/actions/userInfoActi
 
 const DiscoveryPageCreation = () => {
   const userInfo = useSelector((store) => store.userInfo.userInfo);
+  const dispatch = useDispatch();
+  
+  // Get values from shop_info if it exists
+  let brandNameValue = userInfo.shop_info?.brand_name ?? '';
+  let shopNowLinkValue = userInfo.shop_info?.shop_now_link ?? '';
+  let titleValue = userInfo.shop_info?.url ?? ''; // title is stored as url
+  let introValue = userInfo.shop_info?.social_link ?? ''; // intro is stored as social_link
 
-  let brandNameValue = userInfo.discovery_info?.brand_name?? '';
-  let shopNowLinkValue = userInfo.discovery_info?.shop_now_link?? '';
-  let titleValue = userInfo.discovery_info?.title?? '';
-  let introValue = userInfo.discovery_info?.intro?? '';
+  // Use useEffect to update state when userInfo changes
+  React.useEffect(() => {
+    setBrandName(userInfo.shop_info?.brand_name ?? '');
+    setShopNowLink(userInfo.shop_info?.shop_now_link ?? '');
+    setTitle(userInfo.shop_info?.url ?? '');
+    setIntro(userInfo.shop_info?.social_link ?? '');
+  }, [userInfo]);
 
   const [brandName, setBrandName] = useState(brandNameValue);
   const [shopNowLink, setShopNowLink] = useState(shopNowLinkValue);
-  const dispatch = useDispatch();
   const [title, setTitle] = useState(titleValue);
   const [intro, setIntro] = useState(introValue);
 

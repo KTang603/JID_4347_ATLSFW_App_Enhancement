@@ -69,8 +69,6 @@ router.post("/discover/create/:vendor_id", verifyToken, checkUserStatus, async (
 
         const userDB = users_db.collection('customer_info');
         
-        const users = await userDB.findOne({_id: new ObjectId(vendor_id)});
-        
         // Create shop_info object with the provided data
         const shopInfo = {
             brand_name: brand_name,

@@ -55,15 +55,14 @@ router.post("/", async (req, res) => {
       });
     }
 
-    if (existingUser.user_roles == VENDOR_ROLES) {
+    if (userInfo.user_roles == VENDOR_ROLES) {
+      // Get vendor_info from vendor_info collection
       const vendor_info = await users_db
         .collection("vendor_info")
         .findOne({ vendor_id: userInfo._id });
-      if (vendor_info == null) {
-        return res
-          .status(500)
-          .json({ success: false, message: "Vendor does not exist" });
-      } else {
+      
+      if (vendor_info != null) {
+        // Add vendor_info fields to userInfo
         userInfo.brand_name = vendor_info.brand_name;
         userInfo.title = vendor_info.title;
         userInfo.intro = vendor_info.intro;
