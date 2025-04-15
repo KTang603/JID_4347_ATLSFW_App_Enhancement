@@ -282,8 +282,7 @@ const Card = ({ item, type, onPress, optionsPress }) => {
         onPress={() => onPress(item)}
       >
         <View style={styles.workshopHeader}>
-          <Ionicons name="construct" size={24} color="#02833D" />
-          <Text style={styles.workshopTitle}>{getEventTitle(item)}</Text>
+          <Text style={[styles.workshopTitle, { marginLeft: 0 }]}>{getEventTitle(item)}</Text>
           {optionsPress && (
             <TouchableOpacity
               onPress={(e) => {
