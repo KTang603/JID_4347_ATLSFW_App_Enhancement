@@ -124,12 +124,10 @@ router.get("/all", verifyToken,checkUserStatus, async (req, res) => {
       featuredBrands = vendors.map(vendor => {
         // Support both new and old field names
         const imageUrl = vendor.shop_info?.url || vendor.shop_info?.title || null;
-        const socialLink = vendor.shop_info?.social_link || vendor.shop_info?.intro || null;
         
         return {
           _id: vendor._id.toString(),
           name: vendor.shop_info?.brand_name || `${vendor.first_name} ${vendor.last_name}`,
-          description: socialLink || "Sustainable fashion vendor",
           image: imageUrl,
           shop_now_link: vendor.shop_info?.shop_now_link || null
         };

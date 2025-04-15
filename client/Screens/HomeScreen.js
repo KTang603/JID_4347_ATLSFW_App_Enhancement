@@ -270,9 +270,6 @@ const Card = ({ item, type, onPress, optionsPress }) => {
           )}
         </View>
         <Text style={styles.brandName}>{item.name}</Text>
-        <Text style={styles.brandDescription} numberOfLines={2}>
-          {item.description}
-        </Text>
       </TouchableOpacity>
     );
   }
