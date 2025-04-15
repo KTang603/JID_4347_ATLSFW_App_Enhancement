@@ -5,11 +5,14 @@ import { ARTICLE_LIKE_API, ARTICLE_SAVE_API, CREATE_ARTICLE_API } from "../../ut
 import { updatSaveNewsSave, updateSaveNewsLike } from "./saveAction";
 import { handleApiError } from "../../utils/ApiErrorHandler";
 
-export const fetchData =  (page = 1,inputTag,token,navigation) => async (dispatch, getState) => {
+export const fetchData = (page = 1, inputTag, token, navigation, sortOrder = 'desc') => async (dispatch, getState) => {
     try {
-        dispatch(newsDataProgress())        
+        dispatch(newsDataProgress())
+        // Convert inputTag to string if it's an array
+        const tagsParam = Array.isArray(inputTag) ? inputTag.join(",") : inputTag;
+        
         const response = await axios.get(
-        `http://${MY_IP_ADDRESS}:5050/posts?tags=${inputTag.join(",")}&page=${page}&limit=10`,
+        `http://${MY_IP_ADDRESS}:5050/posts?tags=${tagsParam}&page=${page}&limit=10&sortOrder=${sortOrder}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`,

@@ -54,14 +54,18 @@ router.get("/posts", verifyToken,checkUserStatus, async (req, res) => {
     // const sourceQuery = req.query.source;
     // const sortBy = req.query.sortBy || 'publishDate';
 
+    // Extract sort order parameter
+    const sortOrder = req.query.sortOrder || 'desc';
+    
     // Build query
     let query = {};
-    let order = 1;
-
-     if(tagsQuery){
-    order = tagsQuery.includes('Latest') ? -1 : 1
-    tagsQuery = tagsQuery.includes('Latest') && tagsQuery.replace('Latest',"");
-     }
+    let order = sortOrder === 'asc' ? 1 : -1;
+    
+    // Handle tags filter
+    if(tagsQuery){
+      // Remove 'Latest' tag as it's handled by sortOrder now
+      tagsQuery = tagsQuery.includes('Latest') ? tagsQuery.replace('Latest',"") : tagsQuery;
+    }
     // Tags filter
     if (tagsQuery) {
       let tags = tagsQuery.split(",");
@@ -76,7 +80,7 @@ router.get("/posts", verifyToken,checkUserStatus, async (req, res) => {
     // Get paginated results
     const articles = await collection
       .find(query)
-      .sort({ ['createdAt']: order })
+      .sort({ publishDate: order }) // Sort by publishDate field
       .skip(skip)
       .limit(limit)
       .toArray();
