@@ -35,21 +35,14 @@ export const verifyToken = async (req, res, next) => {
 };
 
 export const requireAdmin = (req, res, next) => {
-  // console.log('Checking admin access for user:', req.user);
   if (!req.user) {
-    console.log("No user in request");
     return res.status(403).json({ message: "User not authenticated" });
   }
 
   if (req.user.accountType == USER_ROLES) {
     // 1 is user account type
-    console.log(
-      "User is not admin or not vendor. Account type:",
-      req.user.accountType
-    );
     return res.status(403).json({ message: "Admin or vendor access required" });
   }
-  // console.log('Admin access granted');
   next();
 };
 
@@ -85,9 +78,6 @@ export const checkUserStatus = async (req, res, next) => {
 };
 
 export const requirePermisssion = (req, res, next) => {
-  console.log('====================================');
-  console.log('requirePermisssion----'+JSON.stringify(req.body));
-  console.log('====================================');
   const { accountType } = req.user;
   const { requestType } = req.body;
 
@@ -96,7 +86,6 @@ export const requirePermisssion = (req, res, next) => {
        if(accountType != ADMIN_ROLES ) {
         return res.status(403).json({ message: "User not authenticated" });
        } else { next(); }
-
       break;
     case "ARTICLE":
       if(accountType != USER_ROLES ) {
@@ -107,9 +96,4 @@ export const requirePermisssion = (req, res, next) => {
       next();
       break;
   }
-
-  console.log('====================================');
-  console.log('next-----');
-  console.log('====================================');
-
 };

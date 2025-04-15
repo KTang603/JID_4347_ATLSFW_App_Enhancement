@@ -23,6 +23,7 @@ export const getProfileData =  () => async (dispatch,getState) => {
   try {
     const token = await getUserToken();
     const userId = await getUserId();
+    
     const response = await axios(
        {
         method:'GET',
@@ -35,6 +36,7 @@ export const getProfileData =  () => async (dispatch,getState) => {
         'Content-Type': 'application/json'
       }
     });
+    
     if (response.data) {
       dispatch(setUserInfo(response.data))
     }
