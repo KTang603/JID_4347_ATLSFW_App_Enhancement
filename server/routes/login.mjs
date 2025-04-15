@@ -72,11 +72,13 @@ router.post("/", async (req, res) => {
     }
 
     // Generate JWT token
+    const tokenPayload = {
+      id: userInfo._id.toString(),
+      accountType: userInfo.user_roles,
+    };
+    
     const token = jwt.sign(
-      {
-        id: userInfo._id.toString(),
-        accountType: userInfo.user_roles,
-      },
+      tokenPayload,
       process.env.JWT_SECRET || "your-secret-key"
       // { expiresIn: '24h' }
     );

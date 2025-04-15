@@ -16,19 +16,7 @@ const router = express.Router();
 // Middleware to ensure only admins can access auth routes
 router.use(['/authorize', '/deauthorize'], verifyToken, requireAdmin);
 
-// Middleware to ensure only vendors can access their own routes
-router.use(['/discover/create'], verifyToken, checkUserStatus, async (req, res, next) => {
-    try {
-        // const { vendor_id } = req.params;
-        // if (req.user.id !== vendor_id) {
-        //     return res.status(403).json({ success: false, message: "Access denied" });
-        // }
-        next();
-    } catch (error) {
-        console.error('Error in vendor auth middleware:', error);
-        res.status(500).json({ success: false, message: "Internal Server Error" });
-    }
-});
+// Authorization checks are done in the route handlers
 
 // Authorize vendor
 router.post("/authorize", async (req, res) => {
@@ -40,9 +28,7 @@ router.post("/authorize", async (req, res) => {
             return res.status(400).json({ success: false, message: "Email is required" });
         }
 
-        console.log('Received vendor authorize request for hashed_email:', hashed_email);
-
-        const collection = users_db.collection('user_login');  // replace YOUR_DB_NAME_HERE with your database name
+        const collection = users_db.collection('user_login');
 
         // Use the $set operator to update the account_type field, and upsert: false ensures we're only updating existing documents
         const result = await collection.updateOne({ hashed_email }, { $set: { account_type: 2 } });
@@ -63,11 +49,19 @@ router.post("/authorize", async (req, res) => {
     }
 });
 
-router.post("/discover/create/:vendor_id", async (req, res) => {
+router.post("/discover/create/:vendor_id", verifyToken, checkUserStatus, async (req, res) => {
     try {
-        // Assuming you're passing the hashed_email in the request body
+        // Get vendor_id from URL parameters
         const { vendor_id } = req.params;
         const { brand_name, shop_now_link, title, intro } = req.body;
+
+        // Authorization check - ensure vendors can only create discovery pages for themselves
+        if (req.user.id !== vendor_id) {
+            return res.status(403).json({ 
+                success: false, 
+                message: "Access denied. You can only create a discovery page for your own account." 
+            });
+        }
 
         if (!brand_name || !shop_now_link || !title || !intro) {
             return res.status(400).send("Incomplete discovery information");
@@ -95,6 +89,36 @@ router.post("/discover/create/:vendor_id", async (req, res) => {
                 } 
             }
         );
+
+        // Also update vendor_info collection
+        const vendorInfoCollection = users_db.collection('vendor_info');
+        const vendorInfo = await vendorInfoCollection.findOne({ vendor_id: new ObjectId(vendor_id) });
+        
+        if (vendorInfo) {
+            // Update existing vendor_info entry
+            await vendorInfoCollection.updateOne(
+                { vendor_id: new ObjectId(vendor_id) },
+                { 
+                    $set: { 
+                        brand_name: brand_name,
+                        shop_now_link: shop_now_link,
+                        title: title,
+                        intro: intro,
+                        vendor_account_initialized: true
+                    } 
+                }
+            );
+        } else {
+            // Create new vendor_info entry
+            await vendorInfoCollection.insertOne({ 
+                vendor_id: new ObjectId(vendor_id),
+                brand_name: brand_name,
+                shop_now_link: shop_now_link,
+                title: title,
+                intro: intro,
+                vendor_account_initialized: true
+            });
+        }
 
         if(result.matchedCount){
             // Fetch the updated user to return in the response

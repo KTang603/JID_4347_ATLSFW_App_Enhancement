@@ -47,14 +47,12 @@ export const getProfileData =  () => async (dispatch,getState) => {
 export const updateDispcoveryInfo = async (vendor_id,brandName,shopNowLink,title,intro)=>{
 
   const url = CREATE_DISCOVERY_API+vendor_id;
-  console.log('url-----'+url);
   const payload = {
     brand_name: brandName,
     shop_now_link: shopNowLink,
     title: title,
     intro: intro,
   };
-  // console.log('payload----'+JSON.stringify(payload));
   const token = await getUserToken();
   const response = await axios.post(url, payload,{
     headers: {
