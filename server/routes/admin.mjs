@@ -184,31 +184,27 @@ router.delete("/shops/:id", verifyToken, requireAdmin, async (req, res) => {
       return res.status(404).json({ error: "Shop not found" });
     }
     
-    // Option 1: Delete the shop completely
-    // const result = await users_db.collection("customer_info").deleteOne({ 
-    //   _id: new ObjectId(shopId)
-    // });
-    
-    // Option 2: Deactivate the shop (safer approach)
+    // Delete the shop_info from the user document
     const result = await users_db.collection("customer_info").updateOne(
       { _id: new ObjectId(shopId) },
       { 
-        $set: { 
-          user_status: DEACTIVATE_STATUS,
-          deactivated_at: new Date(),
-          deactivated_by: "admin"
-        } 
+        $unset: { shop_info: "" }
       }
     );
     
     if (result.modifiedCount === 0) {
-      return res.status(404).json({ error: "Failed to deactivate shop" });
+      return res.status(404).json({ error: "Failed to delete shop" });
     }
     
-    res.status(200).json({ success: true, message: "Shop deactivated successfully" });
+    // Also delete the vendor_info entry if it exists
+    await users_db.collection("vendor_info").deleteOne({ 
+      vendor_id: new ObjectId(shopId) 
+    });
+    
+    res.status(200).json({ success: true, message: "Shop deleted successfully" });
   } catch (error) {
-    console.error("Error deactivating shop:", error);
-    res.status(500).json({ error: "Failed to deactivate shop" });
+    console.error("Error deleting shop:", error);
+    res.status(500).json({ error: "Failed to delete shop" });
   }
 });
 
