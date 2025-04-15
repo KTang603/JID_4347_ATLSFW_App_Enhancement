@@ -5,23 +5,18 @@ import { ADMIN_ROLES, USER_ROLES, ACTIVATE_STATUS, DEACTIVATE_STATUS } from "../
 
 export const verifyToken = async (req, res, next) => {
   try {
-    console.log("Authorization header:", req.headers.authorization);
     const token = req.headers.authorization?.split(" ")[1];
 
     if (!token) {
-      console.log("No token provided");
       return res.status(401).json({ message: "Authentication required" });
     }
 
-    console.log("Verifying token:", token);
     const decoded = jwt.verify(
       token,
       process.env.JWT_SECRET || "your-secret-key"
     );
-    console.log("Decoded token:", decoded);
 
     if (!decoded.id || !decoded.accountType) {
-      console.log("Invalid token payload:", decoded);
       return res.status(401).json({ message: "Invalid token payload" });
     }
 
@@ -29,7 +24,6 @@ export const verifyToken = async (req, res, next) => {
       id: decoded.id,
       accountType: decoded.accountType,
     };
-    console.log("User set in request:", req.user);
 
     next();
   } catch (error) {
