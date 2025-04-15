@@ -29,6 +29,9 @@ router.get("/upcoming-events", verifyToken, async (req, res) => {
 // Get featured brands/vendors for the home page
 router.get("/featured-brands", verifyToken, async (req, res) => {
   try {
+    // Import constants for user status
+    const { ACTIVATE_STATUS } = await import("../utils/constant.mjs");
+    
     // Find vendors with featured flag or sort by some criteria
     const vendors = await users_db.collection("vendor_info").find({
       // You can add criteria here, like featured: true
@@ -40,8 +43,12 @@ router.get("/featured-brands", verifyToken, async (req, res) => {
     const vendorsWithDetails = await Promise.all(
       vendors.map(async (vendor) => {
         const userInfo = await users_db.collection("customer_info").findOne({
-          _id: new ObjectId(vendor.vendor_id)
+          _id: new ObjectId(vendor.vendor_id),
+          user_status: ACTIVATE_STATUS // Only include active vendors
         });
+        
+        // Skip this vendor if user is not found or not active
+        if (!userInfo) return null;
         
         return {
           _id: vendor.vendor_id,
@@ -53,7 +60,10 @@ router.get("/featured-brands", verifyToken, async (req, res) => {
       })
     );
     
-    res.status(200).json(vendorsWithDetails);
+    // Filter out null values (inactive vendors)
+    const activeVendors = vendorsWithDetails.filter(vendor => vendor !== null);
+    
+    res.status(200).json(activeVendors);
   } catch (error) {
     console.error("Error fetching featured brands:", error);
     res.status(500).json({ success: false, message: "Failed to fetch featured brands" });
@@ -101,10 +111,14 @@ router.get("/all", verifyToken,checkUserStatus, async (req, res) => {
     // Get 2 random featured brands from customer_info collection
     let featuredBrands = [];
     
-    // Find all users with user_roles = 2 (vendors) and shop_info
+    // Import constants for user status
+    const { ACTIVATE_STATUS } = await import("../utils/constant.mjs");
+    
+    // Find all active users with user_roles = 2 (vendors) and shop_info
     const vendorCount = await users_db.collection("customer_info").countDocuments({ 
       user_roles: 2,
-      shop_info: { $exists: true } 
+      shop_info: { $exists: true },
+      user_status: ACTIVATE_STATUS // Only count active vendors
     });
     
     if (vendorCount > 0) {
@@ -115,7 +129,8 @@ router.get("/all", verifyToken,checkUserStatus, async (req, res) => {
       const vendors = await users_db.collection("customer_info").aggregate([
         { $match: { 
           user_roles: 2,
-          shop_info: { $exists: true } 
+          shop_info: { $exists: true },
+          user_status: ACTIVATE_STATUS // Only include active vendors
         }},
         { $sample: { size: limit } }
       ]).toArray();
