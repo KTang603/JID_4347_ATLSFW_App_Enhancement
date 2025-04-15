@@ -104,8 +104,7 @@ router.get("/events", verifyToken,checkUserStatus, async (req, res) => {
 // Admin only - Create 
 router.post("/events/create", verifyToken,checkUserStatus, async (req, res) => {
   try {
-    // Log received data
-    console.log('Received event data:', req.body);
+    // Extract data from request body
 
     const { event_title, event_desc, event_link, event_location, event_date, event_time, event_end_time, user_id, event_type, ticket_url, is_featured_ticket } = req.body;
     
@@ -125,7 +124,7 @@ router.post("/events/create", verifyToken,checkUserStatus, async (req, res) => {
       });
     }
 
-    // Create event
+    // Create event with explicit boolean conversion for is_featured_ticket
     const result = await events_db.collection('events').insertOne({
       event_title,
       event_desc,
@@ -137,7 +136,7 @@ router.post("/events/create", verifyToken,checkUserStatus, async (req, res) => {
       user_id,
       event_type: event_type || "regular", // Default to regular if not specified
       ticket_url: ticket_url || "", // Add ticket URL field with default empty string
-      is_featured_ticket: is_featured_ticket || false, // Add featured ticket flag with default false
+      is_featured_ticket: Boolean(is_featured_ticket), // Explicitly convert to boolean
       created_at: new Date()
     });
 
@@ -249,7 +248,7 @@ router.put("/events/update/:id", requireAdmin, async (req, res) => {
           event_end_time: event_end_time || "", // Add end time with default empty string
           event_type: event_type || "regular", // Default to regular if not specified
           ticket_url: ticket_url || "", // Add ticket URL field with default empty string
-          is_featured_ticket: is_featured_ticket || false, // Add featured ticket flag with default false
+          is_featured_ticket: Boolean(is_featured_ticket), // Explicitly convert to boolean
           updated_at: new Date()
         } 
       }

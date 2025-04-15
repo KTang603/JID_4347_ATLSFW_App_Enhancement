@@ -147,6 +147,7 @@ router.get("/all", verifyToken,checkUserStatus, async (req, res) => {
     
     // Get the latest event with ticket information for the "Get Your Tickets" section
     // First try to find an event that has been marked as featured
+    // If multiple events are marked as featured, get the one with the soonest date
     let featuredTicketEvent = await events_db.collection("events").findOne({
       event_date: { $gte: currentDateStr },
       ticket_url: { $exists: true, $ne: "" }, // Must have a ticket URL
@@ -155,6 +156,8 @@ router.get("/all", verifyToken,checkUserStatus, async (req, res) => {
         { event_type: "regular" },
         { event_type: "workshop" }
       ]
+    }, {
+      sort: { event_date: 1 } // Sort by date ascending to get the soonest featured event
     });
     
     // If no featured event is found, fall back to the soonest event with a ticket URL
