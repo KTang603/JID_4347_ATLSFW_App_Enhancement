@@ -37,6 +37,7 @@ const CreateEvent = ({ route }) => {
     event_link: "",
     ticket_url: "", // New field for ticket URL
     event_type: "regular", // Default to regular event
+    is_featured_ticket: false, // New field to mark event as featured in "Get Your Tickets" section
     user_id: user_id  // Include user_id who created the event
   });
   
@@ -53,6 +54,7 @@ const CreateEvent = ({ route }) => {
         event_link: eventToUpdate.event_link || "",
         ticket_url: eventToUpdate.ticket_url || "", // Include ticket URL in pre-populated data
         event_type: eventToUpdate.event_type || "regular",
+        is_featured_ticket: eventToUpdate.is_featured_ticket || false, // Include featured ticket flag
         user_id: user_id
       });
     }
@@ -91,6 +93,7 @@ const CreateEvent = ({ route }) => {
         event_time: eventData.event_time,
         event_end_time: eventData.event_end_time,
         ticket_url: eventData.ticket_url, // Include ticket URL in request data
+        is_featured_ticket: eventData.is_featured_ticket, // Include featured ticket flag
         user_id: eventData.user_id,
         event_type: eventData.event_type,
         requestType: "EVENT"
@@ -255,6 +258,29 @@ const CreateEvent = ({ route }) => {
           <Ionicons name="chevron-down" size={16} color="#666" />
         </View>
       </TouchableOpacity>
+      
+      {/* Featured Ticket Event Checkbox - Only show if ticket URL is provided */}
+      {eventData.ticket_url && (
+        <TouchableOpacity 
+          style={styles.checkboxContainer}
+          onPress={() => setEventData({
+            ...eventData, 
+            is_featured_ticket: !eventData.is_featured_ticket
+          })}
+        >
+          <View style={[
+            styles.checkbox, 
+            eventData.is_featured_ticket && styles.checkboxChecked
+          ]}>
+            {eventData.is_featured_ticket && (
+              <Ionicons name="checkmark" size={16} color="white" />
+            )}
+          </View>
+          <Text style={styles.checkboxLabel}>
+            Feature this event in "Get Your Tickets" section on home screen
+          </Text>
+        </TouchableOpacity>
+      )}
       
       {showEventTypeDropdown && (
         <View style={styles.dropdownContainer}>
@@ -496,6 +522,30 @@ const CreateEvent = ({ route }) => {
 
 // Styles for form elements
 const styles = StyleSheet.create({
+  // Checkbox styles
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 15,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderWidth: 1,
+    borderColor: '#02833D',
+    borderRadius: 4,
+    marginRight: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: '#02833D',
+  },
+  checkboxLabel: {
+    fontSize: 14,
+    color: '#333',
+    flex: 1,
+  },
   // Time range styles
   timeRangeContainer: {
     flexDirection: 'row',

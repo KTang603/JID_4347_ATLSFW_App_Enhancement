@@ -163,6 +163,8 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginBottom: 5,
     color: "#333",
+    flex: 1,
+    flexWrap: 'wrap',
   },
   cardSubtitle: {
     fontSize: 14,
@@ -173,11 +175,13 @@ const styles = StyleSheet.create({
   titleRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     marginBottom: 5,
+    width: '100%',
   },
   deleteButton: {
     padding: 5,
+    marginLeft: 10,
   },
   statsContainer: {
     flexDirection: "row",
