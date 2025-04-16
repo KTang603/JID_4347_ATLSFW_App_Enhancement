@@ -486,9 +486,17 @@ const HomeScreen = () => {
                   featuredTicketEvent.event_end_time
                 )}
               </Text>
-              <View style={styles.ticketButton}>
+              <TouchableOpacity 
+                style={styles.ticketButton}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  if (featuredTicketEvent.ticket_url) {
+                    Linking.openURL(featuredTicketEvent.ticket_url);
+                  }
+                }}
+              >
                 <Text style={styles.ticketButtonText}>Purchase Tickets</Text>
-              </View>
+              </TouchableOpacity>
             </View>
           </TouchableOpacity>
         ) : (
