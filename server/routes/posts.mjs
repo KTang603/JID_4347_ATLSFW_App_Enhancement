@@ -50,16 +50,22 @@ router.get("/posts", verifyToken,checkUserStatus, async (req, res) => {
     const skip = (page - 1) * limit; 
     // Extracting query parameters
     let tagsQuery = req.query.tags;
-    // const searchQuery = req.query.search;
-    // const sourceQuery = req.query.source;
-    // const sortBy = req.query.sortBy || 'publishDate';
-
-    // Extract sort order parameter
+    const searchQuery = req.query.search;
     const sortOrder = req.query.sortOrder || 'desc';
     
     // Build query
     let query = {};
     let order = sortOrder === 'asc' ? 1 : -1;
+    
+    // Search query
+    if (searchQuery && searchQuery.trim() !== '') {
+      // Create a text search query
+      query.$or = [
+        { article_title: { $regex: searchQuery, $options: 'i' } },
+        { article_description: { $regex: searchQuery, $options: 'i' } },
+        { author_name: { $regex: searchQuery, $options: 'i' } }
+      ];
+    }
     
     // Handle tags filter
     if(tagsQuery){
