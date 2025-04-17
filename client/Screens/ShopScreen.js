@@ -295,7 +295,7 @@ const styles = StyleSheet.create({
   },
   shopImage: {
     width: '100%',
-    height: 160,
+    height: 200,
     resizeMode: 'cover',
     backgroundColor: '#f0f0f0',
   },
