@@ -23,6 +23,9 @@ router.post("/posts/create", requireAdmin,checkUserStatus, async (req, res) => {
       return res.status(400).json({ success: false, message: 'Missing article information' });
   }
   try {
+    // Create current date for both publishDate and createdAt
+    const currentDate = new Date();
+    
     await posts_db.collection('articles').insertOne({
       article_title,
       article_preview_image,
@@ -34,6 +37,8 @@ router.post("/posts/create", requireAdmin,checkUserStatus, async (req, res) => {
       like_count: 0,
       save_count: 0,
       source: source || 'Manual',
+      publishDate: currentDate,
+      createdAt: currentDate
     });
     res.status(200).json({ success: true });
   } catch (err) {
