@@ -56,7 +56,7 @@ const NewsApiDetailsScreen = () => {
   const navigate = useNavigation();
   const userInfo = useSelector((store) => store.userInfo?.userInfo || {});
   const token = useSelector((store) => store.token.token);
-  const user_id = useSelector((store) => store.user_id.user_id);
+  const user_id = useSelector((store) => store.userInfo?.userInfo?._id || '');
 
   useEffect(() => {
     navigate.setOptions({
@@ -135,6 +135,12 @@ const NewsApiDetailsScreen = () => {
       };
       
       console.log('Sending article data:', articleData);
+    
+    // Check if author_id is available
+    if (!articleData.author_id) {
+      Alert.alert('Error', 'User ID not available. Please try logging out and logging back in.');
+      return;
+    }
       const response = await makeRequest('post', '/posts/create', articleData, token);
 
       if (response.data.success) {
