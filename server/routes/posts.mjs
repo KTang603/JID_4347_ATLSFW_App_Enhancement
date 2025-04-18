@@ -68,7 +68,8 @@ router.get("/posts", verifyToken,checkUserStatus, async (req, res) => {
       query.$or = [
         { article_title: { $regex: searchQuery, $options: 'i' } },
         { article_description: { $regex: searchQuery, $options: 'i' } },
-        { author_name: { $regex: searchQuery, $options: 'i' } }
+        { author_name: { $regex: searchQuery, $options: 'i' } },
+        { tags: { $regex: searchQuery, $options: 'i' } }
       ];
     }
     
