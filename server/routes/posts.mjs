@@ -19,8 +19,8 @@ router.get("/tags", verifyToken, async (req, res) => {
 // Admin only - Create article
 router.post("/posts/create", requireAdmin,checkUserStatus, async (req, res) => {
   const { article_title, article_preview_image, article_link, author_id, author_name, article_description, tags, source } = req.body;
-  if (!article_title || !article_link || !author_id || !author_name) {
-      return res.status(400).json({ success: false, message: 'Missing article information' });
+  if (!article_title || !article_link || !author_id || !author_name || !article_description || !article_preview_image || !tags || !Array.isArray(tags) || tags.length === 0) {
+      return res.status(400).json({ success: false, message: 'Missing article information. All fields are required.' });
   }
   try {
     // Create current date for both publishDate and createdAt
