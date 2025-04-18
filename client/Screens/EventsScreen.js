@@ -347,12 +347,20 @@ const EventsScreen = () => {
               : event
           )
         );
+        
+        // Also update selectedEvent to reflect the change immediately
+        if (selectedEvent && selectedEvent._id === eventId) {
+          setSelectedEvent(prevEvent => ({
+            ...prevEvent,
+            participants: [...(prevEvent.participants || []), _id]
+          }));
+        }
       }
     } catch (error) {
       console.error("Error adding participant:", error);
       Alert.alert("Error", "Failed to register interest");
     }
-  }, [_id, token]);
+  }, [_id, token, selectedEvent]);
 
   // Reset filters when directly accessing the Events tab
   useFocusEffect(
