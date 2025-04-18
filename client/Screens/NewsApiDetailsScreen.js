@@ -112,20 +112,44 @@ const NewsApiDetailsScreen = () => {
 
   const handleAddArticle = async () => {
     try {
-      if (!newArticleTitle.trim() || !newArticleUrl.trim()) {
-        Alert.alert('Error', 'Please fill in the article title and URL');
+      if (!newArticleTitle.trim()) {
+        Alert.alert('Error', 'Please fill in the article title');
+        return;
+      }
+      
+      if (!newArticleUrl.trim()) {
+        Alert.alert('Error', 'Please fill in the article URL');
+        return;
+      }
+      
+      if (!newArticleDescription.trim()) {
+        Alert.alert('Error', 'Please fill in the article description');
+        return;
+      }
+      
+      if (!newArticleImageUrl.trim()) {
+        Alert.alert('Error', 'Please fill in the image URL');
+        return;
+      }
+      
+      if (!newArticleTags.trim()) {
+        Alert.alert('Error', 'Please fill in the tags (comma separated)');
         return;
       }
 
       // Process tags: split by comma, trim whitespace, and filter out empty tags
-      const tags = newArticleTags
-        ? newArticleTags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0)
-        : ['sustainability']; // Default tag if none provided
+      const tags = newArticleTags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0);
+      
+      // Ensure at least one valid tag is provided
+      if (tags.length === 0) {
+        Alert.alert('Error', 'Please provide at least one valid tag');
+        return;
+      }
 
       const articleData = {
         article_title: newArticleTitle,
-        article_preview_image: newArticleImageUrl || null,
-        article_description: newArticleDescription || '',
+        article_preview_image: newArticleImageUrl,
+        article_description: newArticleDescription,
         article_link: newArticleUrl,
         author_id: user_id,
         author_name: `${userInfo.first_name} ${userInfo.last_name}`,
