@@ -161,7 +161,7 @@ You can use the "New File" button in the VSCode File Explorer shown below to cre
 - Added proper error handling for API requests
 - Improved date and time formatting for events
 - Enhanced data loading and refresh mechanisms
-
+     
 ### Known Issues
 
 #### 1. Event Management
