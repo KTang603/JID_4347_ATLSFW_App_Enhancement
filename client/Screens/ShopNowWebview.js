@@ -1,41 +1,46 @@
 import React, { useRef, useState } from 'react';
 import { WebView } from 'react-native-webview';
-import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, ActivityIndicator, StyleSheet, Dimensions } from 'react-native';
+
+// Set to true for production, false for development
+const IS_PRODUCTION = true;
 
 const ShopNowWebview = ({route}) => {
 	const webViewRef = useRef(null);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(false);
+	const [progress, setProgress] = useState(0);
 	
 	// Get link from route params, with fallback to a default URL
 	const params = route.params || {};
 	
-	// Debug: Log the received parameters
-	console.log('ShopNowWebview params:', JSON.stringify(params));
+	// Only log in development mode
+	if (!IS_PRODUCTION) {
+		console.log('ShopNowWebview params:', params);
+	}
 	
 	let link;
 	if (params.link) {
 		link = params.link;
-		console.log('Using link parameter:', link);
 	} else if (params.url) {
 		link = params.url;
-		console.log('Using url parameter:', link);
 	} else if (params.vendorId) {
 		link = `https://www.sustainablefw.com/vendor/${params.vendorId}`;
-		console.log('Using vendorId parameter:', link);
 	} else {
 		link = 'https://www.sustainablefw.com/shop';
-		console.log('Using default URL:', link);
 	}
 	
 	// Ensure the URL has a proper protocol
 	if (link && !link.startsWith('http://') && !link.startsWith('https://')) {
 		link = 'https://' + link;
-		console.log('Added https protocol:', link);
 	}
 
 	const handleLoadEnd = () => {
 		setLoading(false);
+	};
+
+	const handleLoadProgress = ({ nativeEvent }) => {
+		setProgress(nativeEvent.progress);
 	};
 
 	const handleError = () => {
@@ -43,15 +48,31 @@ const ShopNowWebview = ({route}) => {
 		setError(true);
 	};
 
+	// Inject CSS to improve mobile rendering
+	const injectCSS = `
+		(function() {
+			const style = document.createElement('style');
+			style.textContent = 'body { max-width: 100vw; overflow-x: hidden; } img { max-width: 100%; height: auto; }';
+			document.head.appendChild(style);
+		})();
+	`;
+
 	return (
-		<>
-			{loading && (
+		<View style={styles.container}>
+			{/* Loading indicator */}
+			{loading && progress === 0 && (
 				<View style={styles.loadingContainer}>
 					<ActivityIndicator size="large" color="#02833D" />
 					<Text style={styles.loadingText}>Loading...</Text>
 				</View>
 			)}
 			
+			{/* Progress indicator that shows during loading */}
+			{loading && progress > 0 && progress < 1 && (
+				<View style={[styles.progressBar, { width: `${progress * 100}%` }]} />
+			)}
+			
+			{/* Error state */}
 			{error ? (
 				<View style={styles.errorContainer}>
 					<Text style={styles.errorText}>
@@ -62,34 +83,49 @@ const ShopNowWebview = ({route}) => {
 				<WebView 
 					ref={webViewRef}
 					source={{ uri: link }}
-					style={{ flex: 1, opacity: loading ? 0 : 1 }}
+					style={[styles.webView, loading && progress === 0 ? { opacity: 0 } : { opacity: 1 }]}
 					onLoadEnd={handleLoadEnd}
-					onError={(syntheticEvent) => {
-						const { nativeEvent } = syntheticEvent;
-						console.error('WebView error:', JSON.stringify(nativeEvent));
-						handleError();
-					}}
+					onLoadProgress={handleLoadProgress}
+					onError={() => handleError()}
 					onHttpError={(syntheticEvent) => {
-						const { nativeEvent } = syntheticEvent;
-						console.error('WebView HTTP error:', JSON.stringify(nativeEvent));
-						if (nativeEvent.statusCode >= 400) {
+						if (syntheticEvent.nativeEvent.statusCode >= 400) {
 							handleError();
 						}
 					}}
-					onNavigationStateChange={(navState) => {
-						console.log('Navigation state changed:', JSON.stringify(navState));
-					}}
+					injectedJavaScript={injectCSS}
 					javaScriptEnabled={true}
 					domStorageEnabled={true}
+					cacheEnabled={true}
+					cacheMode="LOAD_CACHE_ELSE_NETWORK"
 					allowsInlineMediaPlayback={true}
 					mediaPlaybackRequiresUserAction={false}
+					startInLoadingState={false}
+					sharedCookiesEnabled={true}
+					thirdPartyCookiesEnabled={true}
+					incognito={false}
+					pullToRefreshEnabled={true}
 				/>
 			)}
-		</>
+		</View>
 	);
 };
 
 const styles = StyleSheet.create({
+	container: {
+		flex: 1,
+		backgroundColor: '#fff',
+	},
+	webView: {
+		flex: 1,
+	},
+	progressBar: {
+		height: 3,
+		backgroundColor: '#02833D',
+		position: 'absolute',
+		top: 0,
+		left: 0,
+		zIndex: 10,
+	},
 	loadingContainer: {
 		position: 'absolute',
 		top: 0,
@@ -98,12 +134,12 @@ const styles = StyleSheet.create({
 		bottom: 0,
 		justifyContent: 'center',
 		alignItems: 'center',
-		backgroundColor: '#f5f5f5',
-		zIndex: 1,
+		backgroundColor: 'white',
+		zIndex: 5,
 	},
 	loadingText: {
 		marginTop: 10,
-		color: '#02833D',
+		color: '#666',
 		fontSize: 16,
 	},
 	errorContainer: {
