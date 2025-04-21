@@ -68,7 +68,6 @@ const ListRowItem = ({ item, handleSave, handleLike }) => {
           <Image
             source={{ uri: article_preview_image }}
             style={styles.articleImage}
-            resizeMode="cover"
           />
         )}
         <View style={styles.articleContent}>
@@ -153,7 +152,9 @@ const styles = StyleSheet.create({
   },
   articleImage: {
     width: "100%",
-    height: 180,
+    height: 200,
+    resizeMode: "cover",
+    backgroundColor: "#f0f0f0",
   },
   articleContent: {
     padding: 15,
