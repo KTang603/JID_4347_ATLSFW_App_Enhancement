@@ -38,7 +38,7 @@ export const fetchData = (page = 1, inputTag, token, navigation, sortOrder = 'de
       article_preview_image: articleImage,
       article_link: articleLink,
       author_id: userInfo["_id"],
-      author_name: userInfo["first_name"] + " " + userInfo["last_name"],
+      author_name: userInfo["username"],
       article_description: articleDescription,
       tags: tags.split(",").map((tag) => tag.trim()),
     };
