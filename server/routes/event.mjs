@@ -50,7 +50,11 @@ const users = users_db.collection('customer_info');
 let userList = await Promise.all(participants.map(async (participant) => {
   return await users.findOne({ _id: new ObjectId(participant) });
 }))
-res.status(200).send({success: true,data:userList});
+
+// Filter out null values from the userList
+const filteredUserList = userList.filter(user => user !== null);
+
+res.status(200).send({success: true,data:filteredUserList});
 
 }catch(e){
   console.log(e);

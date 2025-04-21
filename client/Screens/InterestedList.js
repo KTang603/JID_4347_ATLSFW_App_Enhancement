@@ -25,8 +25,10 @@ const InterestedList = (props) => {
       if (response.data.data.length == 0) {
         setIsError(true);
       } else {
-        setParticipants(response.data.data);
-        setIsError(false);
+        // Filter out any null users before setting state
+        const validParticipants = response.data.data.filter(user => user !== null);
+        setParticipants(validParticipants);
+        setIsError(validParticipants.length === 0); // Show error if no valid participants
       }
       setIsLoading(false);
     }
@@ -42,7 +44,15 @@ const InterestedList = (props) => {
   }, []);
 
   const InterestedUserCard = ({ user }) => {
-    const { first_name, last_name, username, user_email, phone_number } = user;
+    // Safely destructure user properties with default values
+    const { 
+      first_name = "Unknown", 
+      last_name = "User", 
+      username, 
+      user_email, 
+      phone_number 
+    } = user;
+    
     return (
       <View
         style={{
@@ -134,8 +144,9 @@ const InterestedList = (props) => {
       ) : (
         <FlatList
           data={participant}
-          renderItem={({ item }) => <InterestedUserCard user={item} />}
+          renderItem={({ item }) => item ? <InterestedUserCard user={item} /> : null}
           contentContainerStyle={{ padding: 8 }}
+          keyExtractor={(item, index) => item && item._id ? item._id.toString() : `user-${index}`}
         />
       )}
       {isLoading && <ActivityIndicator size={'large'} color={'#02833D'} style={{position:'absolute',left:0,right:0,top:0,bottom:0}}/> }
