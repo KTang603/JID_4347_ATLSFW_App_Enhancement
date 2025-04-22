@@ -24,22 +24,28 @@ const NavBar = () => {
         {/* Nav Bar */}
         <View style={{ flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center', backgroundColor: '#02833D', padding: 10 }}>
           {/* Navigation Buttons */}
-          <TouchableOpacity style={{ alignItems: 'center' }}>
+          <TouchableOpacity style={{ alignItems: 'center' }} onPress={() => {
+            navigation.reset({
+              index: 0,
+              routes: [{ name: 'Home' }],
+            });
+          }}>
               <Icon name="home" size={20} color="white" alignItems="center"/>
               <Text style={styles.whiteText}>Home</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={{ alignItems: 'center' }} onPress={() => {
-            console.log('====================================');
-            console.log('Events---');
-            console.log('====================================');
+            // Navigate to Events screen and clear selected date to show all events
             navigation.reset({
               index: 0,
-              routes: [{ name: 'Events' }],
-              });
-            }}>    
-                <Icon name="calendar" size={20} color="white" alignItems="center"/>
-                <Text style={styles.whiteText}>Events</Text>
+              routes: [{ 
+                name: 'Events',
+                params: { showAll: true } // Pass parameter to show all events
+              }],
+            });
+          }}>    
+            <Icon name="calendar" size={20} color="white" alignItems="center"/>
+            <Text style={styles.whiteText}>Events</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={{ alignItems: 'center' }} onPress={() => {
@@ -63,10 +69,10 @@ const NavBar = () => {
           </TouchableOpacity>
 
           <TouchableOpacity style={{ alignItems: 'center' }} onPress={() => {
-            // navigation.reset({
-            //   index: 0,
-            //   routes: [{ name: 'Sign Up' }],
-            // });
+            navigation.reset({
+              index: 0,
+              routes: [{ name: 'Shop' }],
+            });
           }}>              
               <Icon name="shopping-cart" size={20} color="white" alignItems="center"/>
               <Text style={styles.whiteText}>Shop</Text>
@@ -95,14 +101,6 @@ const NavBar = () => {
           </TouchableOpacity>
           
         </View>
-
-      {/* LOGO */}
-      <View style={{ alignItems: "center", paddingBottom: 20 }}>
-        <Image
-          source={require("./ATLSFWlogo.jpg")}
-          style={{ width: 150, height: 50, resizeMode: "contain" }}
-        />
-      </View>
     </View>
   );
 };

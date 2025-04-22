@@ -1,147 +1,143 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   View,
-  Text,
-  TouchableOpacity,
-  Image,
   FlatList,
-  TextInput,
-  Modal,
-  Button,
   StyleSheet,
+  RefreshControl,
+  Text
 } from "react-native";
-import MasonryList from "@react-native-seoul/masonry-list";
-import Icon from "react-native-vector-icons/FontAwesome";
-import Article from "../components/Article";
-import axios from "axios";
-import MY_IP_ADDRESS from "../environment_variables.mjs";
-import { useSelector, useDispatch } from "react-redux";
+import { useSelector, useDispatch, shallowEqual } from "react-redux";
+import ListRowItem from "../components/ListRowItem";
+import { getSavedArticles } from "../redux/actions/saveAction";
+import { handleLike, handleSave } from "../redux/actions/NewsAction";
+import BaseIndicator from "../components/BaseIndicator";
 
 const SavedArticles = ({ navigation }) => {
   const dispatch = useDispatch();
-  // redux state
-  const isLogged = useSelector((store) => store.isLogged.isLogged);
-
- 
-
-  const [isSavePressed, setSavePressed] = useState(false);
-  const saved_articles_state = useSelector((store) => {
-    // Debug logging
-    console.log('SavedArticles: Redux store state:', store.saved_articles);
-    return store.saved_articles.saved_articles;
-  });
-
-  // Debug logging for state changes
-  useEffect(() => {
-    console.log('SavedArticles: saved_articles_state changed:', saved_articles_state);
-  }, [saved_articles_state]);
-
-  const handleSavePress = () => {
-    // Toggle the state when the Save button is pressed
-    setSavePressed(!isSavePressed);
-  };
-
-  const [articleData, setArticleData] = useState();
   
-  const token = useSelector((store) => store.token?.token);
+  // Combine selectors to reduce rerenders
+  const { 
+    userInfo: { token, userInfo },
+    saved_articles: { articles, progress, error }
+  } = useSelector((store) => ({
+    userInfo: store.userInfo || {},
+    saved_articles: store.saved_articles || {}
+  }),
+  shallowEqual
+);
+  
+  const { _id } = userInfo || {};
+  const [refreshing, setRefreshing] = useState(false);
 
-  // Initial data load when token changes
+  // Fetch articles when component mounts or when dependencies change
   useEffect(() => {
-    if (token) {
-      fetchData();
+    if (token && _id) {
+      dispatch(getSavedArticles(token, _id, navigation));
     }
-  }, [token]);
+  }, [dispatch, token, _id, navigation]);
 
-  // Refetch data when saved articles state changes
-  useEffect(() => {
-    if (token && saved_articles_state) {
-      fetchData();
-    }
-  }, [saved_articles_state]);
-
-  const fetchData = async () => {
+  // Memoize callbacks to prevent unnecessary rerenders
+  const onRefresh = useCallback(async () => {
+    if (!token || !_id) return;
+    
+    setRefreshing(true);
     try {
-      if (!token) {
-        console.error('No token available for posts fetch');
-        return;
-      }
-
-      // Get total number of articles first
-      const countResponse = await axios.get(
-        `http://${MY_IP_ADDRESS}:5050/posts?limit=1`,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-
-      const totalPages = countResponse.data.pagination.pages;
-      let allArticles = [];
-
-      // Fetch all pages
-      for (let page = 1; page <= totalPages; page++) {
-        const response = await axios.get(
-          `http://${MY_IP_ADDRESS}:5050/posts?page=${page}&limit=20`,
-          {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            }
-          }
-        );
-        allArticles = [...allArticles, ...response.data.articles];
-      }
-      
-      // Debug logging
-      console.log('Saved articles state:', saved_articles_state);
-      console.log('All articles:', allArticles.map(a => ({ id: a._id, title: a.article_title })));
-      
-      // Convert all IDs to strings for comparison
-      const savedArticlesStr = saved_articles_state.map(id => id.toString());
-      console.log('Saved articles as strings:', savedArticlesStr);
-      
-      const filteredData = allArticles.filter((article) => {
-        const articleId = article._id.toString();
-        const isIncluded = savedArticlesStr.includes(articleId);
-        console.log(`Article ${articleId} (${article.article_title}) included: ${isIncluded}`);
-        return isIncluded;
-      });
-      
-      console.log('Filtered articles:', filteredData.map(a => ({ id: a._id, title: a.article_title })));
-      setArticleData(filteredData);
+      await dispatch(getSavedArticles(token, _id, navigation));
     } catch (error) {
-      console.error("Error during data fetch:", error.message);
+      console.error("Failed to refresh articles:", error);
+    } finally {
+      setRefreshing(false);
     }
-  };
+  }, [dispatch, token, _id, navigation]);
+
+  const _likeCallback = useCallback((id) => {
+    dispatch(handleLike({ token, articles_id: id, user_id: _id }));
+  }, [dispatch, token, _id]);
+
+  const _saveCallback = useCallback((id) => {
+    dispatch(handleSave({ token, articles_id: id, user_id: _id }));
+  }, [dispatch, token, _id]);
+
+  // Empty state component
+  const renderEmptyState = useCallback(() => (
+    <View style={styles.emptyContainer}>
+      <Text style={styles.emptyText}>
+        No saved articles found. Articles you save will appear here.
+      </Text>
+    </View>
+  ), []);
+
+  if (!token || !_id) {
+    return (
+      <View style={styles.emptyContainer}>
+        <Text style={styles.emptyText}>Please log in to view saved articles</Text>
+      </View>
+    );
+  }
 
   return (
-    <View style={{ flex: 1 }}>
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        {articleData && 
-        <MasonryList
-          numColumns={2}
-          data={articleData}
-          keyExtractor={(item) => item["_id"]}
-          renderItem={({ item, index }) => (
-            <Article
-              article={{
-                title: item["article_title"],
-                image: item["article_preview_image"],
-                author: item["author_name"],
-                likes: item["like_count"],
-                saves: item["save_count"],
-                article_id: item["_id"].toString(),
-                article_link: item["article_link"],
-              }}
-            ></Article>
-          )}
-        />
+    <View style={styles.container}>
+      {error && (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>{error}</Text>
+        </View>
+      )}
+      
+      <FlatList
+        data={articles}
+        renderItem={({ item }) => (
+          <ListRowItem
+            item={item}
+            handleLike={_likeCallback}
+            handleSave={_saveCallback}
+          />
+        )}
+        keyExtractor={(item) => item._id?.toString() || item.article_link}
+        contentContainerStyle={styles.listContainer}
+        onEndReachedThreshold={0.5}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={["#9Bd35A", "#689F38"]}
+          />
         }
-      </View>
+        ListEmptyComponent={renderEmptyState}
+      />
+      
+      {progress && <BaseIndicator />}
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#f8f8f8',
+  },
+  listContainer: {
+    padding: 10,
+    flexGrow: 1,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  emptyText: {
+    fontSize: 16,
+    textAlign: 'center',
+    color: '#757575',
+  },
+  errorContainer: {
+    padding: 10,
+    backgroundColor: '#ffecec',
+  },
+  errorText: {
+    color: '#d8000c',
+    textAlign: 'center',
+  }
+});
 
 export default SavedArticles;

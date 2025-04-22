@@ -13,6 +13,7 @@ import password from "./routes/password.mjs";
 import admin from "./routes/admin.mjs";
 import news from "./routes/news.mjs";
 import event from "./routes/event.mjs";
+import home from "./routes/home.mjs";
 
 
 // Replace the uri string with your MongoDB deployment's connection string.
@@ -23,6 +24,7 @@ app.use(cors());
 
 app.use(bodyParser.json());
 // Get a list of 50 posts
+
 app.use('/login', login);
 app.use(signup); 
 app.use(posts); 
@@ -32,6 +34,7 @@ app.use('/vendor', vendor);
 app.use('/admin', admin);
 app.use('/password', password);
 app.use('/news', news);
+app.use('/home', home);
 
 app.use((err, _req, res, next) => {
   console.log('====================================');

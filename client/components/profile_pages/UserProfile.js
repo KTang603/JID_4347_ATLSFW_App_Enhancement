@@ -9,15 +9,16 @@ import { getProfileData, setUserInfo } from "../../redux/actions/userInfoAction"
 import { getUserId } from '../../utils/StorageUtils';
 import {SETTING_ICON} from '../../assets/index'
 import { useNavigation } from '@react-navigation/native';
-import ProfileHeader from '../ProfileHeader';
+import { handleApiError } from '../../utils/ApiErrorHandler';
 
 const UserProfile = () => {
   const [selectedTab, setSelectedTab] = useState('contact');
-  const [selectedInterests, setSelectedInterests] = useState([]);
   const [editMode, setEditMode] = useState(false);
   const [imageUri, setImageUri] = useState(null);
   const [savedPath, setSavedPath] = useState(null);
   const userInfo = useSelector((store) => store.userInfo.userInfo);
+  const [selectedInterests, setSelectedInterests] = useState(userInfo.user_interests || []);
+  const token = useSelector((store) => store.token.token);
   const navigation = useNavigation();
 
   const [editedFirstName, setEditedFirstName] = useState(userInfo["first_name"]);
@@ -27,12 +28,52 @@ const UserProfile = () => {
   const [editedPhoneNumber, setEditedPhoneNumber] = useState(userInfo["phone_number"]);
   const dispatch = useDispatch();
 
+  const updateInterests = async (interests) => {
+    const userId = await getUserId();
+    try {
+      // Send just the interests data to your backend
+      const response = await axios({
+        method: 'PATCH',
+        url: "http://" + MY_IP_ADDRESS + ":5050/user/edit/",
+        params: {
+          user_id: userId
+        },
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        data: {
+          user_interests: interests
+        }
+      });
+
+      if (response.status == 200) {
+        // Update Redux store with new interests
+        dispatch(
+          setUserInfo({
+            ...userInfo,
+            user_interests: interests
+          })
+        );
+      }
+    } catch (error) {
+      // Use the handleApiError function to handle deactivated user accounts
+      const errorHandled = await handleApiError(error, navigation);
+      
+      // If the error wasn't handled as a deactivated account, show a generic error message
+      if (!errorHandled) {
+        Alert.alert("Error", "Failed to update interests");
+      }
+    }
+  };
+
   const toggleInterest = interest => {
-    setSelectedInterests(prevSelectedInterests =>
-      prevSelectedInterests.includes(interest)
-        ? prevSelectedInterests.filter(i => i !== interest)
-        : [...prevSelectedInterests, interest],
-    );
+    const newInterests = selectedInterests.includes(interest)
+      ? selectedInterests.filter(i => i !== interest)
+      : [...selectedInterests, interest];
+    
+    setSelectedInterests(newInterests);
+    updateInterests(newInterests);
   };
 
 
@@ -64,31 +105,46 @@ const UserProfile = () => {
         username: editedUsername,
         birthday: editedBirthday,
         phone_number: editedPhoneNumber,
+        user_interests: selectedInterests,
       };
+      
+      try {
         // Send the user data to your backend
-    const response = await axios({
-      method:'PATCH',
-      url: "http://" + MY_IP_ADDRESS + ":5050/user/edit/" ,
-      params: {
-        user_id: userId
-      },
-     data: updatedUserInfo
-    }
-    );
+        const response = await axios({
+          method:'PATCH',
+          url: "http://" + MY_IP_ADDRESS + ":5050/user/edit/" ,
+          params: {
+            user_id: userId
+          },
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          data: updatedUserInfo
+        });
 
-    if (response.status == 200) {
-      Alert.alert("Action","Your profile is updated successfully !!")
-      dispatch(
-        setUserInfo({
-          ...userInfo,
-          first_name: editedFirstName,
-          last_name: editedLastName,
-          username: editedUsername,
-          birthday: editedBirthday,
-          phone_number: editedPhoneNumber,
-        })
-      );
-    }
+        if (response.status == 200) {
+          Alert.alert("Action","Your profile is updated successfully !!")
+          dispatch(
+            setUserInfo({
+              ...userInfo,
+              first_name: editedFirstName,
+              last_name: editedLastName,
+              username: editedUsername,
+              birthday: editedBirthday,
+              phone_number: editedPhoneNumber,
+            })
+          );
+        }
+      } catch (error) {
+        // Use the handleApiError function to handle deactivated user accounts
+        const errorHandled = await handleApiError(error, navigation);
+        
+        // If the error wasn't handled as a deactivated account, show a generic error message
+        if (!errorHandled) {
+          Alert.alert("Error", "Failed to update profile");
+        }
+      }
     }
   };
 
@@ -228,24 +284,58 @@ const UserProfile = () => {
   </View>
   }
 
-  const interestsList = ['Events', 'Tips/Tricks (DIY)', 'News', 'Shopping'];
+  const interestsList = ['Events', 'Tips/Tricks (DIY)', 'News', 'Shopping', 'Subscribe to our newsletter'];
 
   return (
     <View style={styles.container}>
       <ScrollView>
-      <ProfileHeader />
         <View style={styles.profileSection}>
-          <TouchableOpacity onPress={pickImage} disabled={!editMode}>
-            <Image
-              source={imageUri ? { uri: imageUri } : require("./user.jpg")}
-              style={styles.profileImage}
-            />
-          </TouchableOpacity>
+          <View style={styles.profileImageContainer}>
+            <TouchableOpacity 
+              style={styles.profileImageTouchable}
+              activeOpacity={0.7}
+              onPress={() => {
+                if (editMode) {
+                  pickImage();
+                } else {
+                  setEditMode(true);
+                  Alert.alert("Edit Mode", "You can now change your profile picture. Tap on your profile picture to select a new one.");
+                }
+              }}
+            >
+              {imageUri ? (
+                <Image
+                  source={{ uri: imageUri }}
+                  style={styles.profileImage}
+                />
+              ) : (
+                <View style={[styles.profileImage, styles.defaultAvatarContainer]}>
+                  <Text style={styles.defaultAvatarText}>
+                    {userInfo["first_name"] && userInfo["first_name"].charAt(0).toUpperCase()}
+                    {userInfo["last_name"] && userInfo["last_name"].charAt(0).toUpperCase()}
+                  </Text>
+                </View>
+              )}
+              <View style={styles.imageOverlay}>
+                <Text style={styles.imageOverlayText}>
+                  {editMode ? "Tap to change" : "Tap to edit"}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          </View>
           <Text style={styles.name}>
             {userInfo["first_name"] + " " + userInfo["last_name"]}
           </Text>
           {editMode && (
-            <Button title="Change Profile Picture" onPress={pickImage} />
+            <View style={styles.editModeButtons}>
+              <Button title="Change Profile Picture" onPress={pickImage} />
+              <TouchableOpacity 
+                style={styles.doneButton}
+                onPress={() => setEditMode(false)}
+              >
+                <Text style={styles.doneButtonText}>Done</Text>
+              </TouchableOpacity>
+            </View>
           )}
         </View>
         {profileTabBar()}
@@ -303,19 +393,13 @@ const styles = StyleSheet.create({
   },
   updateButtonTextStyle: {
     fontSize: 18,
-    fontFamily: 'Roboto',
     fontWeight: '500',
     color: 'black',
     textAlign: 'center',
   },
-  header: {
-    backgroundColor: '#02833D', // A green color similar to the one in the image.
-    padding: 50,
-    alignItems: 'center',
-  },
   profileSection: {
     alignItems: 'center',
-    marginTop: -50, // Negative margin to pull the profile section up, overlapping the header
+    marginTop: 30, // Increased margin to add more space below the navigation header
   },
   profileImage: {
     width: 100,
@@ -394,7 +478,7 @@ const styles = StyleSheet.create({
     height: 12,
     width: 12,
     borderRadius: 1,
-    backgroundColor: '#000',
+    backgroundColor: '#02833D',
   },
   interestText: {
     fontSize: 15,
@@ -421,6 +505,58 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: "#424242",
     paddingVertical: 5,
+  },
+  imageOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    borderRadius: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  imageOverlayText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  editModeButtons: {
+    marginTop: 10,
+    alignItems: 'center',
+  },
+  doneButton: {
+    marginTop: 10,
+    backgroundColor: '#02833D',
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+    borderRadius: 5,
+  },
+  doneButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+  },
+  profileImageContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    overflow: 'hidden',
+  },
+  profileImageTouchable: {
+    width: '100%',
+    height: '100%',
+  },
+  defaultAvatarContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#02833D',
+  },
+  defaultAvatarText: {
+    color: 'white',
+    fontSize: 36,
+    fontWeight: 'bold',
   }
 });
 

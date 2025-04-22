@@ -1,30 +1,21 @@
 import React, { useState } from 'react';
-import { Text, TextInput, View, StyleSheet, Alert, TouchableOpacity, Platform, Image, ScrollView, ActivityIndicator } from 'react-native';
+import { Text, TextInput, View, StyleSheet, Alert, TouchableOpacity, Image, ScrollView, ActivityIndicator } from 'react-native';
 import axios from 'axios';
 import hashString from '../utils/hashingUtils.mjs';
 import { normalizeEmail } from '../utils/format.mjs';
-import { useSelector, useDispatch } from 'react-redux';
-import { login } from '../redux/actions/loginAction';
-import { setID } from '../redux/actions/idAction';
-import { get_like_list } from '../redux/actions/likeAction';
-import { get_save_list } from '../redux/actions/saveAction';
-import { set_acct_type } from '../redux/actions/accountAction';
-import { setUserInfo } from '../redux/actions/userInfoAction';
-import { getVend } from '../redux/actions/vendAction';
-import { setToken } from '../redux/actions/tokenAction';
+import { useDispatch } from 'react-redux';
+import { setUserInfo, updateUserToken } from '../redux/actions/userInfoAction';
 import {LOGIN_API} from '../utils/ApiUtils.js'
-import {fetchTags} from '../redux/actions/NewsAction'
-import { storeAccountType, storeUserId, storeUserToken } from '../utils/StorageUtils';
+import {fetchData, fetchTags} from '../redux/actions/NewsAction'
+import tokenService from '../utils/TokenService';
+import { LOGIN_LOGO } from '../assets';
+import { fetchHomeData } from '../redux/actions/homeAction';
 
 const LoginScreen = ({navigation}) => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState(__DEV__?'user1@gmail.com':'');
+  const [password, setPassword] = useState(__DEV__?'Password123@':'');
   const [isLoading, setIsLoading] = useState(false);
-
   const dispatch = useDispatch();
-  const isLogged = useSelector((store) => store.isLogged.isLogged);
-  const user_id = useSelector((store) => store.user_id.user_id);
-  const account_type = useSelector((store) => store.acct_type.acct_type);
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -57,21 +48,26 @@ const LoginScreen = ({navigation}) => {
       const data = response.data;
       // console.log('data----'+JSON.stringify(data));
       if (data.success) {
-          dispatch(login());
-          dispatch(setID(data.user._id));
+          // dispatch(login());
+          // dispatch(setID(data.user._id));
           dispatch(setUserInfo(data.user));
           // dispatch(getVend(data.user.vendor_account_initialized));
-          // Set token in Redux and axios defaults
+          // Set token in Redux and store auth data
           const token = data.token;
-          dispatch(fetchTags(token))        
-          storeUserId(""+data.user._id)
-          storeAccountType(""+data.user.user_roles)
-          storeUserToken(token)
+          dispatch(updateUserToken(token)) 
+          dispatch(fetchTags(token))
           
-          dispatch(setToken(token));
-          dispatch(set_acct_type(data.user.user_roles));
-
-          axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+          // Store all auth data at once using TokenService
+          await tokenService.setAuthData({
+            token: token,
+            userId: ""+data.user._id,
+            accountType: ""+data.user.user_roles
+          });
+          dispatch(fetchHomeData(token));
+          await dispatch(fetchData(1, [],token));
+          // dispatch(setToken(token));
+          // dispatch(set_acct_type(data.user.user_roles)); //Need to test once..
+          
           console.log('Token set after login:', token);
 
           // if (data.user.liked_articles != null) {
@@ -83,7 +79,7 @@ const LoginScreen = ({navigation}) => {
 
           navigation.reset({
             index: 0,
-            routes: [{ name: 'News Feed' }],
+            routes: [{ name: 'Home' }],
           });
       } else {
         Alert.alert('Login Error', data.message || 'Login failed. Please try again.');
@@ -103,14 +99,15 @@ const LoginScreen = ({navigation}) => {
 
       <View style={styles.container}>
         <Image
-          source={require("../components/ATLSFWlogo.jpg")}
+          resizeMode='contain'
+          source={LOGIN_LOGO}
           style={styles.logo}
         />
         <TextInput
           placeholder="Email"
           value={email}
           onChangeText={setEmail}
-          style={[styles.input, { marginTop: 25 }]}
+          style={styles.input}
           keyboardType="email-address"
         />
 
@@ -121,12 +118,20 @@ const LoginScreen = ({navigation}) => {
           style={styles.input}
           secureTextEntry
         />
+
+        <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
+          <Text style={styles.loginButtonText}>Login</Text>
+        </TouchableOpacity>
+
+        <View style={{ width: "75%", alignItems: "center", marginTop: 10 }}>
+
             
         <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
           <Text style={styles.loginButtonText}>Login</Text>
         </TouchableOpacity>
             
-        <View style={{ width: "75%", alignItems: "flex-end" }}>
+        //<View style={{ width: "75%", alignItems: "flex-end" }}>
+
           <TouchableOpacity
             onPress={() => navigation.navigate("Forgot Password")}
           >
@@ -141,7 +146,6 @@ const LoginScreen = ({navigation}) => {
             Don't have an account?
             <Text style={{ fontWeight: "bold" }}> Sign up</Text>
           </Text>
-  
         </TouchableOpacity>
       </View>
      
@@ -161,8 +165,8 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   logo: {
-    width: 150,
-    height: 50,
+    width: 280,
+    height: 200,
     marginTop: 25,
     resizeMode: 'contain',
   },
@@ -197,15 +201,13 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     fontSize: 16,
-    fontFamily: 'Roboto',
     fontWeight: '500',
     color: 'black',
     textAlign: 'center',
   },
   loginButtonText: {
     fontSize: 18,
-    fontFamily: 'Roboto',
-    fontWeight: '500',
+    fontWeight: '600',
     color: 'black',
     textAlign: 'center',
   },
@@ -214,8 +216,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   newHereText: {
-    fontSize: 18,
-    fontFamily: 'Roboto',
+    fontSize: 16,
     fontWeight: '500',
     textAlign: 'center',
   },

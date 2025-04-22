@@ -1,8 +1,8 @@
 import express from "express";
-import { posts_db, users_db } from "../db/conn.mjs";
+import { posts_db, users_db,saved_articles_db } from "../db/conn.mjs";
 import { ObjectId } from "mongodb";
 import tagsList from "../utils/tagsList.mjs";
-import { verifyToken, requireAdmin } from "../middleware/auth.mjs";
+import { verifyToken, requireAdmin, checkUserStatus } from "../middleware/auth.mjs";
 
 const router = express.Router();
 
@@ -17,23 +17,28 @@ router.get("/tags", verifyToken, async (req, res) => {
 });
 
 // Admin only - Create article
-router.post("/posts/create", requireAdmin, async (req, res) => {
-  const { article_title, article_preview_image, article_link, author_id, author_name, author_pfp_link, tags, source } = req.body;
-  if (!article_title || !article_link || !author_id || !author_name) {
-      return res.status(400).json({ success: false, message: 'Missing article information' });
+router.post("/posts/create", requireAdmin,checkUserStatus, async (req, res) => {
+  const { article_title, article_preview_image, article_link, author_id, author_name, article_description, tags, source } = req.body;
+  if (!article_title || !article_link || !author_id || !author_name || !article_description || !article_preview_image || !tags || !Array.isArray(tags) || tags.length === 0) {
+      return res.status(400).json({ success: false, message: 'Missing article information. All fields are required.' });
   }
   try {
+    // Create current date for both publishDate and createdAt
+    const currentDate = new Date();
+    
     await posts_db.collection('articles').insertOne({
       article_title,
       article_preview_image,
       article_link,
       author_id,
       author_name,
-      author_pfp_link,
+      article_description,
       tags,
       like_count: 0,
       save_count: 0,
       source: source || 'Manual',
+      publishDate: currentDate,
+      createdAt: currentDate
     });
     res.status(200).json({ success: true });
   } catch (err) {
@@ -43,63 +48,86 @@ router.post("/posts/create", requireAdmin, async (req, res) => {
 });
 
 // Get articles with pagination and filtering
-router.get("/posts", verifyToken, async (req, res) => {
+router.get("/posts", verifyToken,checkUserStatus, async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit; 
-
     // Extracting query parameters
-    const tagsQuery = req.query.tags;
-    // const searchQuery = req.query.search;
-    // const sourceQuery = req.query.source;
-    // const sortBy = req.query.sortBy || 'publishDate';
-    // const order = req.query.order === 'asc' ? 1 : -1;
-
+    let tagsQuery = req.query.tags;
+    const searchQuery = req.query.search;
+    const sortOrder = req.query.sortOrder || 'desc';
+    
     // Build query
     let query = {};
-
-    // Source filter
-    // if (sourceQuery) {
-    //   query.source = sourceQuery;
-    // }
+    let order = sortOrder === 'asc' ? 1 : -1;
     
+    // Search query
+    if (searchQuery && searchQuery.trim() !== '') {
+      // Create a text search query
+      query.$or = [
+        { article_title: { $regex: searchQuery, $options: 'i' } },
+        { article_description: { $regex: searchQuery, $options: 'i' } },
+        { author_name: { $regex: searchQuery, $options: 'i' } },
+        { tags: { $regex: searchQuery, $options: 'i' } }
+      ];
+    }
+    
+    // Handle tags filter
+    if(tagsQuery){
+      // Remove 'Latest' tag as it's handled by sortOrder now
+      tagsQuery = tagsQuery.includes('Latest') ? tagsQuery.replace('Latest',"") : tagsQuery;
+    }
     // Tags filter
     if (tagsQuery) {
-      const tags = tagsQuery.split(",");
+      let tags = tagsQuery.split(",");
+      tags = tags.filter(tag => tag.length > 0);
       query.tags = { $in: tags };
     }
 
-    // Search filter
-    // if (searchQuery) {
-    //   query.$or = [
-    //     { article_title: { $regex: searchQuery, $options: 'i' } },
-    //     { author_name: { $regex: searchQuery, $options: 'i' } }
-    //   ];
-    // }
-
     const collection = posts_db.collection('articles');
-   
     // Get total count for pagination
     const total = await collection.countDocuments(query);
     
-
     // Get paginated results
     const articles = await collection
       .find(query)
-      // .sort({ [sortBy]: order })
+      .sort({ publishDate: order }) // Sort by publishDate field
       .skip(skip)
       .limit(limit)
       .toArray();
 
-    // Ensure no negative counts
-    // for (let article of articles) {
-    //   if (article.like_count < 0) article.like_count = 0;
-    //   if (article.save_count < 0) article.save_count = 0;
-    // }
 
+      let updated_articles = [];
+      for(let article of articles){
+
+        const saved_articles = await posts_db.collection('saved_articles').find({
+          article_id: article._id.toString()
+        }).toArray();
+        
+        const liked_articles = await posts_db.collection('liked_articles').find({
+          article_id: article._id.toString()
+        }).toArray();
+
+        const articles_exist = await posts_db.collection('saved_articles').find({
+          article_id: article._id.toString(), user_id: req.user.id
+        }).toArray();
+
+        const liked_exist = await posts_db.collection('liked_articles').find({
+          article_id: article._id.toString(), user_id: req.user.id
+        }).toArray();
+
+
+        const like_count = liked_articles.length;
+        const is_liked = liked_exist.length;
+
+        const save_count = saved_articles.length;
+        const is_saved = articles_exist.length;
+        updated_articles.push({...article,save_count,is_saved,like_count,is_liked})
+
+      }
     res.status(200).json({
-      articles,
+      articles:updated_articles,
       pagination: {
         total,
         page,
@@ -112,48 +140,128 @@ router.get("/posts", verifyToken, async (req, res) => {
   }
 });
 
-router.get("/posts/top_liked", async (req, res) => {
+
+router.post("/posts/top_liked", async (req, res) => {
+    try {
+      const {article_id,user_id} = req.body;
+      const exist_article = await posts_db.collection('liked_articles').find({
+        article_id,user_id,
+      }).toArray();
+      if(exist_article.length>0){
+        const result = await posts_db.collection('liked_articles').deleteOne({
+          article_id,user_id,
+        })
+        if(result){
+          return res.status(200).json({status:true, message: 'You unliked this article'});
+        }
+      }else{
+        await posts_db.collection('liked_articles').insertOne({
+          article_id,user_id,
+        });
+        res.status(200).json({status:true,message:'You liked this article'});
+      }
+    } catch (err) {
+      console.error(err);
+      res.status(500).send("Internal Server Error");
+    } 
+  }
+);
+
+
+
+router.post("/posts/top_saved", async (req, res) => {
   try {
-    const collection = posts_db.collection('articles');
-    const top_liked = await collection.find({})
-      .sort({ like_count: -1 })
-      .limit(3)
-      .toArray();
-
-    // Ensure no negative counts
-    for (let article of top_liked) {
-      if (article.like_count < 0) article.like_count = 0;
+    const {article_id,user_id} =req.body;
+    const exist_article = await posts_db.collection('saved_articles').find({
+      article_id,user_id,
+    }).toArray();
+    if(exist_article.length>0){
+      const result = await posts_db.collection('saved_articles').deleteOne({
+        article_id,user_id,
+      })
+      if(result){
+        return res.status(200).json({status:true, message: 'You unsaved this article'});
+      }
+    }else{
+      await posts_db.collection('saved_articles').insertOne({
+        article_id,user_id,
+      });
+      res.status(200).json({status:true,message:'You saved this article'});
     }
-
-    res.status(200).json(top_liked);
   } catch (err) {
     console.error(err);
     res.status(500).send("Internal Server Error");
   }
 });
 
-router.get("/posts/top_saved", async (req, res) => {
+
+router.post("/posts/saved_articles",verifyToken,checkUserStatus, async (req, res) => {
   try {
-    const collection = posts_db.collection('articles');
-    const top_saved = await collection.find({})
-      .sort({ save_count: -1 })
-      .limit(3)
-      .toArray();
+    const {user_id} =req.body;
+    const articles = await posts_db.collection('saved_articles').find({user_id:user_id}).toArray();
+    // console.log('====================================');
+    // console.log('articles----'+JSON.stringify(articles));
+    // console.log('====================================');
 
-    // Ensure no negative counts
-    for (let article of top_saved) {
-      if (article.save_count < 0) article.save_count = 0;
+    if(articles.length > 0 ){
+      
+      const articlesCollection = posts_db.collection('articles');
+
+      let saved_articles = [];
+      for(let article of articles){
+        const query = { _id: new ObjectId(article.article_id) };
+        const articlesData = await articlesCollection.find(query).toArray();
+        if(articlesData.length > 0){
+          saved_articles.push(articlesData[0]);
+        }
+      }
+
+      let updated_articles = [];
+
+      for(let article of saved_articles){
+
+        const saved_articles = await posts_db.collection('saved_articles').find({
+          article_id: article._id.toString()
+        }).toArray();
+
+        const liked_articles = await posts_db.collection('liked_articles').find({
+          article_id: article._id.toString()
+        }).toArray();
+
+        const articles_exist = await posts_db.collection('saved_articles').find({
+          article_id: article._id.toString(), user_id: req.user.id
+        }).toArray();
+
+        const liked_exist = await posts_db.collection('liked_articles').find({
+          article_id: article._id.toString(), user_id: req.user.id
+        }).toArray();
+
+
+        const like_count = liked_articles.length;
+        const is_liked = liked_exist.length;
+
+        const save_count = saved_articles.length;
+        const is_saved = articles_exist.length;
+        updated_articles.push({...article,save_count,is_saved,like_count,is_liked})
+
+      }
+
+      return res.status(200).json({status:true,data:updated_articles, message: 'Your saved articles'});
+
+    }else{
+      res.status(200).json({status:true,data:[],message:'No articles found'});
     }
-
-    res.status(200).json(top_saved);
   } catch (err) {
     console.error(err);
     res.status(500).send("Internal Server Error");
   }
 });
+
+
+
 
 // Admin only - Update article
-router.put("/posts/:article_id", verifyToken, requireAdmin, async (req, res) => {
+router.put("/posts/:article_id", verifyToken,checkUserStatus, requireAdmin, async (req, res) => {
   try {
     const { article_id } = req.params;
     const updateData = req.body;
@@ -180,7 +288,7 @@ router.put("/posts/:article_id", verifyToken, requireAdmin, async (req, res) => 
 });
 
 // Admin only - Delete article
-router.delete("/posts/:article_id", verifyToken, requireAdmin, async (req, res) => {
+router.delete("/posts/:article_id", verifyToken,checkUserStatus, requireAdmin, async (req, res) => {
   try {
     const { article_id } = req.params;
     
@@ -211,7 +319,7 @@ router.delete("/posts/:article_id", verifyToken, requireAdmin, async (req, res) 
 });
 
 // Protected route for user interactions
-router.post('/posts/:article_id/', verifyToken, async (req, res) => {
+router.post('/posts/:article_id/', verifyToken,checkUserStatus, async (req, res) => {
   try {
     const { article_id } = req.params;
     const user_id = req.user.id;

@@ -8,6 +8,7 @@ import userInfoReducer from './reducers/userInfoReducer';
 import vendReducer from './reducers/vendReducer';
 import tokenReducer from './reducers/tokenReducer';
 import newsReducer from './reducers/NewsReducer';
+import homeReducer from './reducers/homeReducer';
 
 // HOW REDUX STATE WORKS
 // 
@@ -32,17 +33,17 @@ import newsReducer from './reducers/NewsReducer';
 // 3) in store.js, add reducer to rootReducer
 // 4) in your component, create dispatch and selector hooks to change and get state, respectively
 
-
 const rootReducer = combineReducers({
     isLogged: loginReducer,
-    liked_articles: likeReducer,
+    // liked_articles: likeReducer,
     user_id: idReducer,
     acct_type: accountReducer,
     saved_articles: saveReducer,
     userInfo: userInfoReducer,
     isInit: vendReducer,
     token: tokenReducer,
-    news: newsReducer
+    news: newsReducer,
+    home: homeReducer
 });
 
 export const store = configureStore({

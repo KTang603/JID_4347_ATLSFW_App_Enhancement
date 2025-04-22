@@ -84,15 +84,50 @@ const VendorProfile = () => {
       <ScrollView>
         <ProfileHeader />
         <View style={styles.profileSection}>
-          <TouchableOpacity onPress={pickImage} disabled={!editMode}>
-            <Image
-              source={imageUri ? { uri: imageUri } : require('./user.jpg')}
-              style={styles.profileImage}
-            />
-          </TouchableOpacity>
+          <View style={styles.profileImageContainer}>
+            <TouchableOpacity 
+              style={styles.profileImageTouchable}
+              activeOpacity={0.7}
+              onPress={() => {
+                if (editMode) {
+                  pickImage();
+                } else {
+                  setEditMode(true);
+                  Alert.alert("Edit Mode", "You can now change your profile picture. Tap on your profile picture to select a new one.");
+                }
+              }}
+            >
+              {imageUri ? (
+                <Image
+                  source={{ uri: imageUri }}
+                  style={styles.profileImage}
+                />
+              ) : (
+                <View style={[styles.profileImage, styles.defaultAvatarContainer]}>
+                  <Text style={styles.defaultAvatarText}>
+                    {userInfo["first_name"] && userInfo["first_name"].charAt(0).toUpperCase()}
+                    {userInfo["last_name"] && userInfo["last_name"].charAt(0).toUpperCase()}
+                  </Text>
+                </View>
+              )}
+              <View style={styles.imageOverlay}>
+                <Text style={styles.imageOverlayText}>
+                  {editMode ? "Tap to change" : "Tap to edit"}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          </View>
           <Text style={styles.name}>{userInfo["first_name"] + " " + userInfo["last_name"]}</Text>
           {editMode && (
-            <Button title="Change Profile Picture" onPress={pickImage} />
+            <View style={styles.editModeButtons}>
+              <Button title="Change Profile Picture" onPress={pickImage} />
+              <TouchableOpacity 
+                style={styles.doneButton}
+                onPress={() => setEditMode(false)}
+              >
+                <Text style={styles.doneButtonText}>Done</Text>
+              </TouchableOpacity>
+            </View>
           )}
           <View style={styles.infoContainer}>
             <TouchableOpacity
@@ -120,14 +155,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'white',
   },
-  header: {
-    backgroundColor: '#02833D', // A green color similar to the one in the image.
-    padding: 50,
-    alignItems: 'center',
-  },
   profileSection: {
     alignItems: 'center',
-    marginTop: -50, // Negative margin to pull the profile section up, overlapping the header
+    marginTop: 30, // Positive margin to position below the navigation header
   },
   profileImage: {
     width: 100,
@@ -223,6 +253,58 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  profileImageContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    overflow: 'hidden',
+  },
+  profileImageTouchable: {
+    width: '100%',
+    height: '100%',
+  },
+  defaultAvatarContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#02833D',
+  },
+  defaultAvatarText: {
+    color: 'white',
+    fontSize: 36,
+    fontWeight: 'bold',
+  },
+  imageOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    borderRadius: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  imageOverlayText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  editModeButtons: {
+    marginTop: 10,
+    alignItems: 'center',
+  },
+  doneButton: {
+    marginTop: 10,
+    backgroundColor: '#02833D',
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+    borderRadius: 5,
+  },
+  doneButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+  }
 });
 
 export default VendorProfile;

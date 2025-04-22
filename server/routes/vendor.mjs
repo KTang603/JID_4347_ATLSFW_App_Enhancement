@@ -1,7 +1,7 @@
 import express from "express";
 import { users_db } from "../db/conn.mjs";
 import { ObjectId } from "mongodb";
-import { verifyToken, requireAdmin } from "../middleware/auth.mjs";
+import { verifyToken, requireAdmin, checkUserStatus } from "../middleware/auth.mjs";
 
 /*
 enum AccountType {
@@ -16,19 +16,7 @@ const router = express.Router();
 // Middleware to ensure only admins can access auth routes
 router.use(['/authorize', '/deauthorize'], verifyToken, requireAdmin);
 
-// Middleware to ensure only vendors can access their own routes
-router.use(['/discover/create'], verifyToken, async (req, res, next) => {
-    try {
-        // const { vendor_id } = req.params;
-        // if (req.user.id !== vendor_id) {
-        //     return res.status(403).json({ success: false, message: "Access denied" });
-        // }
-        next();
-    } catch (error) {
-        console.error('Error in vendor auth middleware:', error);
-        res.status(500).json({ success: false, message: "Internal Server Error" });
-    }
-});
+// Authorization checks are done in the route handlers
 
 // Authorize vendor
 router.post("/authorize", async (req, res) => {
@@ -40,9 +28,7 @@ router.post("/authorize", async (req, res) => {
             return res.status(400).json({ success: false, message: "Email is required" });
         }
 
-        console.log('Received vendor authorize request for hashed_email:', hashed_email);
-
-        const collection = users_db.collection('user_login');  // replace YOUR_DB_NAME_HERE with your database name
+        const collection = users_db.collection('user_login');
 
         // Use the $set operator to update the account_type field, and upsert: false ensures we're only updating existing documents
         const result = await collection.updateOne({ hashed_email }, { $set: { account_type: 2 } });
@@ -63,11 +49,19 @@ router.post("/authorize", async (req, res) => {
     }
 });
 
-router.post("/discover/create/:vendor_id", async (req, res) => {
+router.post("/discover/create/:vendor_id", verifyToken, checkUserStatus, async (req, res) => {
     try {
-        // Assuming you're passing the hashed_email in the request body
+        // Get vendor_id from URL parameters
         const { vendor_id } = req.params;
         const { brand_name, shop_now_link, title, intro } = req.body;
+
+        // Authorization check - ensure vendors can only create discovery pages for themselves
+        if (req.user.id !== vendor_id) {
+            return res.status(403).json({ 
+                success: false, 
+                message: "Access denied. You can only create a discovery page for your own account." 
+            });
+        }
 
         if (!brand_name || !shop_now_link || !title || !intro) {
             return res.status(400).send("Incomplete discovery information");
@@ -75,20 +69,62 @@ router.post("/discover/create/:vendor_id", async (req, res) => {
 
         const userDB = users_db.collection('customer_info');
         
-        const users = await userDB.findOne({_id: new ObjectId(vendor_id)});
-        const discoveryInfo = req.body;
+        // Create shop_info object with the provided data
+        const shopInfo = {
+            brand_name: brand_name,
+            shop_now_link: shop_now_link,
+            url: title,  // Store title as url for image
+            social_link: intro  // Store intro as social_link
+        };
 
-        const userInfo = {...users,discovery_info:{...discoveryInfo}};
-        // Update user document
+        // Update user document with shop_info
         const result = await userDB.updateOne(
             { _id: new ObjectId(vendor_id) },
-            { $set: userInfo }
+            { 
+                $set: { 
+                    shop_info: shopInfo,
+                    user_roles: 2  // Ensure user is marked as a vendor
+                } 
+            }
         );
 
+        // Also update vendor_info collection
+        const vendorInfoCollection = users_db.collection('vendor_info');
+        const vendorInfo = await vendorInfoCollection.findOne({ vendor_id: new ObjectId(vendor_id) });
+        
+        if (vendorInfo) {
+            // Update existing vendor_info entry
+            await vendorInfoCollection.updateOne(
+                { vendor_id: new ObjectId(vendor_id) },
+                { 
+                    $set: { 
+                        brand_name: brand_name,
+                        shop_now_link: shop_now_link,
+                        title: title,
+                        intro: intro,
+                        vendor_account_initialized: true
+                    } 
+                }
+            );
+        } else {
+            // Create new vendor_info entry
+            await vendorInfoCollection.insertOne({ 
+                vendor_id: new ObjectId(vendor_id),
+                brand_name: brand_name,
+                shop_now_link: shop_now_link,
+                title: title,
+                intro: intro,
+                vendor_account_initialized: true
+            });
+        }
+
         if(result.matchedCount){
+            // Fetch the updated user to return in the response
+            const updatedUser = await userDB.findOne({_id: new ObjectId(vendor_id)});
+            
             res.status(200).json({
                 success: true,
-                user: userInfo,
+                user: updatedUser,
                 message: "Discovery page created successfully"
               });
         } else{
@@ -144,7 +180,7 @@ router.post("/deauthorize", async (req, res) => {
     }
 });
 
-router.get("/discover/:vendor_id", async (req, res) => {
+router.get("/discover/:vendor_id", verifyToken, checkUserStatus, async (req, res) => {
     try {
         const { vendor_id } = req.params;
         const collection = users_db.collection('vendor_info');
@@ -159,6 +195,30 @@ router.get("/discover/:vendor_id", async (req, res) => {
     } catch (err) {
         console.error(err);
         res.status(500).send("Internal Server Error");
+    }
+});
+
+// Get all shops
+router.get("/shop/all", verifyToken, checkUserStatus, async (req, res) => {
+    try {
+        const userDB = users_db.collection('customer_info');
+        
+        // Find all users with user_roles = 2 (vendors) and shop_info
+        const vendors = await userDB.find({ 
+            user_roles: 2,
+            shop_info: { $exists: true } 
+        }).toArray();
+        
+        res.status(200).json({ 
+            success: true, 
+            vendors: vendors 
+        });
+    } catch (err) {
+        console.error('Error fetching shops:', err);
+        res.status(500).json({ 
+            success: false, 
+            message: "Internal Server Error" 
+        });
     }
 });
 
