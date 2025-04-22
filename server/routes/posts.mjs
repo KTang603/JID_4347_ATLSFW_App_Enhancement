@@ -1,5 +1,5 @@
 import express from "express";
-import { posts_db, users_db,saved_articles_db } from "../db/conn.mjs";
+import { posts_db, users_db } from "../db/conn.mjs";
 import { ObjectId } from "mongodb";
 import tagsList from "../utils/tagsList.mjs";
 import { verifyToken, requireAdmin, checkUserStatus } from "../middleware/auth.mjs";
@@ -199,9 +199,6 @@ router.post("/posts/saved_articles",verifyToken,checkUserStatus, async (req, res
   try {
     const {user_id} =req.body;
     const articles = await posts_db.collection('saved_articles').find({user_id:user_id}).toArray();
-    // console.log('====================================');
-    // console.log('articles----'+JSON.stringify(articles));
-    // console.log('====================================');
 
     if(articles.length > 0 ){
       
@@ -344,16 +341,6 @@ router.post('/posts/:article_id/', verifyToken,checkUserStatus, async (req, res)
     let update;
     let articles;
 
-    console.log('Request details:', {
-      article_id,
-      user_id,
-      query: req.query,
-      body: req.body
-    });
-
-    // Debug logging
-    console.log('Request body:', req.body);
-
     // Validate query parameters
     if (req.query.like) {
       arg = parseInt(req.query.like);
@@ -378,9 +365,6 @@ router.post('/posts/:article_id/', verifyToken,checkUserStatus, async (req, res)
         .filter(id => id != null)
         .map(id => id.toString());
 
-      // Debug logging
-      console.log('Processed liked_articles:', articles);
-
       update = { $set: { liked_articles: articles } };
     } else if (req.query.save) {
       arg = parseInt(req.query.save);
@@ -402,22 +386,6 @@ router.post('/posts/:article_id/', verifyToken,checkUserStatus, async (req, res)
       return res.status(400).json({ success: false, message: "Missing or invalid action" });
     }
 
-    console.log('Processing update:', {
-      user_id,
-      action: req.query.like ? 'like' : 'save',
-      arg,
-      articles,
-      update
-    });
-
-    // Debug logging
-    console.log('Processing update:', {
-      user_id,
-      action: req.query.like ? 'like' : 'save',
-      articles,
-      update
-    });
-
     // Keep all article IDs as strings
     const validArticles = articles.filter(id => id && typeof id === 'string');
     
@@ -427,14 +395,6 @@ router.post('/posts/:article_id/', verifyToken,checkUserStatus, async (req, res)
     } else if (req.query.save) {
       update = { $set: { saved_articles: validArticles } };
     }
-
-    // Debug logging
-    console.log('Updating user articles:', {
-      user_id,
-      action: req.query.like ? 'like' : 'save',
-      validArticles,
-      update
-    });
 
     // Update user's liked/saved articles
     const userResult = await users_db.collection("customer_info").updateOne(
@@ -465,23 +425,9 @@ router.post('/posts/:article_id/', verifyToken,checkUserStatus, async (req, res)
             return res.status(404).json({ success: false, message: "Article not found!" });
           }
 
-          // Debug logging
-          console.log('Current article state:', {
-            article_id,
-            current_like_count: article.like_count,
-            arg
-          });
-
           let newLikeCount = article.like_count + arg;
           // Ensure count doesn't go below 0
           newLikeCount = Math.max(0, newLikeCount);
-
-          // Debug logging
-          console.log('Updating like count:', {
-            article_id,
-            old_count: article.like_count,
-            new_count: newLikeCount
-          });
 
           // Update using the correct ID type
           const query = ObjectId.isValid(article_id) ? 
@@ -500,12 +446,6 @@ router.post('/posts/:article_id/', verifyToken,checkUserStatus, async (req, res)
             });
             return res.status(400).json({ success: false, message: "Like action unsuccessful!" });
           }
-
-          // Debug logging
-          console.log('Like update successful:', {
-            article_id,
-            new_count: newLikeCount
-          });
         } catch (error) {
           console.error('Error updating like count:', error);
           return res.status(500).json({ success: false, message: "Error updating like count" });

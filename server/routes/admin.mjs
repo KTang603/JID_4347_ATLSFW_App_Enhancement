@@ -1,6 +1,6 @@
 import express from "express";
 import { MongoClient, ObjectId } from "mongodb";
-import { users_db, posts_db, checkConnection, news_db,third_party_db } from "../db/conn.mjs";
+import { users_db, posts_db, checkConnection, third_party_db } from "../db/conn.mjs";
 import { verifyToken, requireAdmin } from "../middleware/auth.mjs";
 import jwt from 'jsonwebtoken';
 import { fetchNewsArticles } from "../scripts/fetch-news.mjs";
@@ -29,15 +29,6 @@ router.get("/vendors", async (req, res) => {
   }
 });
 
-// activate:1 (user_status)
-// deactivate:0 (user_status)
-
-// user_status
-// user_id
-// token
-
-// user_status: 0,
-
 router.post("/users/change_status", async (req, res) => {
   try {
      const { user_id, user_status } = req.body;
@@ -51,8 +42,6 @@ router.post("/users/change_status", async (req, res) => {
       } else {
         updated_user =  {...currentUser[0], user_status: DEACTIVATE_STATUS}
       }
-
-    
 
     // Update user document
     const result = await users.updateOne(
@@ -336,7 +325,7 @@ router.post("/newsdata/config", async (req, res) => {
             return res.status(400).json({ success: false, message: "API key is required" });
         }
 
-        await news_db.collection('config').updateOne(
+        await third_party_db.collection('config').updateOne(
             { type: 'newsdata' },
             { $set: { apiKey, updatedAt: new Date() } },
             { upsert: true }
@@ -351,7 +340,7 @@ router.post("/newsdata/config", async (req, res) => {
 
 router.get("/newsdata/config", async (req, res) => {
     try {
-        const config = await news_db.collection('config').findOne({ type: 'newsdata' });
+        const config = await third_party_db.collection('config').findOne({ type: 'newsdata' });
         return res.status(200).json({ success: true, config });
     } catch (error) {
         console.error("Error fetching NewsData.io config:", error);
@@ -381,11 +370,7 @@ router.post("/newsdata/fetch", async (req, res) => {
 router.post("/save_api_key", async (req, res) => {
   try {
     const {api_key} = req.body;
-    const thirdPartyDb = await third_party_db.collection("config")
-    // const status = await thirdPartyDb.insertOne(
-    //   { "api_key": api_key }
-    //   // { $set: { "api_key": api_key } }    
-    // );
+    const thirdPartyDb = await third_party_db.collection("config");
     
     const status = await thirdPartyDb.updateOne(
         { "api_key": api_key },

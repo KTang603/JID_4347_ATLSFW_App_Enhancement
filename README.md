@@ -86,6 +86,53 @@ This containerization ensures that the server runs in a consistent environment r
 4. Enter your NewsData.io API key in the provided field and click "Save".
 5. You can then click "Fetch News Data" to manually trigger fetching articles from the NewsData.io API.
 
+## User Roles and Permissions
+The application supports three different user roles, each with different permissions:
+
+1. **Regular User** (`user_roles: 1`)
+   - Can view events and articles
+   - Can mark interest in events
+   - Can like and save articles
+   - Can update their own profile information
+   - Cannot create or modify events
+   - Cannot access admin features
+
+2. **Vendor** (`user_roles: 2`)
+   - All regular user permissions
+   - Can create and manage their own shop page
+   - Can add products and services
+   - Can update their vendor profile
+   - Cannot access admin features
+
+3. **Admin** (`user_roles: 3`)
+   - Full access to all features
+   - Can create, edit, and delete events
+   - Can manage all users (activate/deactivate accounts)
+   - Can approve/reject vendor applications
+   - Can configure the News API
+   - Can access all admin screens and features
+
+### Setting Up User Roles
+When creating users in the MongoDB database, set the `user_roles` field in the `user_login` collection to:
+- `1` for regular users
+- `2` for vendors
+- `3` for admin users
+
+Example MongoDB document for an admin user:
+```javascript
+{
+  "_id": ObjectId("..."),
+  "email": "admin@example.com",
+  "password": "hashed_password",
+  "user_roles": 3,
+  "active": true
+}
+```
+
+For testing purposes, the default login credentials in development mode are:
+- Regular User: user1@gmail.com / Password123@
+- Admin User: admin@gmail.com / Password123@
+
 # Release Notes
 
 ## Version v1.0.0

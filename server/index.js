@@ -15,15 +15,11 @@ import news from "./routes/news.mjs";
 import event from "./routes/event.mjs";
 import home from "./routes/home.mjs";
 
-
-// Replace the uri string with your MongoDB deployment's connection string.
-const API_KEY = 'pub_69919892f87f86c7d48e31dfb61e8e91e0f3b'
 const app = express();
 const PORT = process.env.PORT || 5050;
 app.use(cors());
 
 app.use(bodyParser.json());
-// Get a list of 50 posts
 
 app.use('/login', login);
 app.use(signup); 
@@ -36,13 +32,11 @@ app.use('/password', password);
 app.use('/news', news);
 app.use('/home', home);
 
+// Global error handler
 app.use((err, _req, res, next) => {
-  console.log('====================================');
-  console.log('err----'+err);
-  console.log('====================================');
+  console.error('Server error:', err);
   res.status(500).send("Uh oh! An unexpected error occurred.");
 });
-
 
 // Default search query for news
 const DEFAULT_SEARCH_QUERY = 'sustainable fashion';
@@ -50,13 +44,9 @@ const DEFAULT_SEARCH_QUERY = 'sustainable fashion';
 // Schedule news fetch to run once per day at midnight
 cron.schedule('0 0 * * *', () => {
   console.log('Running scheduled news fetch...');
-  //fetchNewsArticles(DEFAULT_SEARCH_QUERY);
+  // News fetching is now handled through the admin interface
 });
 
 app.listen(PORT, () => {
   console.log(`Server is running on port: ${PORT}`);
-  
-  // Also fetch news when server starts
-  console.log('Running initial news fetch...');
-  //fetchNewsArticles(DEFAULT_SEARCH_QUERY);
 });

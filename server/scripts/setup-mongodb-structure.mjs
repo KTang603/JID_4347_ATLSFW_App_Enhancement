@@ -191,39 +191,26 @@ async function setupDatabases(client) {
     console.log("Index on user_id in events collection already exists or failed:", e.message);
   }
   
-  // 4. Set up news_db
-  console.log("\n--- Setting up news database ---");
-  const newsDb = client.db("news");
+  // 4. Set up third_party_db
+  console.log("\n--- Setting up third_party database ---");
+  const thirdPartyDb = client.db("third_party");
   
   // Create collections
-  console.log("Creating collections in news database...");
+  console.log("Creating collections in third_party database...");
   try {
-    await newsDb.createCollection("config");
+    await thirdPartyDb.createCollection("config");
     console.log("✅ Created config collection");
   } catch (e) {
     console.log("Collection config already exists");
   }
   
   // Create indexes
-  console.log("\nCreating indexes in news database...");
+  console.log("\nCreating indexes in third_party database...");
   try {
-    await newsDb.collection("config").createIndex({ "type": 1 }, { unique: true });
+    await thirdPartyDb.collection("config").createIndex({ "type": 1 }, { unique: true });
     console.log("✅ Created index on type in config collection");
   } catch (e) {
     console.log("Index on type in config collection already exists or failed:", e.message);
-  }
-  
-  // 5. Set up saved_articles_db
-  console.log("\n--- Setting up saved_articles database ---");
-  const savedArticlesDb = client.db("saved_articles");
-  
-  // Create collections
-  console.log("Creating collections in saved_articles database...");
-  try {
-    await savedArticlesDb.createCollection("saved_articles_data");
-    console.log("✅ Created saved_articles_data collection");
-  } catch (e) {
-    console.log("Collection saved_articles_data already exists");
   }
   
   console.log("\n✅ All databases, collections, and indexes have been set up successfully!");

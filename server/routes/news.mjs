@@ -1,6 +1,6 @@
 import express from "express";
 import { verifyToken, requireAdmin } from "../middleware/auth.mjs";
-import { news_db } from "../db/conn.mjs";
+import { third_party_db } from "../db/conn.mjs";
 
 const router = express.Router();
 
