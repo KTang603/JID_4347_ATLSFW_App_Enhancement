@@ -25,8 +25,7 @@ The **Enhanced ATLSFW Mobile Application** builds upon the original app's missio
    - `users` database with `customer_info`, `user_login`, and `vendor_info` collections
 5. Navigate back to the **Overview** tab and click the **Connect** button and then click the **Drivers** option.
 6. Copy the URI 
-7. Open up the `server/db/conn.mjs` file and change line 4 to your own database's URI. Do not remove the `getMongoPasscode()`.
-   You will need to partition the URI like so:
+7. Open up the `server/db/conn.mjs` file and change to your own database's URI. Do not remove the `getMongoPasscode()`.
 ### Running commands in the Terminal
 To run a command in your terminal, type in the command and press Enter.
 
@@ -81,7 +80,55 @@ This containerization ensures that the server runs in a consistent environment r
 
 ## News API Setup
 1. Create an account on [NewsData.io](https://newsdata.io/) and get your API key.
-2. Once the application is running, log in as an admin user.
+2. Once the application is running, log in as an admin user (instructions below).
 3. Navigate to the News API Config screen.
 4. Enter your NewsData.io API key in the provided field and click "Save".
 5. You can then click "Fetch News Data" to manually trigger fetching articles from the NewsData.io API.
+
+## User Roles and Permissions
+The application supports three different user roles, each with different permissions:
+
+1. Singup only creates a 'Regular User'. Relugar user can be converted through Admin account settings page or by changing it in the database.
+
+2. **Regular User** (`user_roles: 1`)
+   - Can view events and articles
+   - Can mark interest in events
+   - Can like and save articles
+   - Can update their own profile information
+   - Cannot create or modify events
+   - Cannot access admin features
+
+3. **Vendor** (`user_roles: 2`)
+   - All regular user permissions
+   - Can create and manage their own shop page
+   - Can add products and services
+   - Can update their vendor profile
+   - Cannot create or modify events
+   - Cannot access admin features
+
+4. **Admin** (`user_roles: 3`)
+   - Full access to all features
+   - Can create, edit, and delete events
+   - Can manage all users (activate/deactivate accounts)
+   - Can make a regular user to Vendor
+   - Can approve/reject vendor applications
+   - Can configure the News API
+   - Can access all admin screens and features
+
+### Setting Up User Roles
+When creating users in the MongoDB database, set the `user_roles` field in the `user_login` collection to:
+- `1` for regular users
+- `2` for vendors
+- `3` for admin users
+
+Example MongoDB document for an admin user:
+```javascript
+{
+  "_id": ObjectId("..."),
+  "email": "admin@example.com",
+  "password": "hashed_password",
+  "user_roles": 3,
+  ....
+  ....
+}
+```
