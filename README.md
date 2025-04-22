@@ -15,7 +15,7 @@
   * Implemented workshop-specific styling and icons
   * Added filtering by workshop event type
   * Integrated with Events tab for "See All" functionality
-* Featured Brands Section
+* Featured Brands Section  
   * Implemented brand cards with images and descriptions
   * Added navigation to vendor pages
   * Implemented placeholder images for missing brand assets
