@@ -112,7 +112,7 @@
 - Added proper token refresh mechanism
 
 #### UI Fixes
-- Fixed toggle visibility in EventsScreen when no events match filters
+- Fixed EventsScreen toggle not displaying correctly when no events matched filters
 - Improved empty state messages to differentiate between no events and filtered results
 - Fixed font rendering issues across multiple screens
 - Fixed button styling inconsistencies
