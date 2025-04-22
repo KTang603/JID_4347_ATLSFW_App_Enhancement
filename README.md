@@ -4,7 +4,7 @@
 
 ## Features
 
-#### Home Page Implementation
+#### Home Page Implementation  
 * Upcoming Events Section
   * Implemented section to display upcoming events from database
   * Added event cards with title, description, date and time
