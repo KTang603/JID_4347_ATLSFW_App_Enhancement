@@ -2,7 +2,6 @@
 
 ## Feature Overview
 This PR implements admin authorization and user management functionality with two main components:
-
 ### 1. Authorization Backend & Supporting Changes
 - Enhanced admin routes for user authorization and management
 - Improved database connection handling with transactions
@@ -21,7 +20,6 @@ This PR implements admin authorization and user management functionality with tw
   * `client/Screens/LoginScreen.js` - Updated to use normalized emails
   * `client/Screens/SignUpScreen.js` - Updated to use normalized emails
   * `client/Screens/ForgotPasswordScreen.js` - Updated to use normalized emails
-
 ### 2. User Management UI
 - Added five management buttons to AdminProfile:
   * Authorize Admin - Grant admin privileges
@@ -32,11 +30,13 @@ This PR implements admin authorization and user management functionality with tw
 - Files changed:
   * `client/components/profile_pages/AdminProfile.js` - UI implementation
 
+
 ## Testing Done
 - Verified all five buttons work correctly
 - Confirmed changes are reflected in database
 - Tested error handling and validation
 - Verified proper authorization checks
+
 
 ## Technical Details
 - Uses MongoDB transactions for atomic operations
