@@ -153,6 +153,6 @@
 
 ## Team Links
 1. Github: https://github.com/KTang603/JID_4347_ATLSFW_App_Enhancement
-2. Install Guide: https://github.com/KTang603/JID_4347_ATLSFW_App_Enhancement/blob/Install2/Install%20Guide
+2. Install Guide: https://github.com/KTang603/JID_4347_ATLSFW_App_Enhancement/blob/main/InstallGuide.md#installation-guide
 3. Original App Github: https://github.com/sanav33/atlsfw_jd
 4. Jira: https://gatech-team-sqodvrme.atlassian.net/jira/software/projects/SCRUM/boards/1
