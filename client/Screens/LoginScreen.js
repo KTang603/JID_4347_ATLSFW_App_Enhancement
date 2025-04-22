@@ -12,8 +12,8 @@ import { LOGIN_LOGO } from '../assets';
 import { fetchHomeData } from '../redux/actions/homeAction';
 
 const LoginScreen = ({navigation}) => {
-  const [email, setEmail] = useState(__DEV__?'user1@gmail.com':'');
-  const [password, setPassword] = useState(__DEV__?'Password123@':'');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const dispatch = useDispatch();
 
@@ -46,12 +46,9 @@ const LoginScreen = ({navigation}) => {
       });
 
       const data = response.data;
-      // console.log('data----'+JSON.stringify(data));
       if (data.success) {
-          // dispatch(login());
-          // dispatch(setID(data.user._id));
           dispatch(setUserInfo(data.user));
-          // dispatch(getVend(data.user.vendor_account_initialized));
+          
           // Set token in Redux and store auth data
           const token = data.token;
           dispatch(updateUserToken(token)) 
@@ -65,17 +62,6 @@ const LoginScreen = ({navigation}) => {
           });
           dispatch(fetchHomeData(token));
           await dispatch(fetchData(1, [],token));
-          // dispatch(setToken(token));
-          // dispatch(set_acct_type(data.user.user_roles)); //Need to test once..
-          
-          console.log('Token set after login:', token);
-
-          // if (data.user.liked_articles != null) {
-          //   dispatch(get_like_list(data.user.liked_articles));
-          // }
-          // if (data.user.saved_articles != null) {
-          //   dispatch(get_save_list(data.user.saved_articles));
-          // }
 
           navigation.reset({
             index: 0,
@@ -85,7 +71,6 @@ const LoginScreen = ({navigation}) => {
         Alert.alert('Login Error', data.message || 'Login failed. Please try again.');
       }
     } catch (error) {
-      console.error('Error during login:', error?.response?.data?.message || error.message);
       Alert.alert('Login Error', error?.response?.data?.message || 'Failed to connect to server. Please try again.',
         [{text:'Try Again', cancelable: true}]
       );

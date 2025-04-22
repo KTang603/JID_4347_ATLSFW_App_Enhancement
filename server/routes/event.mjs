@@ -11,31 +11,6 @@ const router = express.Router();
 // For ADMIN
 router.use(['/events/create','/events/add_participant', '/events/delete', '/events/update','/events/participantlist'], verifyToken,checkUserStatus);
 
-// Admin only - Create Event (COMMENTED OUT - Using the version below that includes event_type)
-/*
-router.post("/events/create",requirePermisssion, async (req, res) => {
-  const { event_title, event_desc, event_link, event_location, event_date, user_id} = req.body;
-  if (!event_title || !event_desc || !event_link || !event_location || !event_date) {
-      return res.status(400).json({ success: false, message: 'Missing event information' });
-  }
-  try {
-    await events_db.collection('events').insertOne({
-        event_title,
-        event_desc,
-        event_link,
-        event_location,
-        event_date,
-        user_id,
-    });
-    res.status(200).json({ success: true,message:'Event created successfully.' });
-  } catch (err) {
-    console.error(err);
-    res.status(500).send("Internal Server Error");
-  }
-});
-*/
-
-
 router.post("/events/participantlist",requirePermisssion, async (req, res) => {
   const { event_id, user_id} = req.body;
   if (!event_id || !user_id ) {
@@ -57,8 +32,7 @@ const filteredUserList = userList.filter(user => user !== null);
 res.status(200).send({success: true,data:filteredUserList});
 
 }catch(e){
-  console.log(e);
-  res.status(500).send("Internal Server Error");
+  res.status(500).json({ success: false, message: "Internal Server Error", error: e.message });
 }
 
 });
@@ -98,8 +72,7 @@ router.get("/events", verifyToken,checkUserStatus, async (req, res) => {
            event: result
           });
     }catch(err){
-        console.log('err----'+err);
-        res.status(500).send("Internal Server Error");
+        res.status(500).json({ success: false, message: "Internal Server Error", error: err.message });
     }
   
 });
@@ -150,7 +123,6 @@ router.post("/events/create", verifyToken,checkUserStatus, async (req, res) => {
       eventId: result.insertedId
     });
   } catch (err) {
-    console.error('Error creating event:', err);
     res.status(500).json({ 
       success: false, 
       message: "Failed to create event",
@@ -188,7 +160,6 @@ router.delete("/events/delete/:id", requireAdmin, async (req, res) => {
       message: 'Event deleted successfully'
     });
   } catch (err) {
-    console.error('Error deleting event:', err);
     res.status(500).json({ 
       success: false, 
       message: "Failed to delete event",
@@ -270,7 +241,6 @@ router.put("/events/update/:id", requireAdmin, async (req, res) => {
       message: 'Event updated successfully'
     });
   } catch (err) {
-    console.error('Error updating event:', err);
     res.status(500).json({ 
       success: false, 
       message: "Failed to update event",

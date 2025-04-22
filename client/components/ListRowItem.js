@@ -93,7 +93,6 @@ const ListRowItem = ({ item, handleSave, handleLike }) => {
             <TouchableOpacity
               style={styles.statItem}
               onPress={(e) => {
-                // e.stopPropagation();
                 handleLike(_id);
               }}
               activeOpacity={0.6}

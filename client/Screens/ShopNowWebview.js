@@ -2,9 +2,6 @@ import React, { useRef, useState } from 'react';
 import { WebView } from 'react-native-webview';
 import { View, Text, ActivityIndicator, StyleSheet, Dimensions } from 'react-native';
 
-// Set to true for production, false for development
-const IS_PRODUCTION = true;
-
 const ShopNowWebview = ({route}) => {
 	const webViewRef = useRef(null);
 	const [loading, setLoading] = useState(true);
@@ -13,11 +10,6 @@ const ShopNowWebview = ({route}) => {
 	
 	// Get link from route params, with fallback to a default URL
 	const params = route.params || {};
-	
-	// Only log in development mode
-	if (!IS_PRODUCTION) {
-		console.log('ShopNowWebview params:', params);
-	}
 	
 	let link;
 	if (params.link) {

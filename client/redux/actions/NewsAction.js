@@ -46,11 +46,7 @@ export const fetchData = (page = 1, inputTag, token, navigation, sortOrder = 'de
       return response;
   }
 
-
-
-
   export const newsDataFullFilled = (newsData) => {
-    // Debug logging
     return {
       type: 'NEWS_DATA_FULFILLED',
       payload:newsData,
@@ -58,14 +54,12 @@ export const fetchData = (page = 1, inputTag, token, navigation, sortOrder = 'de
   };
 
   export const newsDataProgress = () => {
-    // Debug logging
     return {
       type: 'NEWS_DATA_PROGRESS',
     };
   };
 
   export const newsDataFailure = () => {
-    // Debug logging
     return {
       type: 'NEWS_DATA_FAILURE',
     };
@@ -102,14 +96,9 @@ export const fetchData = (page = 1, inputTag, token, navigation, sortOrder = 'de
         await dispatch(updateNewsLike(request.articles_id))
       }
     } catch (error) {
-      console.error("Error updating like status:", error);
-      if (error.response) {
-        console.error("Response data:", error.response.data);
-        console.error("Response status:", error.response.status);
-      }
+      handleApiError(error);
     }
   };
-
 
   export const handleSave = (request) => async (dispatch,getState) => {    
     try {
@@ -124,21 +113,13 @@ export const fetchData = (page = 1, inputTag, token, navigation, sortOrder = 'de
         }
       );
       if (response.data.status) {
-        console.log("response----" + JSON.stringify(request.articles_id));
          await dispatch(updatNewsSave(request.articles_id))
          await dispatch(updatSaveNewsSave(request.articles_id))
-
       }
     } catch (error) {
-      console.error("Error updating like status:", error);
-      if (error.response) {
-        console.error("Response data:", error.response.data);
-        console.error("Response status:", error.response.status);
-      }
+      handleApiError(error);
     }
   };
-
-
 
   export const fetchTags =  (token) => async (dispatch,getState) => {
     try {
@@ -149,17 +130,15 @@ export const fetchData = (page = 1, inputTag, token, navigation, sortOrder = 'de
           'Content-Type': 'application/json'
         }
       });
-      console.log('fetchTags-----'+JSON.stringify(response.data));
       if (response.data && Array.isArray(response.data)) {
         dispatch(tagsFullFilled(response.data))
       }
     } catch (error) {
-      console.error("Error fetching tags:", error.message);
+      handleApiError(error);
     }
   };
 
   export const tagsFullFilled = (tags) => {
-    // Debug logging
     return {
       type: 'TAGS_FULFILLED',
       payload:tags,
