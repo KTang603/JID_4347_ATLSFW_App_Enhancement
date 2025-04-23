@@ -145,7 +145,6 @@ const CreateEvent = ({ route }) => {
         }
       }
     } catch (error) {
-      console.error("Error response:", error.response?.data);
       const action = isUpdating ? "update" : "create";
       Alert.alert("Error", error.response?.data?.message || `Failed to ${action} event`);
     }

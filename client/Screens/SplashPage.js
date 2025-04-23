@@ -34,38 +34,14 @@ const SplashPage = () => {
     if (token) {
       dispatch(updateUserToken(token));
       try {
-      // try {
-      //   // Try to get profile data first to check if user is still active
-      //   const response = await fetch(`http://${MY_IP_ADDRESS}:5050/user/get_profile?userId=${await tokenService.getUserId()}`, {
-      //     headers: {
-      //       'Authorization': `Bearer ${token}`,
-      //       'Content-Type': 'application/json'
-      //     }
-      //   });
-        
-      //   // If response is not ok, check if it's because the account is deactivated
-      //   if (!response.ok) {
-      //     const data = await response.json();
-      //     if (response.status === 403 && data.code === 'ACCOUNT_DEACTIVATED') {
-      //       // Use TokenService to handle deactivated account
-      //       await tokenService.handleDeactivatedAccount(navigation);
-      //       return;
-      //     }
-      //   }
-        
         // If everything is ok, continue with normal flow
         dispatch(getProfileData());
         dispatch(fetchTags(token));
         dispatch(fetchData(1, [], token));
         dispatch(fetchHomeData(token));
       } catch (error) {
-        console.error("Error in network call:", error);
-        // Handle other errors
-        const errorHandled = await handleApiError(error, navigation);
-        if (!errorHandled) {
-          // If not a deactivated account error, just log it
-          console.log("Unhandled error in network call:", error);
-        }
+        // Handle errors with API error handler
+        await handleApiError(error, navigation);
       }
     }
   };

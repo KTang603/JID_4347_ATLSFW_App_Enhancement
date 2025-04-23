@@ -85,8 +85,7 @@ const SignUpScreen = ({ navigation }) => {
         }
       }
     } catch (error) {
-      console.error("Error during sign up:", error.response?.data?.message);
-      Alert.alert("Sign Up Error", error.response?.data?.message, [
+      Alert.alert("Sign Up Error", error.response?.data?.message || "An error occurred during sign up", [
         { text: "Try Again" },
       ]);
     }

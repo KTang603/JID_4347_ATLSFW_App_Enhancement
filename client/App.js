@@ -49,7 +49,6 @@ const ConditionalNavBar = ({ currentScreen }) => {
 };
 
 const App = () => {
-  console.log("found local ip @", MY_IP_ADDRESS);
   const [currentScreen, setCurrentScreen] = useState('Log In');
   const [appState, setAppState] = useState(AppState.currentState);
   const navigationRef = useRef(null);
@@ -57,7 +56,6 @@ const App = () => {
   // Initialize TokenService when app starts
   useEffect(() => {
     // TokenService is automatically initialized when imported
-    console.log("TokenService initialized");
     
     // Set up AppState listener to detect when app comes back from background
     const subscription = AppState.addEventListener('change', handleAppStateChange);
@@ -72,13 +70,10 @@ const App = () => {
   const handleAppStateChange = async (nextAppState) => {
     // App has come back to the foreground
     if (appState.match(/inactive|background/) && nextAppState === 'active') {
-      console.log('App has come back to the foreground!');
-      
       // Check if token exists - if it does, the user will stay logged in
       // If the token doesn't exist (e.g., if the app was killed), the SplashPage
       // will redirect to the login screen
       const isAuthenticated = await tokenService.isAuthenticated();
-      console.log('User is authenticated:', isAuthenticated);
     }
     
     setAppState(nextAppState);

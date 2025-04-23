@@ -63,11 +63,6 @@ const ArticleForm = () => {
           placeholder="Article Title"
           onChangeText={setArticleTitle}
           value={articleTitle}
-          // onFocus={() =>
-          //   Alert.alert(
-          //     "Please complete filling out your vendor information prior to creating an article!"
-          //   )
-          // }
         />
         <TextInput
           style={styles.input}

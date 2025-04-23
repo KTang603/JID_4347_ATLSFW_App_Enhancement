@@ -140,7 +140,6 @@ const ShopScreen = () => {
         }
       }
     } catch (err) {
-      console.error('Error fetching shops:', err);
       // Try to handle the error with the API error handler
       const errorHandled = await handleApiError(err, navigation);
       if (!errorHandled) {

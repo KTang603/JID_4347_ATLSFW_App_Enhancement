@@ -44,7 +44,7 @@ const SavedArticles = ({ navigation }) => {
     try {
       await dispatch(getSavedArticles(token, _id, navigation));
     } catch (error) {
-      console.error("Failed to refresh articles:", error);
+      // Handle error silently
     } finally {
       setRefreshing(false);
     }

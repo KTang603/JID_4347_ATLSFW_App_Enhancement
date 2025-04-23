@@ -116,12 +116,6 @@ const ForgotPasswordScreen = ({ navigation }) => {
               sendEmailRequest();
             }}
           />
-
-          {/* <Button
-              title="Send Verification Code"
-              color="black"
-              onPress={sendEmailRequest}
-            /> */}
         </>
       )}
 
@@ -151,13 +145,6 @@ const ForgotPasswordScreen = ({ navigation }) => {
         </>
       )}
 
-      {/* <View style={styles.backButtonContainer}>
-        <Button
-          title="Back to Login"
-          color="green"
-          onPress={() => navigation.navigate('Log In')}
-        />
-      </View> */}
       {isLoading && <BaseIndicator />}
     </View>
   );

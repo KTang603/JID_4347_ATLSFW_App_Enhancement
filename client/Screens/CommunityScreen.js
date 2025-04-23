@@ -13,8 +13,8 @@ import {
 import MasonryList from "@react-native-seoul/masonry-list";
 import Icon from "react-native-vector-icons/FontAwesome";
 import SignupScreen from "./SignUpScreen";
-import AuthorNameScreen from "./AuthorNameScreen"; // Import the AuthorNameScreen component
-// import Article from "../components/Article";
+import AuthorNameScreen from "./AuthorNameScreen";
+import Article from "../components/Article";
 import axios from "axios";
 import MY_IP_ADDRESS from "../environment_variables.mjs";
 import ProfilePage from "./ProfilePage";
@@ -39,11 +39,6 @@ const CommunityScreen = ({ navigation }) => {
   const token = useSelector((store) => store.token?.token);
   const dispatch = useDispatch();
 
-  // Add debug logging
-  useEffect(() => {
-    console.log('Current token:', token);
-  }, [token]);
-
   const handleSavePress = () => {
     // Toggle the state when the Save button is pressed
     setSavePressed(!isSavePressed);
@@ -57,7 +52,6 @@ const CommunityScreen = ({ navigation }) => {
   const fetchData = async (page = 1, loadMore = false) => {
     try {
       if (!token) {
-        console.error('No token available for posts fetch');
         return;
       }
 
@@ -72,26 +66,12 @@ const CommunityScreen = ({ navigation }) => {
         }
       );
 
-      // Debug logging
-      console.log('Fetched articles:', response.data.articles.map(a => ({
-        id: a._id,
-        title: a.article_title
-      })));
-
       // Ensure all article IDs are strings
       const articles = response.data.articles.map(article => ({
         ...article,
         _id: article._id?.toString() || '',
         author_id: article.author_id?.toString() || ''
       }));
-
-      // Debug logging
-      console.log('Setting article data:', {
-        loadMore,
-        currentArticles: loadMore ? articleData.articles.length : 0,
-        newArticles: articles.length,
-        pagination: response.data.pagination
-      });
 
       if (loadMore) {
         // Ensure all IDs in both arrays are strings
@@ -112,15 +92,9 @@ const CommunityScreen = ({ navigation }) => {
         });
       }
 
-      // Debug logging after update
-      console.log('Article data updated:', {
-        totalArticles: loadMore ? 
-          articleData.articles.length + articles.length : 
-          articles.length
-      });
       setIsLoading(false);
     } catch (error) {
-      console.error("Error during data fetch:", error.message);
+      setIsLoading(false);
     }
   };
 
@@ -134,7 +108,6 @@ const CommunityScreen = ({ navigation }) => {
           // Then load articles
           await fetchData();
         } catch (error) {
-          console.error('Error loading initial data:', error);
           // If token is invalid, redirect to login
           if (error.response?.status === 401) {
             dispatch(logout());
@@ -149,41 +122,17 @@ const CommunityScreen = ({ navigation }) => {
   // Reload data when liked/saved articles change
   useEffect(() => {
     if (token && (liked_articles_state || saved_articles_state)) {
-      // Debug logging
-      console.log('Reloading data due to state change:', {
-        liked_articles_state,
-        saved_articles_state
-      });
-      
       // Reset to first page when reloading
       setCurrentPage(1);
       fetchData(1, false);
     }
   }, [liked_articles_state, saved_articles_state]);
 
-  // Debug logging for article data changes
-  useEffect(() => {
-    console.log('Article data updated:', {
-      totalArticles: articleData.articles.length,
-      currentPage,
-      totalPages: articleData.pagination.pages
-    });
-  }, [articleData]);
-
-  // Debug logging for saved articles state
-  useEffect(() => {
-    console.log('CommunityScreen: saved_articles_state changed:', saved_articles_state);
-  }, [saved_articles_state]);
-
   const fetchUserLikedAndSavedArticles = async () => {
     try {
       if (!token) {
-        console.log('No token available for fetching user articles');
         return;
       }
-
-      // Debug logging
-      console.log('Fetching user articles...');
 
       const response = await axios.get(
         `http://${MY_IP_ADDRESS}:5050/user/articles`,
@@ -195,9 +144,6 @@ const CommunityScreen = ({ navigation }) => {
         }
       );
       
-      // Debug logging
-      console.log('User articles response:', response.data);
-      
       if (response.data && response.data.success) {
         // Ensure arrays and convert IDs to strings
         const likedArticles = Array.isArray(response.data.liked_articles)
@@ -207,24 +153,13 @@ const CommunityScreen = ({ navigation }) => {
           ? response.data.saved_articles.map(id => id?.toString()).filter(Boolean)
           : [];
 
-        // Debug logging
-        console.log('Processed articles:', {
-          liked: likedArticles,
-          saved: savedArticles
-        });
-
         dispatch({ type: 'GET_LIKE_LIST', payload: likedArticles });
         dispatch({ type: 'GET_SAVE_LIST', payload: savedArticles });
-      } else {
-        console.error("Invalid response format:", response.data);
       }
     } catch (error) {
       if (error.response?.status === 401) {
-        console.log('Token expired or invalid, redirecting to login');
         dispatch(logout());
         navigation.navigate('Log In');
-      } else {
-        console.error("Error fetching user articles:", error.message);
       }
     }
   };
@@ -239,7 +174,6 @@ const CommunityScreen = ({ navigation }) => {
     const fetchTags = async () => {
       try {
         if (!token) {
-          console.error('No token available');
           return;
         }
         const url = `http://${MY_IP_ADDRESS}:5050/tags`;
@@ -253,7 +187,7 @@ const CommunityScreen = ({ navigation }) => {
           setTags(response.data);
         }
       } catch (error) {
-        console.error("Error fetching tags:", error.message);
+        // Handle error silently
       }
     };
     if (token) {
@@ -293,28 +227,20 @@ const CommunityScreen = ({ navigation }) => {
             }
           }}
           onEndReachedThreshold={0.5}
-          renderItem={({ item, index }) => {
-            // Debug logging
-            console.log('Rendering article:', {
-              id: item["_id"],
-              title: item["article_title"]
-            });
-
-            return (
-              <Article
-                article={{
-                  title: item["article_title"],
-                  image: item["article_preview_image"],
-                  author: item["author_name"],
-                  likes: item["like_count"],
-                  saves: item["save_count"],
-                  article_id: item["_id"]?.toString() || '',
-                  article_link: item["article_link"],
-                  author_id: item["author_id"]?.toString() || '',
-                }}
-              />
-            );
-          }}
+          renderItem={({ item, index }) => (
+            <Article
+              article={{
+                title: item["article_title"],
+                image: item["article_preview_image"],
+                author: item["author_name"],
+                likes: item["like_count"],
+                saves: item["save_count"],
+                article_id: item["_id"]?.toString() || '',
+                article_link: item["article_link"],
+                author_id: item["author_id"]?.toString() || '',
+              }}
+            />
+          )}
         />
         }
       </View>

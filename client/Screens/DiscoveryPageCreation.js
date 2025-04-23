@@ -27,9 +27,7 @@ const DiscoveryPageCreation = () => {
   const [title, setTitle] = useState(titleValue);
   const [intro, setIntro] = useState(introValue);
 
-
-
-  const handleSubmit = async ()=>{
+  const handleSubmit = async () => {
     try {
       if (brandName.trim().length == 0) {
         Alert.alert("Error", "Brand Name cannot be empty");
@@ -40,34 +38,30 @@ const DiscoveryPageCreation = () => {
       } else if (intro.trim().length == 0) {
         Alert.alert("Error", "Organization Bio cannot be empty");
       } else {   
-      const response = await updateDispcoveryInfo(userInfo["_id"],brandName,shopNowLink,title,intro)
-      if (response.status == 200) {
-        Alert.alert(response.data.message);
-        dispatch(setUserInfo(response.data.user));
-      } else {
-        Alert.alert('Error', response.data.message);
+        const response = await updateDispcoveryInfo(userInfo["_id"], brandName, shopNowLink, title, intro)
+        if (response.status == 200) {
+          Alert.alert(response.data.message);
+          dispatch(setUserInfo(response.data.user));
+        } else {
+          Alert.alert('Error', response.data.message);
+        }
       }
-    }
     } catch (error) {
-      console.error(error);
       Alert.alert('Error', 'An error occurred while creating the discovery page');
     }
   }
   
-
-    return (
-        <ScrollView contentContainerStyle={styles.scrollContainer}>
-            <View style={styles.container}>
-                <TextInput style={styles.input} placeholder="Brand Name" onChangeText={setBrandName} value={brandName}/>
-                <TextInput style={styles.input} placeholder="Shop Now Link" onChangeText={setShopNowLink} value={shopNowLink}/>
-                <TextInput style={styles.input} placeholder="Image URL" onChangeText={setTitle} value={title}/>
-                <TextInput style={styles.input} placeholder="Social Media Link" onChangeText={setIntro} value={intro}/>
-                {/* <Button title="Submit Information" onPress={handleSubmit} onFocus={() => Alert.alert("Please check the information above, you cannot change it later!")}/> */}
-               <AppPrimaryButton title="Submit Information" handleSubmit={handleSubmit}/>
-           
-            </View>
-        </ScrollView>
-    );
+  return (
+    <ScrollView contentContainerStyle={styles.scrollContainer}>
+      <View style={styles.container}>
+        <TextInput style={styles.input} placeholder="Brand Name" onChangeText={setBrandName} value={brandName}/>
+        <TextInput style={styles.input} placeholder="Shop Now Link" onChangeText={setShopNowLink} value={shopNowLink}/>
+        <TextInput style={styles.input} placeholder="Image URL" onChangeText={setTitle} value={title}/>
+        <TextInput style={styles.input} placeholder="Social Media Link" onChangeText={setIntro} value={intro}/>
+        <AppPrimaryButton title="Submit Information" handleSubmit={handleSubmit}/>
+      </View>
+    </ScrollView>
+  );
 }
 
 const styles = StyleSheet.create({

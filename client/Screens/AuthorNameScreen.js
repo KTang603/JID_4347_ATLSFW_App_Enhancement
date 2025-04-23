@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import axios from 'axios';
 import MY_IP_ADDRESS from "../environment_variables.mjs";
 import { useSelector } from "react-redux";
@@ -26,15 +26,15 @@ const AuthorNameScreen = ({ route }) => {
         if (response.status === 200) {
           setAuthorInfo(response.data);
         } else {
-          console.error('Failed to fetch author information');
+          Alert.alert('Error', 'Failed to fetch author information');
         }
       } catch (error) {
-        console.error(error);
+        Alert.alert('Error', 'Failed to fetch author information');
       }
     };
 
     fetchAuthorInfo();
-  },);
+  }, [author_id, MY_IP_ADDRESS]);
 
   return (
     <View style={styles.container}>
@@ -80,7 +80,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 120,
     color: 'blue',
   },
-
 });
 
 export default AuthorNameScreen;

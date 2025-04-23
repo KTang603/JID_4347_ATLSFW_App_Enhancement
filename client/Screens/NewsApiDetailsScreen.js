@@ -38,10 +38,8 @@ const makeRequest = async (method, url, data = null, token = null) => {
  
   try {
     const response = await axios(config);
-    console.log('Response:', response.data);
     return response;
   } catch (error) {
-    console.error('Request failed:', error);
     throw error;
   }
 };
@@ -70,7 +68,7 @@ const NewsApiDetailsScreen = () => {
           setNewsApiKey(response.data.data.api_key);
         }
       } catch (error) {
-        console.error("Error fetching domains:", error.message);
+        Alert.alert('Error', 'Failed to fetch API key');
       }
     };
 
@@ -158,13 +156,11 @@ const NewsApiDetailsScreen = () => {
         source: 'Manual'
       };
       
-      console.log('Sending article data:', articleData);
-    
-    // Check if author_id is available
-    if (!articleData.author_id) {
-      Alert.alert('Error', 'User ID not available. Please try logging out and logging back in.');
-      return;
-    }
+      // Check if author_id is available
+      if (!articleData.author_id) {
+        Alert.alert('Error', 'User ID not available. Please try logging out and logging back in.');
+        return;
+      }
       const response = await makeRequest('post', '/posts/create', articleData, token);
 
       if (response.data.success) {
@@ -192,15 +188,6 @@ const NewsApiDetailsScreen = () => {
           onChangeText={setNewsApiKey}
           secureTextEntry={false}
         />
-        {/* <TextInput
-          placeholder="Enter search query (e.g., fashion)"
-          style={[styles.input, { marginBottom: 5 }]}
-          value={newDomain}
-          onChangeText={setNewDomain}
-        /> */}
-        {/* <Text style={styles.apiQueryText}>
-          {`https://newsdata.io/api/1/latest?apikey=${newsApiKey || '[API_KEY]'}&q=${newDomain || '[QUERY]'}&language=en`}
-        </Text> */}
 
         <AppPrimaryButton 
           title="Save"

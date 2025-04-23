@@ -251,7 +251,6 @@ const EventsScreen = () => {
       const response = await getAllEvent({ token, navigation });
       setEvents(response.data.event);
     } catch (error) {
-      console.error("Error loading events:", error);
       Alert.alert("Error", "Failed to load events");
     } finally {
       setRefreshing(false);
@@ -319,7 +318,6 @@ const EventsScreen = () => {
         Alert.alert("Error", data.message || "Failed to delete event");
       }
     } catch (error) {
-      console.error("Error deleting event:", error);
       Alert.alert("Error", "Failed to delete event");
     } finally {
       setDeleteConfirmVisible(false);
@@ -357,7 +355,6 @@ const EventsScreen = () => {
         }
       }
     } catch (error) {
-      console.error("Error adding participant:", error);
       Alert.alert("Error", "Failed to register interest");
     }
   }, [_id, token, selectedEvent]);
@@ -386,9 +383,7 @@ const EventsScreen = () => {
       try {
         await fetchEvents();
       } catch (error) {
-        if (mounted) {
-          console.error("Error in initial load:", error);
-        }
+        // Handle error silently
       }
     };
 
@@ -489,12 +484,6 @@ const EventsScreen = () => {
     
     return "No events match your current filters";
   }, [sortOption, selectedDate]);
-
-  // Add the debug code here, just before the loading check
-  console.log("User roles:", userInfo?.user_roles);
-  console.log("ACCOUNT_TYPE_ADMIN:", ACCOUNT_TYPE_ADMIN);
-  console.log("isAdmin status:", isAdmin);
-  console.log("User info:", userInfo);
 
   // Loading state
   if (initialLoading) {
@@ -749,6 +738,9 @@ const styles = StyleSheet.create({
     width: "100%",
     backgroundColor: "white",
   },
+  calendar: {
+    marginBottom: 10,
+  },
   addEventButtonContainer: {
     width: "80%",
     alignSelf: "center",
@@ -919,16 +911,13 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#333',
     flex: 1,
-  },
-  closeButton: {
-    padding: 5,
+    paddingRight: 10,
   },
   eventDetailsScrollView: {
-    paddingVertical: 10,
+    padding: 15,
   },
   eventDetailSection: {
     marginBottom: 20,
-    paddingHorizontal: 15,
   },
   eventDetailLabel: {
     fontSize: 14,
@@ -946,73 +935,60 @@ const styles = StyleSheet.create({
     color: '#0066cc',
     marginTop: 5,
   },
+  linkButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 5,
+  },
+  closeButton: {
+    padding: 5,
+  },
   thankYouContainer: {
-    backgroundColor: '#e6f7ff',
-    borderRadius: 5,
+    backgroundColor: '#e8f5e9',
     padding: 15,
+    borderRadius: 8,
     alignItems: 'center',
   },
   thankYouText: {
-    color: '#0066cc',
+    color: '#2e7d32',
     fontSize: 16,
     fontWeight: '500',
   },
-  noEventsText: {
-    fontSize: 14,
-    color: "#666",
-    fontStyle: "italic",
-    textAlign: "center",
-    padding: 20,
-  },
   sortFilterContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginVertical: 15,
+    paddingHorizontal: 16,
+    marginBottom: 10,
   },
   sortButtonsContainer: {
     flexDirection: 'row',
-    backgroundColor: 'white',
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    padding: 0,
-    width: 160,
-    height: 36,
-    overflow: 'hidden',
+    justifyContent: 'center',
+    marginVertical: 10,
   },
   sortButton: {
-    flex: 1,
     paddingVertical: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'white',
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    marginHorizontal: 5,
+    backgroundColor: '#f0f0f0',
   },
   sortButtonActive: {
-    backgroundColor: '#f0f8f6',
+    backgroundColor: '#097969',
   },
   sortButtonText: {
-    fontSize: 13,
-    fontWeight: '500',
     color: '#666',
+    fontWeight: '500',
   },
   sortButtonTextActive: {
-    color: '#097969',
-    fontWeight: '600',
+    color: 'white',
   },
   emptyStateContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
     padding: 20,
-    marginTop: 20,
-    width: '90%',
+    alignItems: 'center',
   },
   noEventsText: {
-    fontSize: 14,
-    color: "#666",
-    fontStyle: "italic",
-    textAlign: "center",
-    lineHeight: 20,
-  }
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+  },
 });
 
-export default React.memo(EventsScreen);
+export default EventsScreen;

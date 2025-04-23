@@ -165,17 +165,12 @@ const AdminDataListScreen = () => {
       };
       const endpoint = endpoints[listType];
       try {
-       console.log(`Fetching data from endpoint: http://${MY_IP_ADDRESS}:5050${endpoint}`);
-       console.log(`Token: ${token ? 'Token exists' : 'No token'}`);
-       
        const response = await axios.get(`http://${MY_IP_ADDRESS}:5050${endpoint}`, {
          headers: {
            'Authorization': `Bearer ${token}`
          }
        });
         
-       console.log(`List type: ${listType}, Response data:`, JSON.stringify(response.data));
-       
         setLoading(false);
         if (response.status == 200) {
           let responseData = response.data; 
@@ -201,33 +196,7 @@ const AdminDataListScreen = () => {
               .slice(0, 10); // Limit to 10 articles
           }
           
-          setData(responseData); //USERS //VENDORS
-
-          // let responseData = [];
-          // if (Array.isArray(response.data)) {
-          //   responseData = response.data; //NEWS 
-          // } else if (response.data.data && Array.isArray(response.data.data)) {
-          //   responseData = response.data.data;
-          // } else if (response.data.success && response.data.results && Array.isArray(response.data.results)) {
-          //   responseData = response.data.results;
-          // } else {
-          //   // Try to extract any array in the response
-          //   const possibleArrays = Object.values(response.data).filter(val => Array.isArray(val));
-          //   if (possibleArrays.length > 0) {
-          //     responseData = possibleArrays[0];
-          //   }
-        //  }
-          
-          // If this is the users list, sort by user type: users first, then vendors, then admins
-          // if (listType === "users" && responseData.length > 0) {
-          //   responseData.sort((a, b) => {
-          //     // Sort order: User (1) -> Vendor (2) -> Admin (3)
-          //     const roleA = a.user_roles || 0;
-          //     const roleB = b.user_roles || 0;
-          //     return roleA - roleB;
-          //   });
-          // }
-          
+          setData(responseData);
         } else {
           setData([]);
         }
