@@ -3,14 +3,6 @@ import { posts_db, users_db } from "../db/conn.mjs";
 import jwt from "jsonwebtoken";
 import { ADMIN_ROLES, VENDOR_ROLES, ACTIVATE_STATUS, DEACTIVATE_STATUS } from "../utils/constant.mjs";
 
-/*
-enum AccountType {
-  Vendor,
-  Admin,
-  General,
-}
-*/
-
 const router = express.Router();
 
 router.post("/", async (req, res) => {
@@ -78,8 +70,8 @@ router.post("/", async (req, res) => {
     
     const token = jwt.sign(
       tokenPayload,
-      process.env.JWT_SECRET || "your-secret-key"
-      // { expiresIn: '24h' }
+      process.env.JWT_SECRET,
+      { expiresIn: '24h' }
     );
 
     res.status(200).json({
@@ -89,8 +81,11 @@ router.post("/", async (req, res) => {
       token: token,
     });
   } catch (error) {
-    console.error("Error during login:", error);
-    res.status(500).json({ success: false, message: "Internal Server Error" });
+    res.status(500).json({ 
+      success: false, 
+      message: "Internal Server Error",
+      error: error.message
+    });
   }
 });
 

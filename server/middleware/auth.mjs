@@ -13,7 +13,7 @@ export const verifyToken = async (req, res, next) => {
 
     const decoded = jwt.verify(
       token,
-      process.env.JWT_SECRET || "your-secret-key"
+      process.env.JWT_SECRET
     );
 
     if (!decoded.id || !decoded.accountType) {
@@ -27,7 +27,6 @@ export const verifyToken = async (req, res, next) => {
 
     next();
   } catch (error) {
-    console.error("Token verification error:", error);
     return res
       .status(401)
       .json({ message: "Invalid token", error: error.message });
@@ -69,7 +68,6 @@ export const checkUserStatus = async (req, res, next) => {
     // User is active, proceed
     next();
   } catch (error) {
-    console.error("Error checking user status:", error);
     return res.status(500).json({ 
       message: "Error checking user status", 
       error: error.message 
