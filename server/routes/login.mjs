@@ -70,7 +70,7 @@ router.post("/", async (req, res) => {
     
     const token = jwt.sign(
       tokenPayload,
-      process.env.JWT_SECRET,
+      process.env.JWT_SECRET || "your-secret-key",
       { expiresIn: '24h' }
     );
 

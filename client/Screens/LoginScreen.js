@@ -22,6 +22,14 @@ const LoginScreen = ({navigation}) => {
       Alert.alert('Error', 'Please enter both email and password');
       return;
     }
+    
+    // Clear any existing tokens before login attempt
+    try {
+      await tokenService.clearAll();
+    } catch (tokenError) {
+      // Continue with login even if token clearing fails
+    }
+    
     setIsLoading(true);
     try {
       const normalizedEmail = normalizeEmail(email);

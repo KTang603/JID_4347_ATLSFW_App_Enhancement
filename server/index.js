@@ -15,6 +15,9 @@ import news from "./routes/news.mjs";
 import event from "./routes/event.mjs";
 import home from "./routes/home.mjs";
 
+// Set JWT secret for token generation and validation
+process.env.JWT_SECRET = "your-secret-key";
+
 const app = express();
 const PORT = process.env.PORT || 5050;
 app.use(cors());
